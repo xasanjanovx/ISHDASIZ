@@ -244,7 +244,7 @@ export default function JobSeekerProfilePage() {
         profile.full_name,
         profile.birth_date,
         profile.phone,
-        profile.district,
+        profile.district_id,
         profile.about
     ].filter(Boolean).length * 20;
 
