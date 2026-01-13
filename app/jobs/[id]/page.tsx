@@ -444,7 +444,7 @@ export default function JobDetailPage() {
                 )}
               </Button>
               {/* Apply Button - only for job seekers, NOT for employers */}
-              {user?.role !== 'employer' && (
+              {user?.active_role !== 'employer' && (
                 <Button
                   onClick={() => setDialogOpen(true)}
                   disabled={hasApplied}
