@@ -28,7 +28,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('ishdasiz-lang', newLang);
   };
 
-  const t = translations[lang];
+  // Map uzCyrillic to uz for translations lookup
+  const translationKey = lang === 'uzCyrillic' ? 'uz' : lang;
+  const t = translations[translationKey];
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>

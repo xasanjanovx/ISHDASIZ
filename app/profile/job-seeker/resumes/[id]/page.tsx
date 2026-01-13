@@ -128,6 +128,7 @@ export default function EditResumePage() {
                     full_name: data.full_name || '',
                     birth_date: data.birth_date || '',
                     phone: data.phone || '',
+                    region_id: data.region_id ? String(data.region_id) : '',
                     district_id: data.district_id || '',
                     category_id: data.category_id || '',
                     experience_level: data.experience || 'no_experience',

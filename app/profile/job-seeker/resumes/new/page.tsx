@@ -340,8 +340,8 @@ export default function NewResumePage() {
                         })
                         .filter(Boolean) // Remove nulls
                         // Unique values
-                        .filter((value, index, self) => self.indexOf(value) === index)
-                        .map((val: string, i: number) => ({
+                        .filter((value: string | null, index: number, self: (string | null)[]) => self.indexOf(value) === index)
+                        .map((val: string | null, i: number) => ({
                             id: `ai-${Date.now()}-${i}`,
                             name: val,
                             level: 'intermediate'
