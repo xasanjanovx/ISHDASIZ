@@ -7,7 +7,7 @@ import { ProfileLayout } from '@/components/profile/profile-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus, Eye, Edit3, Trash2, MoreVertical, Loader2, MapPin, Briefcase, Banknote, Clock, CheckCircle, PartyPopper } from '@/components/ui/icons';
+import { FileText, Plus, Eye, Edit3, Trash2, MoreVertical, Loader2, MapPin, Briefcase, Banknote, Clock, CheckCircle } from '@/components/ui/icons';
 import { Switch } from '@/components/ui/switch';
 import { formatSalary } from '@/lib/constants';
 import {
