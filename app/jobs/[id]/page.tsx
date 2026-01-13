@@ -399,10 +399,10 @@ export default function JobDetailPage() {
                 )}
                 {job.employment_type && (
                   <Badge className="bg-indigo-500/20 text-indigo-100 border-indigo-500/30 backdrop-blur-sm px-3 py-1 font-medium capitalize">
-                    {job.employment_type === 'full_time' ? (lang === 'uz' ? 'To\'liq stavka' : 'Полная занятость') :
-                      job.employment_type === 'part_time' ? (lang === 'uz' ? 'Yarim stavka' : 'Частичная занятость') :
-                        job.employment_type === 'contract' ? (lang === 'uz' ? 'Shartnoma' : 'Контракт') :
-                          job.employment_type === 'freelance' ? 'Freelance' : job.employment_type}
+                    {(job.employment_type as string) === 'full_time' ? (lang === 'uz' ? 'To\'liq stavka' : 'Полная занятость') :
+                      (job.employment_type as string) === 'part_time' ? (lang === 'uz' ? 'Yarim stavka' : 'Частичная занятость') :
+                        (job.employment_type as string) === 'contract' ? (lang === 'uz' ? 'Shartnoma' : 'Контракт') :
+                          (job.employment_type as string) === 'freelance' ? 'Freelance' : job.employment_type}
                   </Badge>
                 )}
               </div>
