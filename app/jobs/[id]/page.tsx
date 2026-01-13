@@ -47,7 +47,6 @@ import {
   GraduationCap,
   Briefcase,
   Calendar,
-  Gift,
   ChevronRight,
 } from '@/components/ui/icons';
 import { Switch } from '@/components/ui/switch';
