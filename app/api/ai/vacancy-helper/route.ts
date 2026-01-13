@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+let openai: OpenAI | null = null;
+
+function getOpenAI() {
+    if (!openai && process.env.OPENAI_API_KEY) {
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+    return openai;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -58,7 +66,7 @@ ${districtsList}
 Agar matnda ma'lumot bo'lmasa, null yoki default qiymat qo'y.
 Faqat JSON javob ber, boshqa izoh kerak emas.`;
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -119,7 +127,7 @@ BIZ TAKLIF QILAMIZ:
 
 Faqat matnni yoz, qo'shimcha tushuntirishlar kerak emas.`;
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -152,7 +160,7 @@ ${description}
 
 Yaxshilangan versiyani yoz:`;
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },

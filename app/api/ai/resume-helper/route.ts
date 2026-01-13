@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+let openai: OpenAI | null = null;
+
+function getOpenAI() {
+    if (!openai && process.env.OPENAI_API_KEY) {
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+    return openai;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -37,7 +45,7 @@ export async function POST(request: NextRequest) {
             
             Faqat matnni yoz.`;
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -71,7 +79,7 @@ export async function POST(request: NextRequest) {
             
             Faqat ro'yxatni yoz.`;
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -94,7 +102,7 @@ export async function POST(request: NextRequest) {
 
             const prompt = `"${title}" lavozimi uchun eng muhim 10 ta professional ko'nikmani (hard skills & soft skills) vergul bilan ajratib yoz. Faqat ko'nikmalar nomini yoz.`;
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -149,7 +157,7 @@ export async function POST(request: NextRequest) {
             `;
 
 
-            const completion = await openai.chat.completions.create({
+            const completion = await getOpenAI()!.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: "Sen ma'lumotlarni strukturalashtiruvchi AI yordamchisan. Faqat valid JSON qaytar." },
