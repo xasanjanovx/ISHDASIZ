@@ -393,7 +393,6 @@ export default function EditJobPage() {
         description_ru: formData.tasks_requirements,
         company_name: formData.company_name,
         category_id: formData.category_id,
-        category_id: formData.category_id,
         region_id: formData.region_id ? parseInt(formData.region_id) : null,
         district_id: formData.district_id || null, // Keep as string for text column
         salary_min: formData.salary_negotiable ? null : (formData.salary_min ? parseInt(formData.salary_min) : null),
