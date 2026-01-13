@@ -1,0 +1,18 @@
+[build]
+command = "npx next build"
+publish = ".next"
+
+[[plugins]]
+package = "@netlify/plugin-nextjs"
+
+[context.production.environment]
+NEXT_PUBLIC_SUPABASE_URL = "https://awkjrolplhvrscuqqive.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3a2pyb2xwbGh2cnNjdXFxaXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MjAwMjcsImV4cCI6MjA4MjI5NjAyN30.-Qjx6DJutCkTw0HupZBai7tqcrLfSMn3nYdL-r-FC8c"
+
+[context.deploy-preview.environment]
+NEXT_PUBLIC_SUPABASE_URL = "https://awkjrolplhvrscuqqive.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3a2pyb2xwbGh2cnNjdXFxaXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MjAwMjcsImV4cCI6MjA4MjI5NjAyN30.-Qjx6DJutCkTw0HupZBai7tqcrLfSMn3nYdL-r-FC8c"
+
+[context.branch-deploy.environment]
+NEXT_PUBLIC_SUPABASE_URL = "https://awkjrolplhvrscuqqive.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3a2pyb2xwbGh2cnNjdXFxaXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MjAwMjcsImV4cCI6MjA4MjI5NjAyN30.-Qjx6DJutCkTw0HupZBai7tqcrLfSMn3nYdL-r-FC8c"
