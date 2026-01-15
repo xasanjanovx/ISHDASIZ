@@ -20,10 +20,14 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<JobWithRelations[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
-  // const [districts, setDistricts] = useState<District[]>([]); // Moved to filter component
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // Pagination
+  const PAGE_SIZE = 12;
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedRegion, setSelectedRegion] = useState(searchParams.get('region') || 'all');
@@ -58,9 +62,10 @@ export default function JobsPage() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
 
+    // Build base query with count
     let query = supabase
       .from('jobs')
-      .select('*, categories(*), districts(*, regions(*))')
+      .select('*, categories(*), districts(*, regions(*))', { count: 'exact' })
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -69,6 +74,9 @@ export default function JobsPage() {
     if (selectedSpecialCategories.length > 0) {
       if (selectedSpecialCategories.includes('students')) {
         query = query.eq('is_for_students', true);
+      }
+      if (selectedSpecialCategories.includes('graduates')) {
+        query = query.eq('is_for_graduates', true);
       }
       if (selectedSpecialCategories.includes('disabled')) {
         query = query.eq('is_for_disabled', true);
@@ -79,8 +87,6 @@ export default function JobsPage() {
     }
 
     if (selectedCategory !== 'all') {
-      // NOTE: 'students', 'disabled', 'women' are no longer in selectedCategory (Category Select), they are in Special Categories
-      // But we process category_id here for general categories
       query = query.eq('category_id', selectedCategory);
     }
     if (selectedRegion !== 'all') {
@@ -104,38 +110,32 @@ export default function JobsPage() {
 
 
     // Filter by Salary
-    // Filter by Salary
     if (salaryRange[0] > 0) {
-      // Show jobs where the Maximum salary is at least the user's Minimum requirement
-      // OR jobs where Maximum salary is not specified (Negotiable/Unlimited)
       query = query.or(`salary_max.gte.${salaryRange[0]},salary_max.is.null`);
     }
     if (salaryRange[1] < 20000000) {
-      // Show jobs where the Minimum salary is at most the user's Maximum budget/expectation
-      // OR jobs where Minimum salary is not specified
       query = query.or(`salary_min.lte.${salaryRange[1]},salary_min.is.null`);
     }
 
-    const { data, error } = await query;
-    console.log('Jobs query result:', data?.length, 'Error:', error);
-
-    let filteredJobs = data || [];
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      filteredJobs = filteredJobs.filter(
-        (job) =>
-          job.title_uz?.toLowerCase().includes(q) ||
-          job.title_ru?.toLowerCase().includes(q) ||
-          job.description_uz?.toLowerCase().includes(q) ||
-          job.description_ru?.toLowerCase().includes(q) ||
-          job.company_name?.toLowerCase().includes(q)
-      );
+    // Search Query (Server-side)
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      query = query.or(`title_uz.ilike.%${q}%,title_ru.ilike.%${q}%,description_uz.ilike.%${q}%,description_ru.ilike.%${q}%,company_name.ilike.%${q}%`);
     }
 
+    // Add pagination
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+    console.log('Jobs query result:', data?.length, 'Total:', count, 'Error:', error);
+
+    const filteredJobs = data || [];
     setJobs(filteredJobs);
+    setTotalCount(count || 0);
     setLoading(false);
-  }, [selectedCategory, selectedDistrict, selectedRegion, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, searchQuery]);
+  }, [selectedCategory, selectedDistrict, selectedRegion, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, searchQuery, page]);
 
 
 
@@ -189,6 +189,11 @@ export default function JobsPage() {
     return () => clearTimeout(timeoutId);
   }, [updateURL]);
 
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, selectedRegion, selectedDistrict, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, searchQuery]);
+
   const clearFilters = () => {
     setSelectedCategory('all');
     setSelectedRegion('all');
@@ -200,23 +205,32 @@ export default function JobsPage() {
     setSelectedEducation('all');
     setSelectedGender('all');
     setSearchQuery('');
+    setPage(1);
   };
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="bg-gradient-to-r from-sky-600 to-sky-700 text-white py-8">
-        <div className="container mx-auto px-4">
-          <h1 className="text-2xl md:text-3xl font-bold mb-4 text-white relative z-10">{t.nav.jobs}</h1>
+      <div className="bg-indigo-900 text-white py-10 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl opacity-20"></div>
+          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl opacity-20"></div>
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">{t.nav.jobs}</h1>
           <div className="flex gap-2 max-w-2xl">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t.hero.searchPlaceholder}
-                className="pl-10 h-12 bg-white text-slate-900 border-0"
+                className="pl-12 h-14 bg-white text-slate-900 border-0 rounded-2xl shadow-xl shadow-indigo-900/20 text-lg"
               />
             </div>
           </div>
@@ -225,7 +239,7 @@ export default function JobsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          <aside className="lg:w-72 flex-shrink-0">
+          <aside className="lg:w-72 flex-shrink-0 sticky top-24 self-start max-h-[calc(100vh-120px)] overflow-y-auto pr-1 no-scrollbar">
             <JobFilters
               categories={categories}
               regions={regions}
@@ -256,8 +270,8 @@ export default function JobsPage() {
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-slate-600">
                 {lang === 'uz'
-                  ? `${jobs.length} ta vakansiya topildi`
-                  : `Найдено ${jobs.length} вакансий`}
+                  ? `${totalCount} ta vakansiya topildi`
+                  : `Найдено ${totalCount} вакансий`}
               </p>
               <div className="flex items-center gap-2">
                 <Link href="/map">
@@ -299,17 +313,44 @@ export default function JobsPage() {
                 </Button>
               </div>
             ) : (
-              <div
-                className={
-                  viewMode === 'grid'
-                    ? 'grid md:grid-cols-2 gap-4'
-                    : 'flex flex-col gap-4'
-                }
-              >
-                {jobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
+              <>
+                <div
+                  className={
+                    viewMode === 'grid'
+                      ? 'grid md:grid-cols-2 gap-4'
+                      : 'flex flex-col gap-4'
+                  }
+                >
+                  {jobs.map((job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                    >
+                      {lang === 'uz' ? 'Oldingi' : 'Назад'}
+                    </Button>
+                    <span className="text-sm text-slate-600 px-4">
+                      {page} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPages}
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    >
+                      {lang === 'uz' ? 'Keyingi' : 'Далее'}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </main>
         </div>

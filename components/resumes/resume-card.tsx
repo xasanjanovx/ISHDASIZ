@@ -21,14 +21,11 @@ export function ResumeCard({ resume }: ResumeCardProps) {
 
     return (
         <Link href={`/resumes/${resume.id}`} className="group block h-full">
-            <Card className="relative overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border-slate-200/60 hover:border-indigo-200 bg-white h-full flex flex-col shadow-sm">
-                {/* Subtle Gradient Overlay on Hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-transparent to-indigo-500/0 group-hover:from-indigo-500/[0.02] group-hover:to-blue-500/[0.02] transition-all duration-500" />
+            <Card className="relative hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-slate-200 hover:border-blue-300 bg-white h-full flex flex-col">
+                {/* Decorative left accent - Matches JobCard */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 to-indigo-700" />
 
-                {/* Decorative Accent */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-12 -mt-12 opacity-50 group-hover:scale-110 transition-transform duration-500" />
-
-                <CardContent className="p-5 flex flex-col h-full relative z-10">
+                <CardContent className="p-4 flex flex-col h-full relative z-10">
                     {/* Top Row: Date & Status */}
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -102,7 +99,7 @@ export function ResumeCard({ resume }: ResumeCardProps) {
                         )}
                         <div className="flex items-center gap-2 text-indigo-600">
                             <Banknote className="w-3.5 h-3.5" />
-                            <span className="text-sm font-black italic">
+                            <span className="text-sm font-bold">
                                 {(resume.expected_salary_min || resume.expected_salary_max)
                                     ? formatSalary(resume.expected_salary_min, resume.expected_salary_max, lang)
                                     : (lang === 'ru' ? 'Договорная' : 'Kelishiladi')

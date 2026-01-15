@@ -78,6 +78,16 @@ export interface Database {
           gender: string | null;
           benefits: string | null;
           languages: Array<{ language: string; level: string }> | null;
+          // Import system fields
+          source: string;
+          source_id: string | null;
+          source_url: string | null;
+          is_imported: boolean;
+          source_status: 'active' | 'removed_at_source' | 'filled';
+          last_synced_at: string | null;
+          last_seen_at: string | null;
+          last_checked_at: string | null;
+          status: string;
         };
 
         Insert: Omit<Database['public']['Tables']['jobs']['Row'], 'id' | 'created_at' | 'updated_at' | 'views_count'>;

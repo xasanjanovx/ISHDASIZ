@@ -21,6 +21,7 @@ export default function ResumesPage() {
     const [regions, setRegions] = useState<Region[]>([]);
     const [districts, setDistricts] = useState<District[]>([]);
     const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null); // Для отображения ошибок RLS
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
@@ -63,10 +64,10 @@ export default function ResumesPage() {
             }
         }
 
-        // Build Query - simplified select to avoid join error
+        // Build Query - simplified select, enrichResumes handles districts/regions join
         let query = supabase
             .from('resumes')
-            .select('*, districts(*, regions(*))')
+            .select('*')
             .eq('is_public', true) // Only public resumes
             .eq('status', 'active')
             .order('created_at', { ascending: false });
@@ -116,26 +117,71 @@ export default function ResumesPage() {
         }
 
         const { data, error } = await query;
-        if (error) {
-            console.error('Error fetching resumes:', error);
-            // Fallback or empty
-        } else {
-            // Enrich resumes with district and region info in-memory
-            const enrichedData = (data || []).map(resume => {
+
+        // Функция обогащения резюме данными о location
+        const enrichResumes = (resumeList: any[]) => {
+            return resumeList.map(resume => {
                 if (resume.district_id) {
                     const district = currentDistricts.find(d => d.id === resume.district_id);
                     const region = currentRegions.find(r => r.id === district?.region_id);
                     return {
                         ...resume,
-                        districts: district ? {
-                            ...district,
-                            regions: region
-                        } : null
+                        districts: district ? { ...district, regions: region } : null
                     };
                 }
                 return resume;
             });
+        };
 
+        if (error) {
+            console.error('Error fetching resumes:', error);
+            // Показываем понятную ошибку пользователю (возможно RLS)
+            if (error.code === 'PGRST301' || error.message?.includes('permission')) {
+                setErrorMessage(lang === 'uz'
+                    ? "Ruxsat cheklangan (xavfsizlik siyosati). Admin bilan bog'laning."
+                    : 'Доступ ограничен (политики безопасности). Свяжитесь с администратором.');
+            } else {
+                setErrorMessage(lang === 'uz'
+                    ? "Ma'lumotlarni yuklashda xatolik yuz berdi"
+                    : 'Ошибка при загрузке данных');
+            }
+            setResumes([]);
+        } else if (!data || data.length === 0) {
+            // Fallback: попробуем без status filter
+            console.debug('[RESUMES] Основной запрос вернул 0, пробуем fallback без status');
+            const fallbackQuery = supabase
+                .from('resumes')
+                .select('*, districts(*, regions(*))')
+                .eq('is_public', true)
+                .order('created_at', { ascending: false })
+                .limit(20);
+            const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+
+            if (fallbackError) {
+                console.error('Fallback query error:', fallbackError);
+                setErrorMessage(lang === 'uz'
+                    ? "Rezyumelar topilmadi"
+                    : 'Резюме не найдены');
+                setResumes([]);
+            } else {
+                // Используем fallbackData!
+                setErrorMessage(null);
+                const enrichedData = enrichResumes(fallbackData || []);
+                let filtered = enrichedData;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    filtered = filtered.filter(r =>
+                        r.title?.toLowerCase().includes(q) ||
+                        r.full_name?.toLowerCase().includes(q) ||
+                        r.about?.toLowerCase().includes(q)
+                    );
+                }
+                setResumes(filtered);
+            }
+        } else {
+            // Основной запрос вернул данные
+            setErrorMessage(null);
+            const enrichedData = enrichResumes(data);
             let filtered = enrichedData;
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -188,18 +234,26 @@ export default function ResumesPage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white py-8">
-                <div className="container mx-auto px-4">
-                    <h1 className="text-2xl md:text-3xl font-bold mb-4">{lang === 'uz' ? 'Rezyumelar' : 'Резюме'}</h1>
-                    <div className="relative max-w-2xl">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <Input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={lang === 'uz' ? 'Kasb yoki ko\'nikma bo\'yicha qidirish...' : 'Поиск по профессии или навыкам...'}
-                            className="pl-10 h-12 bg-white text-slate-900 border-0 shadow-lg text-base"
-                        />
+            <div className="bg-indigo-900 text-white py-10 relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl opacity-20"></div>
+                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl opacity-20"></div>
+                </div>
+
+                <div className="container mx-auto px-4 relative z-10">
+                    <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">{lang === 'uz' ? 'Rezyumelar' : 'Резюме'}</h1>
+                    <div className="flex gap-2 max-w-2xl">
+                        <div className="relative flex-1 group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                            <Input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder={lang === 'uz' ? 'Kasb yoki ko\'nikma bo\'yicha qidirish...' : 'Поиск по профессии или навыкам...'}
+                                className="pl-12 h-14 bg-white text-slate-900 border-0 rounded-2xl shadow-xl shadow-indigo-900/20 text-lg"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -235,6 +289,22 @@ export default function ResumesPage() {
                         {loading ? (
                             <div className="flex items-center justify-center py-20">
                                 <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+                            </div>
+                        ) : errorMessage ? (
+                            /* Показываем ошибку RLS/доступа */
+                            <div className="text-center py-16 bg-red-50 rounded-xl shadow-sm border border-red-200">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-lg font-semibold text-red-700">
+                                    {lang === 'uz' ? 'Xatolik' : 'Ошибка'}
+                                </h3>
+                                <p className="text-red-600 mt-2 mb-6">{errorMessage}</p>
+                                <Button variant="outline" onClick={clearFilters}>
+                                    {lang === 'uz' ? 'Qayta urinish' : 'Попробовать снова'}
+                                </Button>
                             </div>
                         ) : resumes.length === 0 ? (
                             <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-slate-200">

@@ -22,8 +22,14 @@ async function getHomeData() {
   const categories = categoriesResult.data || [];
   const districts = districtsResult.data || [];
 
+  // FIX: Count jobs per category from ALL active jobs, not just the limited 6
+  const { data: allJobsForCounts } = await supabase
+    .from('jobs')
+    .select('category_id')
+    .eq('is_active', true);
+
   const jobCounts: Record<string, number> = {};
-  jobs.forEach((job) => {
+  (allJobsForCounts || []).forEach((job) => {
     if (job.category_id) {
       jobCounts[job.category_id] = (jobCounts[job.category_id] || 0) + 1;
     }
@@ -86,7 +92,8 @@ export default async function HomePage() {
       <SpecialCategoriesSection counts={specialCounts} />
       <TelegramBanner />
       <CategoriesSection categories={categories} jobCounts={jobCounts} />
-      <StatsCards />
+
+      {/* <StatsCards /> removed as requested */}
       <AiAssistantWidget />
     </>
   );

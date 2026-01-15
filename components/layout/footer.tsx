@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
-import { BadgeCheck, Mail, Phone, MapPin, Shield } from '@/components/ui/icons';
+import { BadgeCheck, Mail, Phone, MapPin, Shield, Send } from '@/components/ui/icons';
 
 export function Footer() {
   const { t, lang } = useLanguage();
@@ -30,8 +30,8 @@ export function Footer() {
             </h3>
             <div className="space-y-2 text-sm text-slate-400">
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                <span>+998 74 223 XX XX</span>
+                <Send className="w-4 h-4 text-blue-400" />
+                <a href="https://t.me/ishdasiz_admin" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors font-medium">@ishdasiz_admin</a>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
