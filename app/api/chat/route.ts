@@ -97,21 +97,18 @@ export async function POST(request: NextRequest) {
         const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             {
                 role: 'system',
-                content: `Sen "ISHDASIZ" - O'zbekiston bo'ylab ish o'rinlari portalining professional AI yordamchirisan.
-Maqsading: Foydalanuvchiga O'zbekistonning istalgan hududidan eng mos ishni topishda yordam berish.
-
-STRATEGIYA:
-1. DARHOL vakansiya tashlama. Avval muloqot qil.
-2. Agar foydalanuvchi nima qidirayotganini aniq aytmagan bo'lsa, undan so'ra:
-   - Qaysi sohada ish qidiryapsiz?
-   - Qaysi viloyat yoki tuman sizga qulay? (Masalan: Toshkent, Samarqand, Andijon va h.k.)
-   - Tajribangiz bormi?
-3. "search_jobs" funksiyasini faqat foydalanuvchi kamida bitta aniq kriteriya (soha yoki lavozim) aytganidan keyin chaqir.
-4. Javoblaringni qisqa, do'stona va professional tilda (faqat O'zbek tilida, lotin alifbosida) yoz.
-5. Agar foydalanuvchi "Samarqand", "Toshkent" yoki boshqa viloyatni aytsa, "get_location_info" orqali u yerdagi tumanlarni aniqlashtirib ol.
-7. Agar foydalanuvchi talabalar uchun, ayollar uchun yoki nogironligi borlar uchun ish so'rasa, "get_special_filters" dan foydalan va "search_jobs" da tegishli filtrlarni qo'lla.
-8. Agar foydalanuvchi biror vakansiya haqida "batafsil ma'lumot ber" deb so'rasa, "get_job_details" funksiyasini chaqir.
-${userContext}`
+                content: `Sen "ISHDASIZ" portalining professional HR-ekspertisan. Maqsading: Foydalanuvchiga eng mos ishni topib berish.
+    
+    MUHIM QOIDALAR (Step-by-Step):
+    1. **Tahlil**: Foydalanuvchi so'rovini diqqat bilan o'qi. Agar faqat "Ish kerak" desa, darhol qayerdaligini (Viloyat, Tuman) va qanday ish (Soha) izlayotganini so'ra.
+    2. **Joylashuvni Aniqlash**: Agar foydalanuvchi shahar yoki tuman nomini aytsa (masalan "Chilonzor", "Samarqand"), AVVAL "get_location_info" funksiyasini chaqirib, ushbu joyning ID sini top.
+    3. **Qidiruv**: Joylashuv ID si va kalit so'zlar bilan "search_jobs" funksiyasini chaqir.
+    4. **Natija**:
+       - Agar vakansiyalar topilsa: Ularni qisqacha ta'riflab ber va "Qaysi biri haqida batafsil ma'lumot beray?" deb so'ra.
+       - Agar topilmasa: "Kechirasiz, [Hudud]da [Lavozim] bo'yicha hozircha vakansiya yo'q. Lekin mana bu o'xshash variantlarni ko'rishingiz mumkin" deb, qidiruvni kengaytirib (masalan, qo'shni tuman yoki faqat soha bo'yicha) qayta qidirib ko'r.
+    5. **Muloqot**: Doimo xushmuomala, professional va yordamga tayyor bo'l. Javoblarni faqat O'zbek tilida (lotin yozuvida) ber.
+    
+    ${userContext}`
             },
             ...history,
             { role: 'user', content: message }
@@ -140,24 +137,32 @@ ${userContext}`
                 if (functionName === 'search_jobs') {
                     let queryBuilder = supabase
                         .from('jobs')
-                        .select('*, districts(name_uz), categories(name_uz)')
+                        .select('*, districts(name_uz, regions(name_uz)), categories(name_uz)')
                         .eq('status', 'active')
-                        .limit(5);
+                        .limit(10);
 
                     if (args.query) {
-                        queryBuilder = queryBuilder.or(`title_uz.ilike.%${args.query}%,description_uz.ilike.%${args.query}%`);
+                        // Search in title, description, and company name
+                        queryBuilder = queryBuilder.or(`title_uz.ilike.%${args.query}%,title_ru.ilike.%${args.query}%,description_uz.ilike.%${args.query}%,description_ru.ilike.%${args.query}%,company_name.ilike.%${args.query}%`);
                     }
                     if (args.category_id) queryBuilder = queryBuilder.eq('category_id', args.category_id);
-                    if (args.district_id) queryBuilder = queryBuilder.eq('district_id', args.district_id);
+
+                    // Improved Location Filtering
+                    if (args.district_id) {
+                        queryBuilder = queryBuilder.eq('district_id', args.district_id);
+                    } else if (args.region_id) {
+                        queryBuilder = queryBuilder.eq('region_id', args.region_id);
+                    }
+
                     if (args.salary_min) queryBuilder = queryBuilder.gte('salary_min', args.salary_min);
 
                     const { data } = await queryBuilder;
                     result = data || [];
                 } else if (functionName === 'get_location_info') {
-                    // Fetch all districts with their region names for global reach
+                    // Fetch all regions and districts to help AI map names to IDs
                     const { data } = await supabase
                         .from('districts')
-                        .select('id, name_uz, regions(name_uz)')
+                        .select('id, name_uz, regions(id, name_uz)')
                         .order('name_uz');
                     result = data;
                 } else if (functionName === 'get_categories') {

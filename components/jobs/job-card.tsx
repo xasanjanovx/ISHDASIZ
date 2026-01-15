@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, Building2, Calendar, Monitor, GraduationCap, Heart, Building2 as Builder, Wheat, Factory, ShoppingBag, Truck, Wallet, Plane, Wrench, Landmark, Briefcase } from '@/components/ui/icons';
 import { formatSalary, formatDate } from '@/lib/constants';
 import { getActiveSpecialCategories } from '@/lib/special-categories';
+import { cleanJobText, normalizeLocation } from '@/lib/text';
 
 const iconMap: any = {
   Monitor,
@@ -32,7 +33,10 @@ export function JobCard({ job }: JobCardProps) {
   const { lang, t } = useLanguage();
 
   const title = lang === 'uz' ? job.title_uz : job.title_ru;
-  const description = lang === 'uz' ? job.description_uz : job.description_ru;
+
+  // Используем cleanJobText из lib/text.ts для очистки описания
+  const rawDescription = lang === 'uz' ? job.description_uz : job.description_ru;
+  const description = cleanJobText(rawDescription) || cleanJobText(job.raw_source_json?.info);
 
   const getEmploymentLabel = (type: string) => {
     switch (type) {
@@ -54,15 +58,18 @@ export function JobCard({ job }: JobCardProps) {
       : job.categories.name_ru
     : '';
 
-  const regionName = lang === 'uz' ? (job as any).districts?.regions?.name_uz : (job as any).districts?.regions?.name_ru;
-  const districtName = lang === 'uz' ? (job as any).districts?.name_uz : (job as any).districts?.name_ru;
-  // Don't add 'vil.' suffix if region name already contains 'viloyati' or 'область'
-  const regionLabel = regionName
-    ? (regionName.toLowerCase().includes('viloyat') || regionName.toLowerCase().includes('область') || regionName.toLowerCase().includes('shahri') || regionName.toLowerCase().includes('город'))
-      ? regionName
-      : (lang === 'uz' ? `${regionName} vil.` : `${regionName} обл.`)
-    : '';
-  const locationLabel = [regionLabel, districtName].filter(Boolean).join(', ');
+  // Location: prefer join data, fallback to text fields (imported jobs)
+  const regionName = lang === 'uz'
+    ? ((job as any).districts?.regions?.name_uz || job.region_name)
+    : ((job as any).districts?.regions?.name_ru || job.region_name);
+  const districtName = lang === 'uz'
+    ? ((job as any).districts?.name_uz || job.district_name)
+    : ((job as any).districts?.name_ru || job.district_name);
+
+  // Используем normalizeLocation из lib/text.ts
+  const cleanRegion = normalizeLocation(regionName);
+  const cleanDistrict = normalizeLocation(districtName);
+  const locationLabel = [cleanRegion, cleanDistrict].filter(Boolean).join(', ');
 
   const IconComponent = job.categories?.icon
     ? iconMap[job.categories.icon] || Briefcase
@@ -92,7 +99,7 @@ export function JobCard({ job }: JobCardProps) {
                 </h3>
                 <div className="flex items-center gap-2 text-slate-600">
                   <Building2 className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm font-medium truncate">{job.company_name}</span>
+                  <span className="text-sm font-medium line-clamp-2">{job.company_name}</span>
                 </div>
               </div>
             </div>
@@ -103,17 +110,19 @@ export function JobCard({ job }: JobCardProps) {
             </div>
           </div>
 
-          {/* Description */}
-          <p className="text-sm text-slate-600 line-clamp-2 mb-4 leading-relaxed h-[2.5rem]">
-            {description}
-          </p>
+          {/* Description - только если есть реальный текст */}
+          {description && (
+            <p className="text-sm text-slate-600 line-clamp-2 mb-4 leading-relaxed">
+              {description}
+            </p>
+          )}
 
           {/* Location and Metadata Pills */}
           <div className="flex flex-wrap items-center gap-2 mb-4 text-xs font-medium">
             {locationLabel && (
               <div className="flex items-center gap-1.5 bg-slate-50 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200">
-                <MapPin className="w-3.5 h-3.5" />
-                {locationLabel}
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{locationLabel}</span>
               </div>
             )}
             {categoryName && (
@@ -125,6 +134,14 @@ export function JobCard({ job }: JobCardProps) {
               <Clock className="w-3.5 h-3.5 text-indigo-500" />
               {employmentLabel}
             </div>
+            {/* Work Mode Badge - только если задан и равен remote/hybrid */}
+            {job.work_mode && job.work_mode !== 'onsite' && (
+              <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full border border-emerald-100">
+                {job.work_mode === 'remote' && (lang === 'uz' ? 'Masofaviy' : 'Удалённо')}
+                {job.work_mode === 'hybrid' && (lang === 'uz' ? 'Aralash' : 'Гибрид')}
+              </div>
+            )}
+
           </div>
 
           {/* Special Categories - with z-index to stay clickable */}
@@ -144,9 +161,21 @@ export function JobCard({ job }: JobCardProps) {
 
           {/* Footer Card */}
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Calendar className="w-3.5 h-3.5" />
-              {formatDate(job.created_at, lang)}
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" />
+                {formatDate(job.created_at, lang)}
+              </div>
+              {/* Views рядом с датой */}
+              {job.views_count > 0 && (
+                <div className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {job.views_count}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1 text-blue-600 text-xs font-bold group-hover:gap-2 transition-all">
               {t.job.details}

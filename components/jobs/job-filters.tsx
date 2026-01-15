@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/language-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,12 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Category, District, Region } from '@/types/database';
 import { EMPLOYMENT_TYPES, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, GENDER_OPTIONS } from '@/lib/constants';
-import { Filter, X } from '@/components/ui/icons';
+import { Filter, X, ChevronDown, ChevronUp } from '@/components/ui/icons';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SPECIAL_CATEGORIES } from '@/lib/special-categories';
 import { LocationSelect } from '@/components/ui/location-select';
 // import { getDistricts } from '@/lib/regions';
-import { useState } from 'react';
 
 interface JobFiltersProps {
   categories: Category[];
@@ -196,102 +196,105 @@ export function JobFilters({
           </Select>
         </div>
 
-        {/* 5. Salary */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">{t.filters.salary}</Label>
+        {/* Все фильтры показываются сразу без accordion */}
+        <>
+          {/* 5. Salary */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">{t.filters.salary}</Label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                placeholder={lang === 'uz' ? 'Dan' : 'От'}
+                value={salaryRange[0] === 0 ? '' : salaryRange[0]}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : 0;
+                  onSalaryRangeChange([val, salaryRange[1]]);
+                }}
+                className="h-10"
+              />
+              <Input
+                type="number"
+                placeholder={lang === 'uz' ? 'Gacha' : 'До'}
+                value={salaryRange[1] >= 20000000 ? '' : salaryRange[1]}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : 20000000;
+                  onSalaryRangeChange([salaryRange[0], val]);
+                }}
+                className="h-10"
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="number"
-              placeholder={lang === 'uz' ? 'Dan' : 'От'}
-              value={salaryRange[0] === 0 ? '' : salaryRange[0]}
-              onChange={(e) => {
-                const val = e.target.value ? parseInt(e.target.value) : 0;
-                onSalaryRangeChange([val, salaryRange[1]]);
-              }}
-              className="h-10"
-            />
-            <Input
-              type="number"
-              placeholder={lang === 'uz' ? 'Gacha' : 'До'}
-              value={salaryRange[1] >= 20000000 ? '' : salaryRange[1]}
-              onChange={(e) => {
-                const val = e.target.value ? parseInt(e.target.value) : 20000000;
-                onSalaryRangeChange([salaryRange[0], val]);
-              }}
-              className="h-10"
-            />
+
+          {/* 6. Experience */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {lang === 'uz' ? 'Tajriba' : 'Опыт работы'}
+            </Label>
+            <Select value={selectedExperience} onValueChange={onExperienceChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой опыт'}
+                </SelectItem>
+                {EXPERIENCE_OPTIONS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {lang === 'uz' ? level.label_uz : level.label_ru}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        {/* 6. Experience */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">
-            {lang === 'uz' ? 'Tajriba' : 'Опыт работы'}
-          </Label>
-          <Select value={selectedExperience} onValueChange={onExperienceChange}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой опыт'}
-              </SelectItem>
-              {EXPERIENCE_OPTIONS.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  {lang === 'uz' ? level.label_uz : level.label_ru}
+          {/* 7. Education */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {lang === 'uz' ? "Ta'lim" : 'Образование'}
+            </Label>
+            <Select value={selectedEducation} onValueChange={onEducationChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {lang === 'uz' ? 'Ahamiyatsiz' : 'Не важно'}
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                {EDUCATION_OPTIONS.filter(l => l.value !== 'any').map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {lang === 'uz' ? level.label_uz : level.label_ru}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* 7. Education */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">
-            {lang === 'uz' ? "Ta'lim" : 'Образование'}
-          </Label>
-          <Select value={selectedEducation} onValueChange={onEducationChange}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                {lang === 'uz' ? 'Ahamiyatsiz' : 'Не важно'}
-              </SelectItem>
-              {EDUCATION_OPTIONS.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  {lang === 'uz' ? level.label_uz : level.label_ru}
+          {/* 8. Gender */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {lang === 'uz' ? 'Jins' : 'Пол'}
+            </Label>
+            <Select value={selectedGender} onValueChange={onGenderChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой'}
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                {GENDER_OPTIONS.filter(o => o.value !== 'any').map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {lang === 'uz' ? option.label_uz : option.label_ru}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* 8. Gender */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">
-            {lang === 'uz' ? 'Jins' : 'Пол'}
-          </Label>
-          <Select value={selectedGender} onValueChange={onGenderChange}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой'}
-              </SelectItem>
-              {GENDER_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {lang === 'uz' ? option.label_uz : option.label_ru}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 9. Special Categories - Last */}
+          {/* 9. Special Categories - вынесены за аккордеон */}
+        </>
         <div className="space-y-3 pt-2 border-t">
           <Label className="text-sm font-medium">
             {lang === 'uz' ? 'Alohida toifalar' : 'Особые категории'}

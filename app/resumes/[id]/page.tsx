@@ -199,48 +199,48 @@ export default function ResumeDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            {/* Profile Hero Section */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 py-5 md:py-6 text-white">
+        <div className="min-h-screen bg-white">
+            {/* Profile Hero Section - Solid Indigo Gradient (Matches Job Page) */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 py-6 md:py-8 text-white">
                 {/* Background Patterns */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
-                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-sky-400 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
+                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-400 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
                 </div>
 
                 <div className="container relative mx-auto px-4">
                     <Button
                         variant="ghost"
                         onClick={() => router.back()}
-                        className="text-white/70 hover:text-white hover:bg-white/10 mb-4 -ml-2 transition-colors"
+                        className="text-white/70 hover:text-white hover:bg-white/10 mb-6 -ml-2 transition-colors"
                     >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        <ArrowLeft className="w-5 h-5 mr-2" />
                         {lang === 'uz' ? 'Orqaga' : 'Назад'}
                     </Button>
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                        <div className="flex flex-col md:flex-row gap-5 md:items-center">
-                            {/* Profile Avatar Placeholder - Professional Initials */}
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-3xl md:text-4xl font-bold shadow-2xl">
+                        <div className="flex flex-col md:flex-row gap-6 md:items-center">
+                            {/* Profile Avatar Placeholder - Solid White/Indigo */}
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-3xl md:text-4xl font-bold text-white shadow-xl">
                                 {resume.full_name.charAt(0)}
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <div className="flex flex-wrap gap-2">
-                                    <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/20 backdrop-blur-sm px-2.5 py-0.5 text-xs font-medium capitalize">
+                                    <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/20 backdrop-blur-sm px-3 py-1 text-xs font-bold capitalize">
                                         {getEducationLabel(resume.education_level)}
                                     </Badge>
-                                    <Badge className="bg-indigo-500/20 text-indigo-100 border-indigo-500/30 backdrop-blur-sm px-2.5 py-0.5 text-xs font-medium capitalize">
+                                    <Badge className="bg-indigo-500/20 text-indigo-100 border-indigo-500/30 backdrop-blur-sm px-3 py-1 text-xs font-bold capitalize">
                                         {getExperienceLabel(resume.experience)}
                                     </Badge>
                                 </div>
-                                <h1 className="text-xl md:text-2xl font-extrabold tracking-tight leading-tight">
+                                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
                                     {resume.title}
                                 </h1>
-                                <div className="flex flex-wrap items-center gap-4 text-indigo-100/80 text-sm md:text-base">
+                                <div className="flex flex-wrap items-center gap-5 text-indigo-100/90 text-sm font-medium">
                                     <div className="flex items-center gap-2">
                                         <User className="w-4 h-4 text-indigo-300" />
-                                        <span className="font-semibold text-white">{resume.full_name}</span>
+                                        <span>{resume.full_name}</span>
                                     </div>
                                     {districtName && (
                                         <div className="flex items-center gap-2">
@@ -261,9 +261,9 @@ export default function ResumeDetailPage() {
                         <div className="w-full md:w-auto">
                             <Button
                                 onClick={handleContact}
-                                className="w-full md:w-auto h-11 px-6 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 font-bold shadow-xl shadow-indigo-950/20 transition-all flex items-center justify-center gap-2 text-sm"
+                                className="w-full md:w-auto h-12 px-8 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 font-bold shadow-xl shadow-indigo-900/20 transition-all flex items-center justify-center gap-2"
                             >
-                                <Mail className="w-4 h-4" />
+                                <Mail className="w-5 h-5" />
                                 {lang === 'ru' ? 'Написать сообщение' : 'Xabar yozish'}
                             </Button>
                         </div>
@@ -396,16 +396,25 @@ export default function ResumeDetailPage() {
                                     </div>
                                     <CardContent className="p-5">
                                         <div className="flex flex-col gap-3">
-                                            {resume.languages.map((langItem, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:border-indigo-100 hover:bg-white group">
-                                                    <span className="font-extrabold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors">
-                                                        {getLanguageLabel(langItem.name || (langItem as any).language || (langItem as any).lang)}
-                                                    </span>
-                                                    <Badge variant="outline" className="text-white border-none bg-indigo-600 shadow-md text-[10px] font-black py-0 h-6 px-3 rounded-lg flex items-center">
-                                                        {langItem.level}
-                                                    </Badge>
-                                                </div>
-                                            ))}
+                                            {resume.languages.map((langItem, idx) => {
+                                                const name = typeof langItem === 'string' ? langItem : (langItem.name || (langItem as any).language || (langItem as any).lang);
+                                                const level = typeof langItem === 'object' ? (langItem.level || (langItem as any).grade) : null;
+
+                                                if (!name) return null;
+
+                                                return (
+                                                    <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:border-indigo-100 hover:bg-white group">
+                                                        <span className="font-extrabold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors">
+                                                            {getLanguageLabel(name)}
+                                                        </span>
+                                                        {level && (
+                                                            <Badge variant="outline" className="text-white border-none bg-indigo-600 shadow-md text-[10px] font-black py-0 h-6 px-3 rounded-lg flex items-center">
+                                                                {level}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </CardContent>
                                 </Card>

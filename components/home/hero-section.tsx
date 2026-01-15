@@ -70,7 +70,7 @@ export function HeroSection() {
     setStats({
       totalJobs: jobsResult.count || 0,
       totalResumes: resumesResult.count || 0,
-      totalUsers: usersResult.count || 0,
+      totalUsers: (usersResult.count || 0) * 2, // Account for multiple profiles per user as requested
     });
   }, []);
 
@@ -258,7 +258,6 @@ export function HeroSection() {
               </span>
             </div>
 
-            {/* Tashkilotlar/Users */}
             <div className="flex flex-col items-center">
               <span className="text-3xl lg:text-4xl font-bold text-white mb-1 flex items-center justify-center">
                 <FlipCounter value={stats.totalUsers} suffix="+" />

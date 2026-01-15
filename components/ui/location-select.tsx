@@ -93,7 +93,7 @@ export function LocationSelect({
     const selectDistrictLabel = lang === 'ru' ? 'Выберите район' : 'Tumanni tanlang';
 
     return (
-        <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4", className)}>
+        <div className={cn("grid gap-4", className)}>
             <div className="space-y-2">
                 {showLabels && <Label className="font-medium">
                     {lang === 'ru' ? 'Регион / Область' : "Viloyat"} {required && '*'}

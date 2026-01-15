@@ -4,8 +4,8 @@
  */
 
 export interface SpecialCategory {
-    key: 'is_for_students' | 'is_for_disabled' | 'is_for_women';
-    slug: 'students' | 'disabled' | 'women';
+    key: 'is_for_students' | 'is_for_graduates' | 'is_for_disabled' | 'is_for_women';
+    slug: 'students' | 'graduates' | 'disabled' | 'women';
     label_uz: string;
     label_ru: string;
     badge_uz: string;
@@ -17,10 +17,18 @@ export const SPECIAL_CATEGORIES: SpecialCategory[] = [
     {
         key: 'is_for_students',
         slug: 'students',
-        label_uz: 'Talaba va bitiruvchilar uchun',
-        label_ru: 'Для студентов и выпускников',
-        badge_uz: 'Talaba va bitiruvchilar ham mos keladi',
+        label_uz: 'Talabalar uchun',
+        label_ru: 'Для студентов',
+        badge_uz: 'Talabalar uchun ham mos keladi',
         badge_ru: 'Подходит для студентов',
+    },
+    {
+        key: 'is_for_graduates',
+        slug: 'graduates',
+        label_uz: 'Bitiruvchilar uchun',
+        label_ru: 'Для выпускников',
+        badge_uz: 'Bitiruvchilar uchun ham mos keladi',
+        badge_ru: 'Подходит для выпускников',
     },
     {
         key: 'is_for_disabled',
@@ -46,6 +54,7 @@ export const SPECIAL_CATEGORIES: SpecialCategory[] = [
  */
 export function getActiveSpecialCategories(job: {
     is_for_students?: boolean;
+    is_for_graduates?: boolean;
     is_for_disabled?: boolean;
     is_for_women?: boolean;
 }): SpecialCategory[] {
@@ -57,6 +66,7 @@ export function getActiveSpecialCategories(job: {
  */
 export function hasSpecialCategories(job: {
     is_for_students?: boolean;
+    is_for_graduates?: boolean;
     is_for_disabled?: boolean;
     is_for_women?: boolean;
 }): boolean {
@@ -69,6 +79,7 @@ export function hasSpecialCategories(job: {
 export function formatSpecialCategoriesForTelegram(
     job: {
         is_for_students?: boolean;
+        is_for_graduates?: boolean;
         is_for_disabled?: boolean;
         is_for_women?: boolean;
     },
@@ -84,3 +95,4 @@ export function formatSpecialCategoriesForTelegram(
 
     return `\n\n${title}\n${items}`;
 }
+
