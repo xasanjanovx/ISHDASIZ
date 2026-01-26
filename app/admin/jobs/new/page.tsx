@@ -38,6 +38,20 @@ const EMPLOYMENT_TYPES = [
   { value: 'remote', label: 'Masofaviy ish' },
 ];
 
+const PAYMENT_TYPES = [
+  { value: 'monthly', label: 'Oylik (stavka)' },
+  { value: 'hourly', label: 'Soatlik' },
+  { value: 'piecework', label: 'Ishbay' },
+  { value: 'contract', label: 'Shartnomaviy' },
+  { value: 'negotiable', label: 'Kelishiladi' },
+];
+
+const WORK_MODES = [
+  { value: 'onsite', label: 'Ofisda (ish joyida)' },
+  { value: 'remote', label: 'Masofaviy' },
+  { value: 'hybrid', label: 'Gibrid (ofis + masofaviy)' },
+];
+
 const EXPERIENCE_OPTIONS = [
   { value: 'no_experience', label: 'Tajriba talab qilinmaydi' },
   { value: '1_3', label: '1-3 yil' },
@@ -139,7 +153,13 @@ export default function NewJobPage() {
     languages: [] as LanguageSkill[],
     is_for_students: false,
     is_for_disabled: false,
+    // New fields
+    payment_type: 'monthly',
+    work_mode: 'onsite',
+    skills: [] as string[],
   });
+
+  const [skillInput, setSkillInput] = useState('');
 
   const isForWomen = formData.gender === 'any' || formData.gender === 'female';
 
@@ -349,7 +369,7 @@ export default function NewJobPage() {
         company_name: formData.company_name,
         category_id: formData.category_id,
         region_id: formData.region_id ? parseInt(formData.region_id) : null,
-        district_id: formData.district_id || null, // Keep as string for text column
+        district_id: formData.district_id || null,
         employer_id: employerProfile?.id || null,
         salary_min: formData.salary_negotiable ? null : (formData.salary_min ? parseInt(formData.salary_min) : null),
         salary_max: formData.salary_negotiable ? null : (formData.salary_max ? parseInt(formData.salary_max) : null),
@@ -372,6 +392,10 @@ export default function NewJobPage() {
         is_for_students: formData.is_for_students,
         is_for_disabled: formData.is_for_disabled,
         is_for_women: isForWomen,
+        // New fields
+        payment_type: formData.payment_type || null,
+        work_mode: formData.work_mode || null,
+        skills: formData.skills.length > 0 ? formData.skills : null,
       });
 
       if (error) { toast.error(error.message); setSaving(false); return; }
@@ -577,6 +601,15 @@ export default function NewJobPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium">Ish usuli (rejimi)</Label>
+                        <Select value={formData.work_mode} onValueChange={(v) => setFormData({ ...formData, work_mode: v })}>
+                          <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {WORK_MODES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -612,6 +645,61 @@ export default function NewJobPage() {
                       rows={5}
                       className="text-base"
                     />
+                  </CardContent>
+                </Card>
+
+                {/* Skills / Ko'nikmalar */}
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg">Kasbiy ko&apos;nikmalar</CardTitle>
+                    <CardDescription>Talab qilinadigan bilim va ko&apos;nikmalarni qo&apos;shing</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-3">
+                      <Input
+                        value={skillInput}
+                        onChange={(e) => setSkillInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && skillInput.trim()) {
+                            e.preventDefault();
+                            if (!formData.skills.includes(skillInput.trim())) {
+                              setFormData({ ...formData, skills: [...formData.skills, skillInput.trim()] });
+                            }
+                            setSkillInput('');
+                          }
+                        }}
+                        placeholder="Ko'nikma nomi (Enter bosing)"
+                        className="h-11"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+                            setFormData({ ...formData, skills: [...formData.skills, skillInput.trim()] });
+                            setSkillInput('');
+                          }
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Qo&apos;shish
+                      </Button>
+                    </div>
+                    {formData.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.skills.map((skill, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-full text-sm font-medium">
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, skills: formData.skills.filter((_, i) => i !== idx) })}
+                              className="hover:text-red-500"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -784,6 +872,15 @@ export default function NewJobPage() {
                           className="h-11"
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2 pt-2">
+                      <Label className="font-medium">To&apos;lov shakli</Label>
+                      <Select value={formData.payment_type} onValueChange={(v) => setFormData({ ...formData, payment_type: v })}>
+                        <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </CardContent>
                 </Card>

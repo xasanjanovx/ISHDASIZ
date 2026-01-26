@@ -2,7 +2,11 @@
     "crons": [
         {
             "path": "/api/cron/import-osonish",
-            "schedule": "0 */6 * * *"
+            "schedule": "0 */1 * * *"
+        },
+        {
+            "path": "/api/maintenance/sync-references",
+            "schedule": "0 3 * * *"
         }
     ]
 }

@@ -1,188 +1,143 @@
+/**
+ * Vacancy Helper API - Gemini Powered
+ * Helps employers create better job postings with AI
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Lazy initialization to avoid build-time errors
-let openai: OpenAI | null = null;
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-function getOpenAI() {
-    if (!openai && process.env.OPENAI_API_KEY) {
-        openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
+const PRIMARY_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODEL = 'gemini-2.0-flash';
+
+async function callGemini(prompt: string, maxTokens: number = 500): Promise<string> {
+    try {
+        const model = genAI.getGenerativeModel({
+            model: PRIMARY_MODEL,
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
         });
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch {
+        // Fallback
+        const model = genAI.getGenerativeModel({
+            model: FALLBACK_MODEL,
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+        });
+        const result = await model.generateContent(prompt);
+        return result.response.text();
     }
-    return openai;
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { action, jobTitle, description, prompt, categories, districts } = body;
+        const { action, title, description, category } = body;
 
-        if (!process.env.OPENAI_API_KEY) {
+        if (!process.env.GEMINI_API_KEY) {
             return NextResponse.json({
-                error: "AI xizmati sozlanmagan. OPENAI_API_KEY ni qo'shing.",
+                error: "AI xizmati sozlanmagan. GEMINI_API_KEY ni qo'shing.",
                 fallback: true
             }, { status: 503 });
         }
 
-        const systemPrompt = `Sen professional HR mutaxassisisisan. O'zbek tilida (lotin alifbosida) yoz. Qisqa va aniq bo'l.`;
+        const systemPrompt = `Sen professional HR mutaxassisisisan. O'zbek tilida (lotin alifbosida) javob ber. Maqsad: Ish beruvchiga professional va jozibador vakansiya e'loni yaratishda yordam berish.`;
 
-        // New: Full form generation from natural language
-        if (action === 'full_generate') {
-            if (!prompt) {
-                return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+        if (action === 'improve_description') {
+            if (!title && !description) {
+                return NextResponse.json({ error: 'Title or description is required' }, { status: 400 });
             }
 
-            const categoriesList = categories?.map((c: any) => `${c.id}: ${c.name}`).join('\n') || '';
-            const districtsList = districts?.map((d: any) => `${d.id}: ${d.name}`).join('\n') || '';
+            const prompt = `${systemPrompt}
 
-            const fullPrompt = `Foydalanuvchi quyidagi vakansiya haqida yozdi:
-"${prompt}"
+Quyidagi vakansiya tavsifini professional uslubda qayta yozib ber.
 
-Quyidagi JSON formatida javob ber (faqat JSON, boshqa hech narsa emas):
+Lavozim: ${title || 'Noma\'lum'}
+Kategoriya: ${category || 'Noma\'lum'}
+Hozirgi tavsif: ${description || '(bo\'sh)'}
 
-{
-  "title": "lavozim nomi",
-  "category_id": "kategoriya ID (quyidagi ro'yxatdan tanlash)",
-  "district_id": "tuman ID (quyidagi ro'yxatdan tanlash)",
-  "employment_type": "full_time|part_time|contract|internship|remote",
-  "experience": "no_experience|1_3|3_6|6_plus",
-  "salary_min": number or null,
-  "salary_max": number or null,
-  "salary_negotiable": true|false,
-  "gender": "any|male|female",
-  "age_min": number or null,
-  "age_max": number or null,
-  "tasks_requirements": "talablar va vazifalar matni (har bir punkt • belgisi bilan)",
-  "benefits": "qulayliklar matni (har bir punkt • belgisi bilan)"
-}
+Talablar:
+- Professional HR uslubida yoz
+- Kompaniya madaniyati va imtiyozlarni ta'kidla
+- Grammatik xatolarni to'g'irla
+- 3-5 paragrafdan oshmasin
 
-Mavjud kategoriyalar:
-${categoriesList}
+Faqat tavsifni yoz.`;
 
-Mavjud tumanlar:
-${districtsList}
-
-Agar matnda ma'lumot bo'lmasa, null yoki default qiymat qo'y.
-Faqat JSON javob ber, boshqa izoh kerak emas.`;
-
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: fullPrompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 1500,
-            });
-
-            const resultText = completion.choices[0]?.message?.content || "";
-
-            try {
-                // Extract JSON from response (might have markdown code blocks)
-                let jsonStr = resultText;
-                const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    jsonStr = jsonMatch[0];
-                }
-
-                const parsed = JSON.parse(jsonStr);
-
-                return NextResponse.json({
-                    success: true,
-                    action: 'full_generate',
-                    result: parsed
-                });
-            } catch (parseError) {
-                console.error('Failed to parse AI response:', resultText);
-                // Fallback: just return tasks_requirements
-                return NextResponse.json({
-                    success: true,
-                    action: 'full_generate',
-                    result: {
-                        tasks_requirements: resultText
-                    }
-                });
-            }
+            const result = await callGemini(prompt);
+            return NextResponse.json({ success: true, result });
         }
 
-        // Original: Generate from job title only
-        if (action === 'generate') {
-            if (!jobTitle) {
-                return NextResponse.json({ error: 'jobTitle is required' }, { status: 400 });
+        if (action === 'generate_requirements') {
+            if (!title) {
+                return NextResponse.json({ error: 'Title is required' }, { status: 400 });
             }
 
-            const genPrompt = `"${jobTitle}" lavozimi uchun to'liq vakansiya tavsifini yoz.
+            const prompt = `${systemPrompt}
 
-Format (har bir bo'limni yangi qatordan boshla):
+"${title}" lavozimi uchun talablar va vazifalar ro'yxatini yozib ber.
 
-MAS'ULIYATLAR:
-• [3-5 ta asosiy vazifa]
+Kategoriya: ${category || 'Umumiy'}
 
+Format:
 TALABLAR:
-• [3-5 ta talab]
+• ...
+• ...
 
-BIZ TAKLIF QILAMIZ:
-• [3-4 ta afzallik]
+VAZIFALAR:
+• ...
+• ...
 
-Faqat matnni yoz, qo'shimcha tushuntirishlar kerak emas.`;
+Har birida 4-6 ta punkt bo'lsin.`;
 
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: genPrompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 800,
-            });
-
-            const result = completion.choices[0]?.message?.content || "";
-
-            return NextResponse.json({
-                success: true,
-                action: 'generate',
-                result: result
-            });
-
-        } else if (action === 'improve') {
-            if (!description) {
-                return NextResponse.json({ error: 'description is required' }, { status: 400 });
-            }
-
-            const improvePrompt = `Quyidagi vakansiya tavsifini professional qilib qayta yoz.
-- Grammatik xatolarni tuzat
-- Aniqroq va tushunarli qil
-- Professional uslubda yoz
-
-Original matn:
-${description}
-
-Yaxshilangan versiyani yoz:`;
-
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: improvePrompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 800,
-            });
-
-            const result = completion.choices[0]?.message?.content || "";
-
-            return NextResponse.json({
-                success: true,
-                action: 'improve',
-                result: result
-            });
-
-        } else if (action !== 'full_generate') {
-            return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+            const result = await callGemini(prompt, 600);
+            return NextResponse.json({ success: true, result });
         }
 
-        return NextResponse.json({ error: 'Unknown error' }, { status: 500 });
+        if (action === 'suggest_salary') {
+            if (!title) {
+                return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+            }
+
+            const prompt = `O'zbekiston mehnat bozorida "${title}" lavozimi uchun o'rtacha maoshni so'mda taxmin qil. Faqat quyidagi formatda javob ber:
+{"min": 3000000, "max": 6000000}
+Boshqa hech narsa yozma.`;
+
+            const text = await callGemini(prompt, 100);
+
+            let result = { min: 3000000, max: 5000000 }; // default
+            try {
+                const match = text.match(/\{[\s\S]*\}/);
+                if (match) {
+                    result = JSON.parse(match[0]);
+                }
+            } catch {
+                console.error('[Vacancy Helper] Failed to parse salary JSON');
+            }
+
+            return NextResponse.json({ success: true, result });
+        }
+
+        if (action === 'generate_benefits') {
+            if (!title) {
+                return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+            }
+
+            const prompt = `"${title}" lavozimi uchun O'zbekiston kompaniyalarida odatda beriladigan qulayliklar va imtiyozlar ro'yxatini yoz.
+
+Format:
+• ...
+• ...
+
+5-8 ta punkt yoz. Faqat ro'yxatni yoz.`;
+
+            const result = await callGemini(prompt, 400);
+            return NextResponse.json({ success: true, result });
+        }
+
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
     } catch (error) {
         console.error('AI Vacancy Helper error:', error);

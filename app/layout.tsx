@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { LanguageProvider } from '@/contexts/language-context';
 import { AuthProvider } from '@/contexts/auth-context';
 import { UserAuthProvider } from '@/contexts/user-auth-context';
+import { SessionProvider } from '@/lib/contexts/session-context';
 import Header from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from '@/components/ui/sonner';
@@ -12,6 +13,7 @@ import { AuthModalProvider } from '@/contexts/auth-modal-context';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { AdminViewBanner } from '@/components/admin/AdminViewBanner';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { TelegramProvider } from '@/contexts/telegram-context';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -50,7 +52,6 @@ export const metadata: Metadata = {
     follow: true,
   },
 };
-
 export default function RootLayout({
   children,
 }: {
@@ -58,27 +59,34 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uz" suppressHydrationWarning>
+      <head>
+        {/* Telegram WebApp Script for Mini App support */}
+        <script src="https://telegram.org/js/telegram-web-app.js" async />
+      </head>
       <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50`}>
         <AuthProvider>
           <UserAuthProvider>
-            <LanguageProvider>
-              <AuthModalProvider>
-                <Header />
-                <AdminViewBanner />
-                <main className="flex-1 pt-16">
-                  {children}
-                </main>
-                <Footer />
-                <Toaster position="top-center" />
-                <RoleSelectionWrapper />
-                <MobileNav />
-                <AuthModal />
-              </AuthModalProvider>
-            </LanguageProvider>
+            <SessionProvider>
+              <TelegramProvider>
+                <LanguageProvider>
+                  <AuthModalProvider>
+                    <Header />
+                    <AdminViewBanner />
+                    <main className="flex-1 pt-16">
+                      {children}
+                    </main>
+                    <Footer />
+                    <Toaster position="top-center" />
+                    <RoleSelectionWrapper />
+                    <MobileNav />
+                    <AuthModal />
+                  </AuthModalProvider>
+                </LanguageProvider>
+              </TelegramProvider>
+            </SessionProvider>
           </UserAuthProvider>
         </AuthProvider>
       </body>
     </html>
   );
 }
-

@@ -1,226 +1,681 @@
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { supabase } from '@/lib/supabase';
+/**
+ * ISHDASIZ Smart AI Chat - Enhanced with Session & Geo
+ * 
+ * Features:
+ * 1. Session memory (Supabase) - persists until tab close
+ * 2. Deep understanding of chaotic/short messages
+ * 3. Geo-location search (lat/lng nearby)
+ * 4. Profile collection before search
+ * 5. Intelligent reranking with Gemini
+ * 
+ * Architecture:
+ * A) Load session → B) Gemini understands → C) Update profile
+ * D) If ready: SQL search → Gemini rerank → Return jobs
+ */
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+const MODEL = 'gemini-2.5-flash';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface UserProfile {
+    category?: string;
+    category_id?: string;
+    skills?: string[];
+    experience_years?: number;
+    salary_min?: number;
+    region?: string;
+    region_id?: number;
+    work_mode?: 'remote' | 'onsite' | 'any';
+    exclude_keywords?: string[];
+    profile_complete?: boolean;
+}
+
+interface UserLocation {
+    lat: number;
+    lng: number;
+}
+
+// ============================================================================
+// CATEGORIES & REGIONS
+// ============================================================================
+
+const CATEGORIES_INFO = `
+Mavjud kategoriyalar (ID bilan):
+- Axborot texnologiyalari (id: a0000001-0001-4000-8000-000000000001) - dasturchi, developer, react, python, IT
+- Sanoat va ishlab chiqarish (id: a0000002-0002-4000-8000-000000000002) - zavod, fabrika, tikuvchi
+- Xizmatlar (id: a0000003-0003-4000-8000-000000000003) - oshpaz, ofitsiant, farrosh, qorovul
+- Ta'lim, madaniyat, sport (id: a0000004-0004-4000-8000-000000000004) - o'qituvchi, murabbiy
+- Sog'liqni saqlash (id: a0000005-0005-4000-8000-000000000005) - shifokor, hamshira
+- Moliya, iqtisod, boshqaruv (id: a0000006-0006-4000-8000-000000000006) - buxgalter, direktor
+- Qurilish (id: a0000007-0007-4000-8000-000000000007) - usta, elektrik, santexnik
+- Qishloq xo'jaligi (id: a0000008-0008-4000-8000-000000000008) - fermer, dehqon
+- Transport (id: a0000009-0009-4000-8000-000000000009) - haydovchi, kurier, logist
+- Savdo va marketing (id: a0000010-0010-4000-8000-000000000010) - sotuvchi, kassir, smm
+- Boshqa (id: a0000011-0011-4000-8000-000000000011) - boshqa ishlar
+`;
+
+const REGIONS_INFO = `
+Viloyatlar (ID bilan):
+- Toshkent shahri (1), Toshkent viloyati (27)
+- Andijon (2), Farg'ona (3), Namangan (4)
+- Samarqand (5), Buxoro (6), Xorazm (7)
+- Qashqadaryo (8), Surxondaryo (9), Jizzax (10)
+- Sirdaryo (11), Navoiy (12), Qoraqalpog'iston (14)
+`;
+
+// ============================================================================
+// SESSION MANAGEMENT
+// ============================================================================
+
+async function loadSession(sessionId: string): Promise<{ profile: UserProfile; messages: any[] }> {
+    if (!sessionId) return { profile: {}, messages: [] };
+
+    const { data } = await supabase
+        .from('ai_sessions')
+        .select('profile, messages')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+    return {
+        profile: data?.profile || {},
+        messages: data?.messages || []
+    };
+}
+
+async function saveSession(sessionId: string, profile: UserProfile, messages: any[]): Promise<void> {
+    if (!sessionId) return;
+
+    await supabase
+        .from('ai_sessions')
+        .upsert({
+            session_id: sessionId,
+            profile,
+            messages: messages.slice(-10),
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'session_id' });
+}
+
+// ============================================================================
+// GEMINI - UNDERSTAND & EXTRACT - FALLBACKS
+// ============================================================================
+
+const REGION_MAP: Record<string, number> = {
+    'toshkent shahri': 1, 'toshkent': 1, 'tashkent': 1,
+    'andijon': 2, 'andijan': 2,
+    'farg\'ona': 3, 'fergana': 3, 'fargona': 3,
+    'namangan': 4,
+    'samarqand': 5, 'samarkand': 5,
+    'buxoro': 6, 'bukhara': 6,
+    'xorazm': 7, 'khorezm': 7, 'urganch': 7,
+    'qashqadaryo': 8, 'kashkadarya': 8, 'qarshi': 8,
+    'surxondaryo': 9, 'surkhandarya': 9, 'termez': 9,
+    'jizzax': 10, 'jizzakh': 10,
+    'sirdaryo': 11, 'syrdarya': 11, 'guliston': 11,
+    'navoiy': 12, 'navoi': 12,
+    'qoraqalpog\'iston': 14, 'karakalpakstan': 14, 'nukus': 14
+};
+
+const CATEGORY_MAP: Record<string, string> = {
+    // IT - Axborot texnologiyalari
+    'it': 'a0000001-0001-4000-8000-000000000001',
+    'dasturlash': 'a0000001-0001-4000-8000-000000000001',
+    'developer': 'a0000001-0001-4000-8000-000000000001',
+    'frontend': 'a0000001-0001-4000-8000-000000000001',
+    'backend': 'a0000001-0001-4000-8000-000000000001',
+    'react': 'a0000001-0001-4000-8000-000000000001',
+    'python': 'a0000001-0001-4000-8000-000000000001',
+
+    // Production - Sanoat va ishlab chiqarish
+    'ishlab chiqarish': 'a0000002-0002-4000-8000-000000000002',
+    'sanoat': 'a0000002-0002-4000-8000-000000000002',
+    'zavod': 'a0000002-0002-4000-8000-000000000002',
+    'fabrika': 'a0000002-0002-4000-8000-000000000002',
+    'tikuvchi': 'a0000002-0002-4000-8000-000000000002',
+
+    // Services - Xizmatlar
+    'xizmatlar': 'a0000003-0003-4000-8000-000000000003',
+    'oshpaz': 'a0000003-0003-4000-8000-000000000003',
+    'ofitsiant': 'a0000003-0003-4000-8000-000000000003',
+    'farrosh': 'a0000003-0003-4000-8000-000000000003',
+    'qorovul': 'a0000003-0003-4000-8000-000000000003',
+
+    // Education - Ta'lim, madaniyat, sport
+    'ta\'lim': 'a0000004-0004-4000-8000-000000000004',
+    'o\'qituvchi': 'a0000004-0004-4000-8000-000000000004',
+    'ustoz': 'a0000004-0004-4000-8000-000000000004',
+    'murabbiy': 'a0000004-0004-4000-8000-000000000004',
+
+    // Healthcare - Sog'liqni saqlash
+    'tibbiyot': 'a0000005-0005-4000-8000-000000000005',
+    'shifokor': 'a0000005-0005-4000-8000-000000000005',
+    'hamshira': 'a0000005-0005-4000-8000-000000000005',
+
+    // Finance - Moliya, iqtisod, boshqaruv
+    'moliya': 'a0000006-0006-4000-8000-000000000006',
+    'buxgalter': 'a0000006-0006-4000-8000-000000000006',
+    'iqtisod': 'a0000006-0006-4000-8000-000000000006',
+    'direktor': 'a0000006-0006-4000-8000-000000000006',
+
+    // Construction - Qurilish
+    'qurilish': 'a0000007-0007-4000-8000-000000000007',
+    'usta': 'a0000007-0007-4000-8000-000000000007',
+    'elektrik': 'a0000007-0007-4000-8000-000000000007',
+    'santexnik': 'a0000007-0007-4000-8000-000000000007',
+
+    // Agriculture - Qishloq xo'jaligi
+    'qishloq': 'a0000008-0008-4000-8000-000000000008',
+    'fermer': 'a0000008-0008-4000-8000-000000000008',
+    'dehqon': 'a0000008-0008-4000-8000-000000000008',
+
+    // Transport
+    'transport': 'a0000009-0009-4000-8000-000000000009',
+    'haydovchi': 'a0000009-0009-4000-8000-000000000009',
+    'kurier': 'a0000009-0009-4000-8000-000000000009',
+    'logist': 'a0000009-0009-4000-8000-000000000009',
+
+    // Sales & Marketing - Savdo va marketing
+    'savdo': 'a0000010-0010-4000-8000-000000000010',
+    'sotuvchi': 'a0000010-0010-4000-8000-000000000010',
+    'kassir': 'a0000010-0010-4000-8000-000000000010',
+    'marketing': 'a0000010-0010-4000-8000-000000000010',
+    'smm': 'a0000010-0010-4000-8000-000000000010'
+};
+
+function fallbackUnderstanding(message: string, currentProfile: UserProfile): GeminiUnderstanding {
+    console.log('[AI] Using fallback logic for:', message);
+    const lower = message.toLowerCase();
+    const updates: Partial<UserProfile> = {};
+
+    // Check categories
+    for (const [key, id] of Object.entries(CATEGORY_MAP)) {
+        if (lower.includes(key)) {
+            updates.category_id = id;
+            updates.category = key.charAt(0).toUpperCase() + key.slice(1);
+            break; // Stop at first match to avoid confusion
+        }
+    }
+
+    // Check regions
+    for (const [key, id] of Object.entries(REGION_MAP)) {
+        if (lower.includes(key)) {
+            updates.region_id = id;
+            updates.region = key.charAt(0).toUpperCase() + key.slice(1);
+            break;
+        }
+    }
+
+    // Determine state
+    const mergedProfile = { ...currentProfile, ...updates };
+    // Safe checks using optional chaining logic equivalent
+    const hasCategory = mergedProfile.category_id !== undefined;
+    const hasRegion = mergedProfile.region_id !== undefined;
+    const isNearbyRequest = lower.includes('yaqin') || lower.includes('nearby');
+
+    // If both exist OR (category + nearby), then search
+    if (hasCategory && (hasRegion || isNearbyRequest)) {
+        return {
+            intent: 'search',
+            profile_updates: updates,
+            search_ready: true
+        };
+    }
+
+    // If only category -> ask region
+    if (hasCategory) {
+        return {
+            intent: 'search',
+            profile_updates: updates,
+            search_ready: false,
+            next_question: "Qaysi hududda ish qidiryapsiz? (Yoki 'joylashuvim' tugmasini bosing)"
+        };
+    }
+
+    // If only region -> ask category
+    if (hasRegion) {
+        return {
+            intent: 'search',
+            profile_updates: updates,
+            search_ready: false,
+            next_question: "Qaysi sohada ishlamoqchisiz?"
+        };
+    }
+
+    // Nothing found
+    return {
+        intent: 'clarify',
+        profile_updates: {},
+        search_ready: false,
+        response_text: "Kechirasiz, aniqroq yozing. Masalan: 'Andijonda IT ish kerak' yoki 'Toshkentda haydovchi'"
+    };
+}
+
+// ============================================================================
+// GEMINI - UNDERSTAND & EXTRACT
+// ============================================================================
+
+interface GeminiUnderstanding {
+    intent: 'greeting' | 'search' | 'clarify' | 'feedback';
+    profile_updates: Partial<UserProfile>;
+    search_ready: boolean;
+    response_text?: string;
+    next_question?: string;
+}
+
+async function understandWithGemini(
+    message: string,
+    history: any[],
+    currentProfile: UserProfile
+): Promise<GeminiUnderstanding> {
+    const historyText = history.slice(-5).map((m: any) => `${m.role}: ${m.content}`).join('\n');
+
+    const prompt = `Sen HR yordamchisissan. Foydalanuvchi xabarini tushun va profil yangilanishlarini chiqar.
+
+JORIY PROFIL: ${JSON.stringify(currentProfile)}
+
+XABAR: "${message}"
+${historyText ? `OLDINGI SUHBAT:\n${historyText}` : ''}
+
+${CATEGORIES_INFO}
+${REGIONS_INFO}
+
+VAZIFA:
+1. Foydalanuvchi nimani xohlayotganini tushun (xato yozsa ham, qisqa yozsa ham)
+2. Agar soha/hudud/maosh/skill aytilsa - profile_updates ga qo'sh
+3. Agar profil to'liq (category + region) - search_ready: true
+4. Agar profil to'liq emas - next_question ber
+
+MUHIM QOIDALAR:
+- "mnga osh krk" = "menga ish kerak"
+- "itda" = IT sohasida
+- "andjondan" = Andijon
+- "react, noda" = skills: [React, Node.js]
+- Agar faqat "salom" - bu greeting
+- Agar soha aytilsa lekin hudud yo'q - so'ra
+- Agar ikkalasi bor - search_ready: true
+
+JSON FORMAT:
+{
+  "intent": "greeting|search|clarify|feedback",
+  "profile_updates": {
+    "category": "IT va Texnologiyalar",
+    "category_id": "6cdb160a-f3a9-4d7b-944a-d34df1ebd730",
+    "region": "Andijon",
+    "region_id": 2,
+    "skills": ["React"],
+    "salary_min": 5000000,
+    "work_mode": "remote"
+  },
+  "search_ready": true,
+  "response_text": "Agar greeting/clarify bo'lsa - javob",
+  "next_question": "Agar profil to'liq emas - savol"
+}
+
+FAQAT JSON QAYTAR.`;
+
+    try {
+        const model = genAI.getGenerativeModel({
+            model: MODEL,
+            generationConfig: {
+                maxOutputTokens: 600,
+                temperature: 0.15,
+                responseMimeType: "application/json"
+            }
+        });
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+
+        // Robust JSON cleaning
+        const jsonStart = text.indexOf('{');
+        const jsonEnd = text.lastIndexOf('}');
+        if (jsonStart === -1 || jsonEnd === -1) throw new Error('No JSON found');
+
+        const cleaned = text.substring(jsonStart, jsonEnd + 1);
+        return JSON.parse(cleaned);
+    } catch (error) {
+        console.error('[AI] Gemini failed:', error);
+        // CRITICAL FALLBACK (Never say 'I dont understand' if keywords exist)
+        return fallbackUnderstanding(message, currentProfile);
+    }
+}
+
+// ============================================================================
+// HAVERSINE DISTANCE
+// ============================================================================
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// ============================================================================
+// DATABASE SEARCH
+// ============================================================================
+
+async function searchCandidates(profile: UserProfile, userLocation?: UserLocation): Promise<any[]> {
+    let query = supabase
+        .from('jobs')
+        .select(`
+            id, title_uz, title_ru, company_name,
+            description_uz, requirements_uz,
+            salary_min, salary_max, work_mode,
+            region_id, region_name, district_name,
+            latitude, longitude,
+            contact_telegram, contact_phone,
+            districts(name_uz, regions(name_uz))
+        `)
+        .eq('is_active', true)
+        .eq('status', 'active')
+        .limit(30);
+
+    // Category filter
+    if (profile.category_id) {
+        query = query.eq('category_id', profile.category_id);
+    }
+
+    // Region filter
+    if (profile.region_id) {
+        query = query.eq('region_id', profile.region_id);
+    }
+
+    // Work mode
+    if (profile.work_mode === 'remote') {
+        query = query.eq('work_mode', 'remote');
+    }
+
+    // Salary
+    if (profile.salary_min) {
+        query = query.gte('salary_max', profile.salary_min);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+        console.error('[DB] Search error:', error);
+        return [];
+    }
+
+    let jobs: any[] = data || [];
+
+    // Add distance if user location provided
+    if (userLocation && userLocation.lat && userLocation.lng) {
+        jobs = jobs.map(job => ({
+            ...job,
+            distance_km: (job.latitude && job.longitude)
+                ? Math.round(haversineDistance(userLocation.lat, userLocation.lng, job.latitude, job.longitude))
+                : null
+        }));
+
+        // Sort by distance
+        jobs.sort((a, b) => {
+            if (a.distance_km === null) return 1;
+            if (b.distance_km === null) return -1;
+            return a.distance_km - b.distance_km;
+        });
+    }
+
+    // Exclude keywords
+    if (profile.exclude_keywords && profile.exclude_keywords.length > 0) {
+        jobs = jobs.filter(job => {
+            const title = (job.title_uz || '').toLowerCase();
+            return !profile.exclude_keywords!.some(kw => title.includes(kw.toLowerCase()));
+        });
+    }
+
+    return jobs;
+}
+
+// ============================================================================
+// GEMINI RERANK
+// ============================================================================
+
+interface RerankResult {
+    ranked_jobs: { job_id: string; score: number; reason: string }[];
+    advice?: string;
+}
+
+async function rerankWithGemini(jobs: any[], profile: UserProfile): Promise<RerankResult> {
+    if (jobs.length === 0) {
+        return { ranked_jobs: [] };
+    }
+
+    // For small result sets, skip reranking
+    if (jobs.length <= 5) {
+        return {
+            ranked_jobs: jobs.map((j, i) => ({
+                job_id: j.id,
+                score: 80 - i * 5,
+                reason: 'Mezonlaringizga mos'
+            }))
+        };
+    }
+
+    // Prepare compact job data for Gemini
+    const jobsForAI = jobs.slice(0, 20).map(j => ({
+        id: j.id,
+        title: j.title_uz || j.title_ru,
+        company: j.company_name,
+        description: (j.description_uz || '').slice(0, 200),
+        requirements: (j.requirements_uz || '').slice(0, 150),
+        salary: `${(j.salary_min || 0) / 1e6}-${(j.salary_max || 0) / 1e6} mln`,
+        distance_km: j.distance_km
+    }));
+
+    const prompt = `Sen HR mutaxassisi. Vakansiyalarni profilga qarab RERANK qil.
+
+PROFIL:
+${JSON.stringify(profile, null, 2)}
+
+VAKANSIYALAR:
+${JSON.stringify(jobsForAI, null, 2)}
+
+VAZIFA:
+1. Har bir vakansiyaning title, description, requirements ni O'QI
+2. Profilga mos kelishini bahola (0-100)
+3. TOP 8 ni tanla, qisqa sabab yoz (O'ZBEKCHA)
+4. distance_km yaqinroq bo'lsa, bonus ber
+
+JSON:
+{
+  "ranked_jobs": [
+    { "job_id": "uuid", "score": 95, "reason": "React talabiga mos, yaqinda" }
+  ],
+  "advice": "Umumiy maslahat (ixtiyoriy)"
+}`;
+
+    try {
+        const model = genAI.getGenerativeModel({
+            model: MODEL,
+            generationConfig: {
+                maxOutputTokens: 800,
+                temperature: 0.2,
+                responseMimeType: "application/json"
+            }
+        });
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
+
+        return JSON.parse(cleaned);
+    } catch (error) {
+        console.error('[AI] Rerank error:', error);
+        // Fallback to simple ranking
+        return {
+            ranked_jobs: jobs.slice(0, 8).map((j, i) => ({
+                job_id: j.id,
+                score: 90 - i * 5,
+                reason: 'Mezonlaringizga mos'
+            }))
+        };
+    }
+}
+
+// ============================================================================
+// FORMAT JOBS FOR CARD
+// ============================================================================
+
+function formatJobsForCard(jobs: any[], rerank: RerankResult): any[] {
+    const rankMap = new Map(rerank.ranked_jobs.map(r => [r.job_id, r]));
+
+    return rerank.ranked_jobs.map(r => {
+        const job = jobs.find(j => j.id === r.job_id);
+        if (!job) return null;
+
+        // Build location
+        let location = '';
+        if (job.districts?.regions?.name_uz) {
+            location = job.districts.regions.name_uz;
+            if (job.districts.name_uz) {
+                location = `${job.districts.name_uz}, ${location}`;
+            }
+        } else if (job.region_name) {
+            location = job.region_name;
+        }
+
+        // Add distance if available
+        if (job.distance_km !== null && job.distance_km !== undefined) {
+            location = `${location} (${job.distance_km} km)`;
+        }
+
+        // Format salary
+        const salaryMin = job.salary_min ? Math.round(job.salary_min / 1e6) : 0;
+        const salaryMax = job.salary_max ? Math.round(job.salary_max / 1e6) : 0;
+        let salary = 'Kelishiladi';
+        if (salaryMin && salaryMax) salary = `${salaryMin}-${salaryMax} mln`;
+        else if (salaryMax) salary = `${salaryMax} mln gacha`;
+        else if (salaryMin) salary = `${salaryMin} mln dan`;
+
+        return {
+            id: job.id,
+            title: job.title_uz || job.title_ru || 'Vakansiya',
+            company: job.company_name || 'Kompaniya',
+            salary,
+            location,
+            work_mode: job.work_mode === 'remote' ? 'Masofaviy' : '',
+            contact_telegram: job.contact_telegram,
+            contact_phone: job.contact_phone,
+            match_score: r.score,
+            reason_fit: r.reason
+        };
+    }).filter(Boolean);
+}
+
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
 
 export async function POST(request: NextRequest) {
     try {
-        const { message, history = [], userId } = await request.json();
+        const body = await request.json();
+        const message = body.message?.trim() || '';
+        const sessionId = body.session_id || '';
+        const history = body.messages || [];
+        const userLocation = body.user_location as UserLocation | undefined;
 
-        if (!message && (!history || history.length === 0)) {
-            return NextResponse.json({ error: 'Message or history is required' }, { status: 400 });
+        if (!message) {
+            return NextResponse.json({ response: "Xabar yozing", jobs: [] });
         }
 
-        if (!process.env.OPENAI_API_KEY) {
-            return NextResponse.json({
-                response: "AI xizmati hozircha mavjud emas. Iltimos, keyinroq urinib ko'ring.",
-                fallback: true
-            });
+        console.log('[Chat] Session:', sessionId, 'Message:', message);
+
+        // ========================================
+        // STEP A: Load session
+        // ========================================
+        const session = await loadSession(sessionId);
+        let profile = session.profile;
+        let messages = [...session.messages, { role: 'user', content: message }];
+
+        // ========================================
+        // STEP B: Gemini understands
+        // ========================================
+        const understanding = await understandWithGemini(message, history, profile);
+        console.log('[Chat] Understanding:', JSON.stringify(understanding));
+
+        // ========================================
+        // STEP C: Merge profile updates
+        // ========================================
+        if (understanding.profile_updates) {
+            profile = { ...profile, ...understanding.profile_updates };
         }
 
-        // 1. Get User Profile Context if logged in
-        let userContext = "";
-        if (userId) {
-            const { data: profile } = await supabase
-                .from('job_seeker_profiles')
-                .select('full_name, city')
-                .eq('user_id', userId)
-                .single();
+        // ========================================
+        // Handle greeting/clarify
+        // ========================================
+        if (understanding.intent === 'greeting' || !understanding.search_ready) {
+            const responseText = understanding.response_text ||
+                understanding.next_question ||
+                "Qaysi soha va shaharda ish qidiryapsiz?";
 
-            if (profile) {
-                userContext = `\nFoydalanuvchi ma'lumiotlari:\n- Ism: ${profile.full_name}\n- Hudud: ${profile.city || 'Noma\'lum'}\n`;
-            }
-        }
-
-        // 2. Define Tools for OpenAI
-        const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
-            {
-                type: "function",
-                function: {
-                    name: "search_jobs",
-                    description: "Vakansiyalarni butun O'zbekiston bo'ylab (Toshkent, Samarqand, Andijon va h.k.) qidirish",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            query: { type: "string", description: "Lavozim yoki kalit so'z (masalan: 'dasturchi', 'haydovchi')" },
-                            category_id: { type: "string", description: "Kategoriya UUID si" },
-                            district_id: { type: "string", description: "Tuman UUID si" },
-                            salary_min: { type: "number", description: "Minimal maosh" },
-                        }
-                    }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "get_location_info",
-                    description: "Andijon viloyati tumanlari va shaharlari ro'yxatini olish",
-                    parameters: { type: "object", properties: {} }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "get_categories",
-                    description: "Ish kategoriyalari (sohalar) ro'yxatini olish",
-                    parameters: { type: "object", properties: {} }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "get_job_details",
-                    description: "Muayyan vakansiya haqida batafsil ma'lumot olish (talablar, sharoitlar)",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            job_id: { type: "string", description: "Vakansiya UUID si" }
-                        },
-                        required: ["job_id"]
-                    }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "get_special_filters",
-                    description: "Talabalar, ayollar yoki nogironligi bor shaxslar uchun mos ish filtrlari haqida ma'lumot",
-                    parameters: { type: "object", properties: {} }
-                }
-            }
-        ];
-
-        // 3. Prepare Messages for OpenAI
-        const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-            {
-                role: 'system',
-                content: `Sen "ISHDASIZ" portalining professional HR-ekspertisan. Maqsading: Foydalanuvchiga eng mos ishni topib berish.
-    
-    MUHIM QOIDALAR (Step-by-Step):
-    1. **Tahlil**: Foydalanuvchi so'rovini diqqat bilan o'qi. Agar faqat "Ish kerak" desa, darhol qayerdaligini (Viloyat, Tuman) va qanday ish (Soha) izlayotganini so'ra.
-    2. **Joylashuvni Aniqlash**: Agar foydalanuvchi shahar yoki tuman nomini aytsa (masalan "Chilonzor", "Samarqand"), AVVAL "get_location_info" funksiyasini chaqirib, ushbu joyning ID sini top.
-    3. **Qidiruv**: Joylashuv ID si va kalit so'zlar bilan "search_jobs" funksiyasini chaqir.
-    4. **Natija**:
-       - Agar vakansiyalar topilsa: Ularni qisqacha ta'riflab ber va "Qaysi biri haqida batafsil ma'lumot beray?" deb so'ra.
-       - Agar topilmasa: "Kechirasiz, [Hudud]da [Lavozim] bo'yicha hozircha vakansiya yo'q. Lekin mana bu o'xshash variantlarni ko'rishingiz mumkin" deb, qidiruvni kengaytirib (masalan, qo'shni tuman yoki faqat soha bo'yicha) qayta qidirib ko'r.
-    5. **Muloqot**: Doimo xushmuomala, professional va yordamga tayyor bo'l. Javoblarni faqat O'zbek tilida (lotin yozuvida) ber.
-    
-    ${userContext}`
-            },
-            ...history,
-            { role: 'user', content: message }
-        ];
-
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages,
-            tools,
-            tool_choice: 'auto',
-            temperature: 0.7,
-        });
-
-        const assistantMessage = response.choices[0].message;
-
-        // 4. Handle Tool Calls
-        if (assistantMessage.tool_calls) {
-            const toolResults = [];
-
-            for (const toolCall of assistantMessage.tool_calls) {
-                const tc = toolCall as any;
-                const functionName = tc.function.name;
-                const args = JSON.parse(tc.function.arguments);
-
-                let result;
-                if (functionName === 'search_jobs') {
-                    let queryBuilder = supabase
-                        .from('jobs')
-                        .select('*, districts(name_uz, regions(name_uz)), categories(name_uz)')
-                        .eq('status', 'active')
-                        .limit(10);
-
-                    if (args.query) {
-                        // Search in title, description, and company name
-                        queryBuilder = queryBuilder.or(`title_uz.ilike.%${args.query}%,title_ru.ilike.%${args.query}%,description_uz.ilike.%${args.query}%,description_ru.ilike.%${args.query}%,company_name.ilike.%${args.query}%`);
-                    }
-                    if (args.category_id) queryBuilder = queryBuilder.eq('category_id', args.category_id);
-
-                    // Improved Location Filtering
-                    if (args.district_id) {
-                        queryBuilder = queryBuilder.eq('district_id', args.district_id);
-                    } else if (args.region_id) {
-                        queryBuilder = queryBuilder.eq('region_id', args.region_id);
-                    }
-
-                    if (args.salary_min) queryBuilder = queryBuilder.gte('salary_min', args.salary_min);
-
-                    const { data } = await queryBuilder;
-                    result = data || [];
-                } else if (functionName === 'get_location_info') {
-                    // Fetch all regions and districts to help AI map names to IDs
-                    const { data } = await supabase
-                        .from('districts')
-                        .select('id, name_uz, regions(id, name_uz)')
-                        .order('name_uz');
-                    result = data;
-                } else if (functionName === 'get_categories') {
-                    const { data } = await supabase.from('categories').select('id, name_uz').order('name_uz');
-                    result = data;
-                } else if (functionName === 'get_job_details') {
-                    const { data } = await supabase
-                        .from('jobs')
-                        .select('*, districts(name_uz), categories(name_uz)')
-                        .eq('id', args.job_id)
-                        .single();
-                    result = data;
-                } else if (functionName === 'get_special_filters') {
-                    result = {
-                        is_for_students: "Talabalar uchun mos ishlar",
-                        is_for_women: "Ayollar uchun mos ishlar",
-                        is_for_disabled: "Nogironligi bor shaxslar uchun mos ishlar"
-                    };
-                }
-
-                toolResults.push({
-                    tool_call_id: toolCall.id,
-                    role: "tool",
-                    name: functionName,
-                    content: JSON.stringify(result),
-                });
-            }
-
-            // Get final response after tools
-            const finalResponse = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [...messages, assistantMessage, ...(toolResults as any)],
-            });
-
-            // Extract jobs from results if it was a search
-            const searchToolCall = assistantMessage.tool_calls.find(tc => (tc as any).function.name === 'search_jobs');
-            let foundJobs = [];
-            if (searchToolCall) {
-                const searchResult = toolResults.find(tr => tr.tool_call_id === searchToolCall.id);
-                if (searchResult) foundJobs = JSON.parse(searchResult.content);
-            }
+            messages.push({ role: 'assistant', content: responseText });
+            await saveSession(sessionId, profile, messages);
 
             return NextResponse.json({
-                response: finalResponse.choices[0].message.content,
-                jobs: foundJobs
+                response: responseText,
+                jobs: [],
+                intent: understanding.intent,
+                profile
             });
         }
+
+        // ========================================
+        // STEP D: Search + Rerank
+        // ========================================
+        const jobs = await searchCandidates(profile, userLocation);
+        console.log('[Chat] Found:', jobs.length, 'candidates');
+
+        const rerank = await rerankWithGemini(jobs, profile);
+        const formattedJobs = formatJobsForCard(jobs, rerank);
+
+        // Build response
+        let responseText = '';
+        if (formattedJobs.length === 0) {
+            responseText = `Afsuski, ${profile.category || 'tanlangan soha'}da ${profile.region || 'barcha hududlar'}da vakansiya topilmadi. Boshqa soha yoki hududni sinab ko'ring.`;
+        } else {
+            responseText = `${profile.category || 'Barcha sohalar'}, ${profile.region || 'barcha hududlar'} - ${formattedJobs.length} ta mos vakansiya:`;
+            if (rerank.advice) {
+                responseText += `\n\n💡 ${rerank.advice}`;
+            }
+        }
+
+        messages.push({ role: 'assistant', content: responseText });
+        await saveSession(sessionId, { ...profile, profile_complete: true }, messages);
 
         return NextResponse.json({
-            response: assistantMessage.content,
-            jobs: []
+            response: responseText,
+            jobs: formattedJobs,
+            intent: 'search',
+            profile
         });
 
     } catch (error: any) {
-        console.error('AI Chat error:', error);
-        return NextResponse.json(
-            { error: "AI xizmatida xatolik yuz berdi.", fallback: true },
-            { status: 500 }
-        );
+        console.error('[Chat] Error:', error);
+        return NextResponse.json({
+            response: "Xatolik yuz berdi. Qaytadan urinib ko'ring.",
+            jobs: [],
+            intent: 'error'
+        }, { status: 500 });
     }
 }

@@ -8,6 +8,7 @@ import { MapPin, Clock, Building2, Calendar, Monitor, GraduationCap, Heart, Buil
 import { formatSalary, formatDate } from '@/lib/constants';
 import { getActiveSpecialCategories } from '@/lib/special-categories';
 import { cleanJobText, normalizeLocation } from '@/lib/text';
+import { getMappedValue } from '@/lib/mappings';
 
 const iconMap: any = {
   Monitor,
@@ -35,8 +36,11 @@ export function JobCard({ job }: JobCardProps) {
   const title = lang === 'uz' ? job.title_uz : job.title_ru;
 
   // Используем cleanJobText из lib/text.ts для очистки описания
+  // Fallback chain: description_uz/ru -> raw_source_json.info -> requirements
   const rawDescription = lang === 'uz' ? job.description_uz : job.description_ru;
-  const description = cleanJobText(rawDescription) || cleanJobText(job.raw_source_json?.info);
+  const description = cleanJobText(rawDescription)
+    || cleanJobText(job.raw_source_json?.info)
+    || cleanJobText(lang === 'uz' ? job.requirements_uz : job.requirements_ru);
 
   const getEmploymentLabel = (type: string) => {
     switch (type) {
@@ -58,18 +62,44 @@ export function JobCard({ job }: JobCardProps) {
       : job.categories.name_ru
     : '';
 
-  // Location: prefer join data, fallback to text fields (imported jobs)
-  const regionName = lang === 'uz'
-    ? ((job as any).districts?.regions?.name_uz || job.region_name)
-    : ((job as any).districts?.regions?.name_ru || job.region_name);
-  const districtName = lang === 'uz'
-    ? ((job as any).districts?.name_uz || job.district_name)
-    : ((job as any).districts?.name_ru || job.district_name);
+  // Location: prioritize direct text fields (region_name, district_name) which are more reliable
+  // Only use join data as fallback, and never show street address as location
 
-  // Используем normalizeLocation из lib/text.ts
+  // First try direct text fields (most reliable for imported jobs)
+  let regionName = job.region_name;
+  let districtName = job.district_name;
+
+  // Fallback to join data if text fields are empty
+  if (!regionName && job.districts?.regions) {
+    regionName = lang === 'uz'
+      ? job.districts.regions.name_uz
+      : job.districts.regions.name_ru;
+  }
+  if (!districtName && job.districts) {
+    districtName = lang === 'uz'
+      ? job.districts.name_uz
+      : job.districts.name_ru;
+  }
+
+  // Fallback to raw_source_json only for region/district names
+  if (!regionName && job.raw_source_json?.filial?.region?.name_uz) {
+    regionName = job.raw_source_json.filial.region.name_uz;
+  }
+  if (!districtName && job.raw_source_json?.filial?.city?.name_uz) {
+    districtName = job.raw_source_json.filial.city.name_uz;
+  }
+
+  // Normalize and build location label
   const cleanRegion = normalizeLocation(regionName);
   const cleanDistrict = normalizeLocation(districtName);
-  const locationLabel = [cleanRegion, cleanDistrict].filter(Boolean).join(', ');
+
+  // Build location - only show region and district, never street address
+  let locationLabel = [cleanRegion, cleanDistrict].filter(Boolean).join(', ');
+
+  // Final fallback - if empty, leave empty so it doesn't render
+  if (!locationLabel) {
+    locationLabel = '';
+  }
 
   const IconComponent = job.categories?.icon
     ? iconMap[job.categories.icon] || Briefcase
@@ -141,7 +171,18 @@ export function JobCard({ job }: JobCardProps) {
                 {job.work_mode === 'hybrid' && (lang === 'uz' ? 'Aralash' : 'Гибрид')}
               </div>
             )}
-
+            {/* Payment Type Badge (e.g. Daily/Monthly) */}
+            {job.payment_type && job.payment_type !== 1 && (
+              <div className="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-2.5 py-1 rounded-full border border-orange-100">
+                <Wallet className="w-3.5 h-3.5 text-orange-500" />
+                <span>
+                  {getMappedValue('payment_type', typeof job.payment_type === 'number' ? job.payment_type : undefined, lang) ||
+                    (typeof job.payment_type === 'string' ? job.payment_type :
+                      (job.payment_type === 2 ? (lang === 'uz' ? 'Ishbay' : 'Сдельная') :
+                        job.payment_type === 3 ? (lang === 'uz' ? 'Stavka' : 'Оклад') : ''))}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Special Categories - with z-index to stay clickable */}

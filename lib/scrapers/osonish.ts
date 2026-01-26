@@ -148,6 +148,7 @@ export interface TransformedVacancy {
 
     // Contacts
     contact_phone?: string;
+    contact_email?: string;
     contact_telegram?: string;
     additional_phone?: string;
     hr_name?: string;
@@ -200,6 +201,55 @@ const BACKOFF_BASE_MS = 1000;
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Company contacts cache to avoid duplicate API calls
+const companyContactsCache = new Map<number, { phone?: string; email?: string; website?: string } | null>();
+
+/**
+ * Fetch company details for fallback contact info (with caching)
+ */
+async function fetchCompanyContacts(companyId: number): Promise<{ phone?: string; email?: string; website?: string } | null> {
+    // Check cache first
+    if (companyContactsCache.has(companyId)) {
+        return companyContactsCache.get(companyId) || null;
+    }
+
+    try {
+        const url = `${API_BASE}/companies/${companyId}`;
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            companyContactsCache.set(companyId, null);
+            return null;
+        }
+
+        const json = await response.json();
+        const data = json.data;
+        if (!data) {
+            companyContactsCache.set(companyId, null);
+            return null;
+        }
+
+        // Extract contacts
+        // Priority: Top level phone -> Nested data.phone -> HR phone
+        const phone = data.phone || data.data?.phone || data.hrs?.[0]?.phone;
+        const email = data.mail;
+        const website = data.web_site;
+
+        const result = { phone, email, website };
+        companyContactsCache.set(companyId, result);
+
+        return result;
+    } catch (e) {
+        companyContactsCache.set(companyId, null);
+        return null; // Fail silently
+    }
 }
 
 /**
@@ -266,7 +316,19 @@ function extractTelegram(another_network?: string): string | undefined {
  */
 function stripHtml(html?: string): string {
     if (!html) return '';
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    // Replace block tags with newlines
+    let cleaned = html
+        .replace(/<\/div>/ig, '\n')
+        .replace(/<\/p>/ig, '\n')
+        .replace(/<br\s*\/?>/ig, '\n')
+        .replace(/<\/li>/ig, '\n');
+    // Remove all other tags
+    cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+    // Collapse multiple spaces
+    cleaned = cleaned.replace(/[ \t]+/g, ' ');
+    // Collapse multiple newlines
+    cleaned = cleaned.replace(/\n\s*\n/g, '\n').trim();
+    return cleaned;
 }
 
 /**
@@ -295,6 +357,24 @@ function mapWorkMode(work_type?: number): string | null {
         4: 'hybrid'    // Gibrid
     };
     return work_type ? (map[work_type] || null) : null;
+}
+
+/**
+ * Map experience ID to approximate years
+ * 1: Tajriba talab qilinmaydi -> 0
+ * 2: 1-3 yil -> 2
+ * 3: 3-6 yil -> 5
+ * 4: 6+ yil -> 7
+ */
+function mapExperience(expId?: number): number {
+    if (!expId) return 0;
+    const map: Record<number, number> = {
+        1: 0,   // No experience
+        2: 2,   // 1-3 years
+        3: 5,   // 3-6 years
+        4: 7    // 6+ years
+    };
+    return map[expId] || 0;
 }
 
 // ==================== API FUNCTIONS ====================
@@ -477,7 +557,7 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
 
         // Requirements
         education_level: detail.min_education,
-        experience_years: detail.work_experiance,
+        experience_years: mapExperience(detail.work_experiance),
         age_min: detail.age_from,
         age_max: detail.age_to,
         gender: detail.gender,
@@ -614,9 +694,29 @@ export async function scrapeOsonishFull(
         // Transform
         const transformed = transformDetail(detail);
 
+        // Fallback to company contacts if missing
+        if (!transformed.has_contact && detail.company?.id) {
+            try {
+                const companyContacts = await fetchCompanyContacts(detail.company.id);
+                if (companyContacts) {
+                    if (companyContacts.phone) transformed.contact_phone = normalizePhone(companyContacts.phone);
+                    if (companyContacts.email) transformed.contact_email = companyContacts.email.trim();
+                    if (companyContacts.website) transformed.source_url = companyContacts.website; // Or better store separately
+
+                    // Re-evaluate has_contact
+                    transformed.has_contact = !!(transformed.contact_phone || transformed.contact_telegram || transformed.contact_email);
+
+                    if (transformed.has_contact) {
+                        debug.vacancies_with_contacts++; // Just a counter, careful not to double count if we change logic
+                    }
+                }
+            } catch (err) {
+                // Ignore company fetch errors
+            }
+        }
+
         // Filter by contact
         if (transformed.has_contact) {
-            debug.vacancies_with_contacts++;
             vacancies.push(transformed);
         } else {
             debug.vacancies_without_contacts++;
