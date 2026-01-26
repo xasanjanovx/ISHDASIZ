@@ -13,6 +13,9 @@ export function cleanJobText(text: string | undefined | null): string {
     // 2. Удаляем HTML теги
     cleaned = cleaned.replace(/<[^>]*>/g, ' ');
 
+    // 2.5. Replace non-breaking spaces (may remain after decode)
+    cleaned = cleaned.replace(/\u00A0/g, ' ');
+
     // 3. Удаляем пустые секции вида "Vazifalar: - -" или "Talablar: "
     cleaned = cleaned.replace(/(Vazifalar|Talablar|Sharh|Imkoniyatlar):\s*[-–—]\s*[-–—]/gi, '');
     cleaned = cleaned.replace(/(Vazifalar|Talablar|Sharh|Imkoniyatlar):\s*$/gim, '');

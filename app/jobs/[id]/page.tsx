@@ -67,44 +67,7 @@ interface SimilarJob {
   salary_max: number | null;
 }
 
-// Osonish Mappings
-const OSONISH_MAPPINGS = {
-  payment_type: {
-    1: { uz: 'Kelishilgan holda', ru: 'По договоренности' },
-    2: { uz: 'Ishbay', ru: 'Сдельная' },
-    3: { uz: 'Stavka (oklad)', ru: 'Фиксированный оклад' },
-  },
-  test_period: {
-    1: { uz: 'Sinov muddati yo\'q', ru: 'Без испытательного срока' },
-    2: { uz: '1 oy', ru: '1 месяц' },
-    3: { uz: '2 oy', ru: '2 месяца' },
-    4: { uz: '3 oy', ru: '3 месяца' },
-  },
-  working_days: {
-    1: { uz: '6 kunlik ish haftasi', ru: '6-дневная рабочая неделя' },
-    2: { uz: '5 kunlik ish haftasi', ru: '5-дневная рабочая неделя' },
-  },
-  languages: {
-    1: { uz: 'O\'zbek tili', ru: 'Узбекский язык' },
-    2: { uz: 'Rus tili', ru: 'Русский язык' },
-    3: { uz: 'Ingliz tili', ru: 'Английский язык' },
-    4: { uz: 'Turk tili', ru: 'Турецкий язык' },
-  },
-  language_levels: {
-    1: { uz: 'Boshlang\'ich', ru: 'Начальный' },
-    2: { uz: 'O\'rta', ru: 'Средний' },
-    3: { uz: 'Yaxshi', ru: 'Хороший' },
-    4: { uz: 'A\'lo', ru: 'Отличный' },
-    5: { uz: 'Ona tili', ru: 'Родной язык' },
-  }
-};
-
-const getMappedValue = (type: keyof typeof OSONISH_MAPPINGS, id: number | undefined, lang: Language) => {
-  if (id === undefined || id === null) return null;
-  const effectiveLang = (lang === 'uz' || lang === 'uzCyrillic') ? 'uz' : 'ru';
-  // @ts-ignore
-  return OSONISH_MAPPINGS[type]?.[id]?.[effectiveLang] || id;
-};
+import { getMappedValue, getExperienceLabel, getGenderLabel, getEducationLabel, getPaymentTypeLabel, getWorkModeLabel } from '@/lib/mappings';
 
 export default function JobDetailPage() {
   const { id } = useParams();
@@ -429,7 +392,9 @@ export default function JobDetailPage() {
   // Description: use description field, fallback to raw_source_json.info for imported
   const rawInfo = (job as any).raw_source_json?.info;
   const rawDescription = lang === 'uz' ? job.description_uz : job.description_ru;
-  const description = cleanText(rawDescription) || cleanText(rawInfo);
+  const description = cleanText(rawDescription)
+    || cleanText(rawInfo)
+    || cleanText(lang === 'uz' ? job.requirements_uz : job.requirements_ru);
 
   // Requirements: use requirements field, or fallback to description for imported
   const reqField = lang === 'uz' ? job.requirements_uz : job.requirements_ru;
@@ -448,8 +413,14 @@ export default function JobDetailPage() {
   // @ts-ignore
   const region = district?.regions;
 
+  // TASHKENT DISTRICTS LIST for fallback detection
+  const TASHKENT_DISTRICTS = [
+    'bektemir', 'chilonzor', 'yashnobod', 'mirobod', 'mirzo ulug\'bek', 'sergeli',
+    'shayxontohur', 'olmazor', 'uchtepa', 'yakkasaroy', 'yunusobod', 'yangihayot'
+  ];
+
   // Use join data for local jobs, fallback to text fields for imported
-  const regionName = region
+  let regionName = region
     ? (lang === 'uz' ? region.name_uz : region.name_ru)
     : ((job as any).region_name || '');
 
@@ -457,63 +428,37 @@ export default function JobDetailPage() {
     ? (lang === 'uz' ? district.name_uz : district.name_ru)
     : ((job as any).district_name || '');
 
+  // Fix: If district is in Tashkent but region is missing or same as district, set region to Tashkent
+  if (districtName) {
+    const normDist = districtName.toLowerCase().replace(/ tumani| district| rayon/gi, '').trim();
+    const normReg = regionName ? regionName.toLowerCase() : '';
+
+    if (TASHKENT_DISTRICTS.includes(normDist)) {
+      if (!regionName || normReg === normDist || !normReg.includes('toshkent')) {
+        regionName = lang === 'uz' ? 'Toshkent shahri' : 'г. Ташкент';
+      }
+    }
+  }
+
+  // Deduplicate if region == district
+  if (regionName && districtName && regionName.toLowerCase() === districtName.toLowerCase()) {
+    regionName = '';
+  }
+
   const regionLabel = regionName || '';
   const locationLabel = [regionLabel, districtName].filter(Boolean).join(', ');
   const fullAddress = (job as any).address || '';
   const benefits: string | null = typeof job.benefits === 'string' ? job.benefits : null;
 
-  // Helper function to get experience label for imported jobs (number -> text)
-  const getExperienceLabel = () => {
-    // Check imported experience_years first (number)
-    const expYears = (job as any).experience_years;
-    if (typeof expYears === 'number') {
-      if (expYears === 0) return lang === 'ru' ? 'Без опыта' : 'Talab qilinmaydi';
-      if (expYears <= 3) return `1-3 ${lang === 'ru' ? 'лет' : 'yil'}`;
-      if (expYears <= 6) return `3-6 ${lang === 'ru' ? 'лет' : 'yil'}`;
-      return `${expYears}+ ${lang === 'ru' ? 'лет' : 'yil'}`;
-    }
-    // Check string experience for local jobs
-    if (job.experience === 'no_experience') return lang === 'ru' ? 'Без опыта' : 'Talab qilinmaydi';
-    if (job.experience === '1_3') return `1-3 ${lang === 'ru' ? 'лет' : 'yil'}`;
-    if (job.experience === '3_6') return `3-6 ${lang === 'ru' ? 'лет' : 'yil'}`;
-    if (job.experience === '6_plus') return `6+ ${lang === 'ru' ? 'лет' : 'yil'}`;
-    return lang === 'ru' ? 'Любой' : 'Ahamiyatsiz';
-  };
+  // Unified sections from imports/AI
+  const unifiedSections = (job as any).sections || (job as any).raw_source_json?.sections || {};
+  const qulayliklarList: string[] = Array.isArray(unifiedSections.qulayliklar) ? unifiedSections.qulayliklar : [];
 
-  // Helper for education label
-  const getEducationLabel = () => {
-    // Check imported education_level (number) first
-    const eduLevel = (job as any).education_level;
-    if (typeof eduLevel === 'number') {
-      if (eduLevel === 1) return lang === 'ru' ? 'Среднее' : "O'rta";
-      if (eduLevel === 2) return lang === 'ru' ? 'Среднее специальное' : "O'rta-maxsus";
-      if (eduLevel === 3) return lang === 'ru' ? 'Высшее' : 'Oliy';
-      if (eduLevel === 4) return lang === 'ru' ? 'Магистр' : 'Magistr';
-      return lang === 'ru' ? 'Любое' : 'Ahamiyatsiz';
-    }
-    // String codes for local jobs
-    if (job.education_level === 'any') return lang === 'ru' ? 'Любое' : 'Ahamiyatsiz';
-    if (job.education_level === 'secondary') return lang === 'ru' ? 'Среднее' : "O'rta";
-    if (job.education_level === 'vocational') return lang === 'ru' ? 'Спец.' : "Maxsus";
-    if (job.education_level === 'higher') return lang === 'ru' ? 'Высшее' : 'Oliy';
-    if (job.education_level === 'master') return lang === 'ru' ? 'Магистр' : 'Magistr';
-    return lang === 'ru' ? 'Любое' : 'Ahamiyatsiz';
-  };
+  // Also get structured lists for requirements and duties if available
+  const talablarList: string[] = Array.isArray(unifiedSections.talablar) ? unifiedSections.talablar : [];
+  const dutiesList: string[] = Array.isArray(unifiedSections.ish_vazifalari) ? unifiedSections.ish_vazifalari : [];
 
-  // Helper for gender label
-  const getGenderLabel = () => {
-    const genderVal = (job as any).gender;
-    // Number from imported
-    if (typeof genderVal === 'number') {
-      if (genderVal === 1) return lang === 'ru' ? 'Мужской' : 'Erkak';
-      if (genderVal === 2) return lang === 'ru' ? 'Женский' : 'Ayol';
-      return lang === 'ru' ? 'Любой' : 'Ahamiyatsiz';
-    }
-    // String for local
-    if (genderVal === 'male') return lang === 'ru' ? 'Мужской' : 'Erkak';
-    if (genderVal === 'female') return lang === 'ru' ? 'Женский' : 'Ayol';
-    return lang === 'ru' ? 'Любой' : 'Ahamiyatsiz';
-  };
+
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -655,15 +600,15 @@ export default function JobDetailPage() {
                   {/* Experience */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                     <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getExperienceLabel()}</span>
+                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getExperienceLabel(job, lang)}</span>
                   </div>
 
                   {/* Payment Type */}
-                  {((job as any).raw_source_json?.payment_type || (job as any).payment_type) && (
+                  {(getPaymentTypeLabel(job, lang)) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                       <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Форма оплаты' : "To'lov shakli"}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
-                        {getMappedValue('payment_type', (job as any).raw_source_json?.payment_type, lang) || ((job as any).payment_type as string)}
+                        {getPaymentTypeLabel(job, lang)}
                       </span>
                     </div>
                   )}
@@ -684,36 +629,29 @@ export default function JobDetailPage() {
                   </div>
 
                   {/* Work Mode */}
-                  {((job as any).raw_source_json?.work_mode || (job as any).work_mode) && (
+                  {(getWorkModeLabel(job, lang)) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                       <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Режим работы' : 'Ish usuli (rejimi)'}:</span>
-                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0 capitalize">
-                        {(() => {
-                          // Osonish specific work mode logic
-                          const osonishMode = (job as any).raw_source_json?.work_mode;
-                          // Use mapped value if available in JSON (assuming similar string val) or map if ID
-                          // But often checking standard field
-                          const mode = (job as any).work_mode;
-                          if (mode === 'onsite') return lang === 'uz' ? 'Odatiy (ish joyida)' : 'В офисе';
-                          if (mode === 'remote') return lang === 'uz' ? 'Masofaviy' : 'Удаленно';
-                          if (mode === 'hybrid') return lang === 'uz' ? 'Gibrid' : 'Гибрид';
-                          if (mode === 'shift') return lang === 'ru' ? 'Сменный график' : 'Smenali ish';
-                          return mode;
-                        })()}
+                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
+                        {getWorkModeLabel(job, lang)}
                       </span>
                     </div>
                   )}
 
                   {/* Schedule (Ish kunlari va vaqti) */}
-                  {((job as any).raw_source_json?.working_days_id || (job as any).raw_source_json?.working_time_from) && (
+                  {((job as any).raw_source_json?.working_days_id || (job as any).raw_source_json?.working_time_from || (job as any).working_schedule) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                       <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'График работы' : 'Ish kunlari va vaqti'}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
-                        {getMappedValue('working_days', (job as any).raw_source_json?.working_days_id, lang)}
-                        {(job as any).raw_source_json?.working_time_from && (
-                          <span className="ml-1">
-                            ({(job as any).raw_source_json.working_time_from.slice(0, 5)} - {(job as any).raw_source_json.working_time_to.slice(0, 5)})
-                          </span>
+                        {(job as any).working_schedule || (
+                          <>
+                            {getMappedValue('working_days', (job as any).raw_source_json?.working_days_id, lang)}
+                            {(job as any).raw_source_json?.working_time_from && (job as any).raw_source_json?.working_time_to && (
+                              <span className="ml-1">
+                                ({(job as any).raw_source_json.working_time_from.slice(0, 5)} - {(job as any).raw_source_json.working_time_to.slice(0, 5)})
+                              </span>
+                            )}
+                          </>
                         )}
                       </span>
                     </div>
@@ -732,7 +670,7 @@ export default function JobDetailPage() {
                   {/* Education */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                     <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Образование' : "Ma'lumot darajasi"}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getEducationLabel()}</span>
+                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getEducationLabel(job, lang)}</span>
                   </div>
 
                   {/* Specialization */}
@@ -749,7 +687,7 @@ export default function JobDetailPage() {
                   {/* Gender */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                     <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Пол' : 'Jinsi'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getGenderLabel()}</span>
+                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getGenderLabel((job as any).gender, lang)}</span>
                   </div>
 
                   {/* Age */}
@@ -774,112 +712,179 @@ export default function JobDetailPage() {
                       </div>
                     </div>
                   )}
+
                 </div>
               </CardContent>
             </Card>
 
-            {/* Responsibilities & Requirements */}
-            <Card className="border-slate-200 shadow-sm overflow-hidden">
-              <CardContent className="p-5 md:p-6">
-                <div className="space-y-6">
 
-                  {/* HTML Description for Imported Jobs */}
-                  {description ? (
-                    <section>
-                      <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                        <div className="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
-                        {lang === 'ru' ? 'Описание вакансии' : "Batafsil ma'lumot"}
-                      </h2>
-                      <div
-                        className="bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-100 text-slate-700 text-base leading-relaxed prose prose-indigo max-w-none"
-                        dangerouslySetInnerHTML={{ __html: description }}
-                      />
-                    </section>
+            {/* === SEPARATE SECTIONS: Talablar, Ish vazifalari, Ish sharoitlari === */}
+
+            {/* TALABLAR (Requirements) */}
+            {(talablarList.length > 0 || requirements || (job as any).raw_source_json?.html_requirements) && (
+              <Card className="border-slate-200 shadow-lg overflow-hidden bg-gradient-to-br from-white to-blue-50/30">
+                <CardContent className="p-5 md:p-6">
+                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                    </div>
+                    {lang === 'ru' ? 'Требования' : 'Talablar'}
+                  </h2>
+
+                  {talablarList.length > 0 ? (
+                    <ul className="space-y-2 list-none">
+                      {talablarList.map((item, idx) => (
+                        <li key={idx} className="flex gap-3 text-slate-700">
+                          <span className="text-blue-500 font-bold text-lg leading-6">•</span>
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   ) : (
-                    <>
-                      {requirements && (
-                        <section>
-                          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <div className="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
-                            {lang === 'ru' ? 'Требования и обязанности' : 'Talablar va vazifalar'}
-                          </h2>
-                          <div className="bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap">
-                            {requirements.replace(/\\n/g, '\n')}
-                          </div>
-                        </section>
-                      )}
-
-                      {benefits && (
-                        <section>
-                          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <div className="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
-                            {lang === 'ru' ? 'Преимущества' : 'Qulayliklar'}
-                          </h2>
-                          <div className="bg-emerald-50/50 p-4 md:p-5 rounded-2xl border border-emerald-100 text-emerald-900 text-base leading-relaxed whitespace-pre-wrap">
-                            {benefits.replace(/\\n/g, '\n')}
-                          </div>
-                        </section>
-                      )}
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Skills & Education (from raw_source_json) */}
-            {(((job as any).raw_source_json?.skills?.length > 0) || ((job as any).raw_source_json?.languages?.length > 0)) && (
-              <Card className="border-slate-200 shadow-sm overflow-hidden mb-6">
-                <CardContent className="p-5 md:p-6 space-y-6">
-                  {/* Skills */}
-                  {(job as any).raw_source_json?.skills?.length > 0 && (
-                    <section>
-                      <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Профессиональные навыки' : "Kasbiy bilim va ko'nikmalar"}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {(job as any).raw_source_json.skills.map((skill: any, idx: number) => {
-                          const skillName = typeof skill === 'object' ? skill.name : skill;
-                          // If it's a number (ID) and we don't have a name, skip it to avoid showing "1553"
-                          if (typeof skillName === 'number') return null;
-                          return (
-                            <Badge key={idx} variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5">
-                              {skillName}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Languages (Imported) */}
-                  {(job as any).raw_source_json?.languages?.length > 0 && (
-                    <section>
-                      <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Знание языков' : "Tillarni bilishi"}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {(job as any).raw_source_json.languages.map((langItem: any, idx: number) => {
-                          // Handle {id: 1, level: 5} format
-                          const langId = langItem.id || (typeof langItem === 'number' ? langItem : null);
-                          const levelId = langItem.level;
-
-                          const langName = getMappedValue('languages', langId, lang);
-                          const levelName = getMappedValue('language_levels', levelId, lang);
-
-                          // Fallback to name if available
-                          const displayName = langName || langItem.name || langItem.language;
-
-                          if (!displayName || typeof displayName === 'number') return null;
-
-                          return (
-                            <Badge key={idx} variant="outline" className="px-3 py-1.5 border-slate-200 text-slate-700">
-                              <span className="font-bold mr-1">{displayName}</span>
-                              {levelName && <span className="text-slate-500">- {levelName}</span>}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </section>
+                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-blue-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                      {(requirements || (job as any).raw_source_json?.html_requirements || '').replace(/\\n/g, '\n')}
+                    </div>
                   )}
                 </CardContent>
               </Card>
             )}
+
+
+
+            {/* ISH VAZIFALARI (Responsibilities/Description) */}
+            {(dutiesList.length > 0 || description || (job as any).raw_source_json?.html_responsibilities) && (
+              <Card className="border-slate-200 shadow-lg overflow-hidden bg-gradient-to-br from-white to-indigo-50/30">
+                <CardContent className="p-5 md:p-6">
+                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    {lang === 'ru' ? 'Обязанности' : 'Ish vazifalari'}
+                  </h2>
+
+                  {dutiesList.length > 0 ? (
+                    <ul className="space-y-2 list-none">
+                      {dutiesList.map((item, idx) => (
+                        <li key={idx} className="flex gap-3 text-slate-700">
+                          <span className="text-indigo-500 font-bold text-lg leading-6">•</span>
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-indigo-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                      {((job as any).raw_source_json?.html_responsibilities || description || '').replace(/\\n/g, '\n')}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ISH SHAROITLARI -> QULAYLIKLAR (Conditions/Benefits) */}
+            {(benefits || (job as any).raw_source_json?.html_conditions || qulayliklarList.length > 0) && (
+              <Card className="border-slate-200 shadow-lg overflow-hidden bg-gradient-to-br from-white to-emerald-50/30">
+                <CardContent className="p-5 md:p-6">
+                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    {/* User requested "Qulayliklar" for imported jobs specifically, but generally good for both */}
+                    {lang === 'ru' ? 'Преимущества' : 'Qulayliklar'}
+                  </h2>
+
+                  {/* If we have structured tags/list (from AI or imports), show badges */}
+                  {qulayliklarList.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {qulayliklarList.map((item, idx) => (
+                        <Badge key={idx} className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1.5 text-sm font-normal">
+                          <span className="mr-1.5 text-emerald-500">✓</span>
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    /* Fallback to text block if no structured tags */
+                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-emerald-100 text-emerald-900 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                      {(benefits || (job as any).raw_source_json?.html_conditions || '').replace(/\\n/g, '\n')}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Skills & Languages & Benefits (from raw_source_json) */}
+            {(((job as any).raw_source_json?.skills_details?.length > 0) ||
+              ((job as any).raw_source_json?.languages?.length > 0) ||
+              ((job as any).raw_source_json?.benefit_ids?.length > 0)) && (
+                <Card className="border-slate-200 shadow-sm overflow-hidden mb-6">
+                  <CardContent className="p-5 md:p-6 space-y-6">
+                    {/* Skills (use skills_details from API) */}
+                    {(job as any).raw_source_json?.skills_details?.length > 0 && (
+                      <section>
+                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Профессиональные навыки' : "Kasbiy bilim va ko'nikmalar"}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {(job as any).raw_source_json.skills_details.map((skill: any, idx: number) => {
+                            const skillName = skill.skill_name || skill.name || (typeof skill === 'string' ? skill : null);
+                            if (!skillName || typeof skillName === 'number') return null;
+                            return (
+                              <Badge key={idx} variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5">
+                                {skillName}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Languages (API uses "language" key, not "id") */}
+                    {(job as any).raw_source_json?.languages?.length > 0 && (
+                      <section>
+                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Знание языков' : "Tillarni bilishi"}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {(job as any).raw_source_json.languages.map((langItem: any, idx: number) => {
+                            // OsonIsh API uses "language" key (not "id")
+                            const langId = langItem.language || langItem.id || (typeof langItem === 'number' ? langItem : null);
+                            const levelId = langItem.level;
+
+                            const langName = getMappedValue('languages', langId, lang);
+                            const levelName = getMappedValue('language_levels', levelId, lang);
+
+                            // Fallback to name if available
+                            const displayName = langName || langItem.name;
+
+                            if (!displayName || typeof displayName === 'number') return null;
+
+                            return (
+                              <Badge key={idx} variant="outline" className="px-3 py-1.5 border-slate-200 text-slate-700">
+                                <span className="font-bold mr-1">{displayName}</span>
+                                {levelName && <span className="text-slate-500">- {levelName}</span>}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Benefits / Qulayliklar */}
+                    {(job as any).raw_source_json?.benefit_ids?.length > 0 && (
+                      <section>
+                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Льготы и условия' : "Qulayliklar"}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {(job as any).raw_source_json.benefit_ids.map((benefitId: number, idx: number) => {
+                            const benefitName = getMappedValue('benefits', benefitId, lang);
+                            if (!benefitName || typeof benefitName === 'number') return null;
+                            return (
+                              <Badge key={idx} className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1.5">
+                                ✓ {benefitName}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
 
           </div>
@@ -902,13 +907,14 @@ export default function JobDetailPage() {
             </Card>
 
             {/* Contact Card */}
-            {(job.contact_phone || job.contact_telegram || job.phone || job.email || (job as any).raw_source_json?.hr_name) && (
+            {(job.contact_phone || job.contact_telegram || job.phone || job.email || job.contact_email || job.hr_name || (job as any).raw_source_json?.hr_name) && (
               <Card className="border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
                   <h3 className="font-bold text-slate-900">{lang === 'ru' ? 'Контактная информация' : 'Bog\'lanish uchun'}</h3>
                 </div>
                 <CardContent className="p-6 space-y-5">
-                  {(job as any).raw_source_json?.hr_name && (
+                  {/* Only show HR name if it was explicitly provided by source API */}
+                  {(job as any).raw_source_json?.hr?.fio && (
                     <div className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center transition-transform group-hover:scale-110">
@@ -916,7 +922,7 @@ export default function JobDetailPage() {
                         </div>
                         <div>
                           <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? 'Контактное лицо' : "Vakansiya HR menejeri"}</p>
-                          <p className="font-bold text-slate-900 text-sm">{(job as any).raw_source_json.hr_name}</p>
+                          <p className="font-bold text-slate-900 text-sm">{(job as any).raw_source_json.hr.fio}</p>
                         </div>
                       </div>
                     </div>
@@ -967,7 +973,7 @@ export default function JobDetailPage() {
                     </div>
                   )}
 
-                  {job.email && (
+                  {(job.contact_email || job.email) && (
                     <div className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center transition-transform group-hover:scale-110">
@@ -975,11 +981,11 @@ export default function JobDetailPage() {
                         </div>
                         <div>
                           <p className="text-xs text-slate-500 font-medium">Email</p>
-                          <p className="font-bold text-slate-900 truncate max-w-[150px]">{job.email}</p>
+                          <p className="font-bold text-slate-900 truncate max-w-[150px]">{job.contact_email || job.email}</p>
                         </div>
                       </div>
                       <a
-                        href={`mailto:${job.email}`}
+                        href={`mailto:${job.contact_email || job.email}`}
                         className="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-violet-600 hover:text-white transition-all"
                       >
                         <Mail className="w-5 h-5" />

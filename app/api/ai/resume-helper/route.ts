@@ -1,16 +1,34 @@
+/**
+ * Resume Helper API - Gemini Powered
+ * Helps users improve their resumes with AI suggestions
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Lazy initialization to avoid build-time errors
-let openai: OpenAI | null = null;
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-function getOpenAI() {
-    if (!openai && process.env.OPENAI_API_KEY) {
-        openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
+const PRIMARY_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODEL = 'gemini-2.0-flash';
+
+async function callGemini(prompt: string, maxTokens: number = 500): Promise<string> {
+    try {
+        const model = genAI.getGenerativeModel({
+            model: PRIMARY_MODEL,
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
         });
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch {
+        // Fallback
+        const model = genAI.getGenerativeModel({
+            model: FALLBACK_MODEL,
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+        });
+        const result = await model.generateContent(prompt);
+        return result.response.text();
     }
-    return openai;
 }
 
 export async function POST(request: NextRequest) {
@@ -18,9 +36,9 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { action, content, title, jobTitle } = body;
 
-        if (!process.env.OPENAI_API_KEY) {
+        if (!process.env.GEMINI_API_KEY) {
             return NextResponse.json({
-                error: "AI xizmati sozlanmagan. OPENAI_API_KEY ni qo'shing.",
+                error: "AI xizmati sozlanmagan. GEMINI_API_KEY ni qo'shing.",
                 fallback: true
             }, { status: 503 });
         }
@@ -32,33 +50,23 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Content or Title is required' }, { status: 400 });
             }
 
-            const prompt = `Quyidagi "O'zi haqida" matnini yoki nomzodning lavozimidan kelib chiqib professional rezyume uchun "O'zi haqida" (About) qismini yozib ber. 
-            
-            Lavozim: ${title || 'Noma\'lum'}
-            Hozirgi matn: ${content || '(bo\'sh)'}
+            const prompt = `${systemPrompt}
 
-            Talablar:
-            - Professional uslubda yoz.
-            - Nomzodning kuchli tomonlarini va maqsadlarini ta'kidla.
-            - Grammatik xatolarni to'g'irla.
-            - 3-5 gapdan oshmasin.
-            
-            Faqat matnni yoz.`;
+Quyidagi "O'zi haqida" matnini yoki nomzodning lavozimidan kelib chiqib professional rezyume uchun "O'zi haqida" (About) qismini yozib ber. 
 
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 500,
-            });
+Lavozim: ${title || 'Noma\'lum'}
+Hozirgi matn: ${content || '(bo\'sh)'}
 
-            return NextResponse.json({
-                success: true,
-                result: completion.choices[0]?.message?.content || ""
-            });
+Talablar:
+- Professional uslubda yoz.
+- Nomzodning kuchli tomonlarini va maqsadlarini ta'kidla.
+- Grammatik xatolarni to'g'irla.
+- 3-5 gapdan oshmasin.
+
+Faqat matnni yoz.`;
+
+            const result = await callGemini(prompt);
+            return NextResponse.json({ success: true, result });
         }
 
         if (action === 'improve_experience') {
@@ -66,33 +74,23 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Content or Job Title is required' }, { status: 400 });
             }
 
-            const prompt = `Quyidagi ish tajribasi tavsifini yoki lavozim nomidan kelib chiqib, rezyume uchun vazifalar va yutuqlar ro'yxatini yozib ber.
+            const prompt = `${systemPrompt}
 
-            Lavozim: ${jobTitle}
-            Hozirgi matn: ${content || '(bo\'sh)'}
+Quyidagi ish tajribasi tavsifini yoki lavozim nomidan kelib chiqib, rezyume uchun vazifalar va yutuqlar ro'yxatini yozib ber.
 
-            Talablar:
-            - "•" belgilari bilan ro'yxat shaklida yoz.
-            - Aniq yutuqlar va mas'uliyatlarni keltir.
-            - Professional so'zlardan foydalan.
-            - 5 ta punktdan oshmasin.
-            
-            Faqat ro'yxatni yoz.`;
+Lavozim: ${jobTitle}
+Hozirgi matn: ${content || '(bo\'sh)'}
 
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 500,
-            });
+Talablar:
+- "•" belgilari bilan ro'yxat shaklida yoz.
+- Aniq yutuqlar va mas'uliyatlarni keltir.
+- Professional so'zlardan foydalan.
+- 5 ta punktdan oshmasin.
 
-            return NextResponse.json({
-                success: true,
-                result: completion.choices[0]?.message?.content || ""
-            });
+Faqat ro'yxatni yoz.`;
+
+            const result = await callGemini(prompt);
+            return NextResponse.json({ success: true, result });
         }
 
         if (action === 'suggest_skills') {
@@ -102,24 +100,10 @@ export async function POST(request: NextRequest) {
 
             const prompt = `"${title}" lavozimi uchun eng muhim 10 ta professional ko'nikmani (hard skills & soft skills) vergul bilan ajratib yoz. Faqat ko'nikmalar nomini yoz.`;
 
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 200,
-            });
-
-            const text = completion.choices[0]?.message?.content || "";
-            // Split based on comma or newline
+            const text = await callGemini(prompt, 200);
             const skills = text.split(/,|\n/).map(s => s.trim().replace(/^[-•]\s*/, '')).filter(s => s.length > 0);
 
-            return NextResponse.json({
-                success: true,
-                result: skills
-            });
+            return NextResponse.json({ success: true, result: skills });
         }
 
         if (action === 'parse_resume') {
@@ -127,52 +111,50 @@ export async function POST(request: NextRequest) {
             if (!content) return NextResponse.json({ error: 'Content is required' }, { status: 400 });
 
             const prompt = `
-            Quyidagi matndan rezyume ma'lumotlarini ajratib ol va JSON formatida qaytar.
-            
-            Matn: "${content}"
+Sen ma'lumotlarni strukturalashtiruvchi AI yordamchisan. Faqat valid JSON qaytar.
 
-            Mavjud Kategoriyalar: ${JSON.stringify(categories.map((c: any) => ({ id: c.id, name: c.name })))}
-            Mavjud Tumanlar: ${JSON.stringify(districts.map((d: any) => ({ id: d.id, name: d.name })))}
+Quyidagi matndan rezyume ma'lumotlarini ajratib ol va JSON formatida qaytar.
 
-            Quyidagi strukturada JSON qaytar:
-            {
-                "title": "Lavozim nomi (masalan: Buxgalter, Sotuvchi). Agar matnda yo'q bo'lsa, tajribasidan kelib chiqib nomla.",
-                "full_name": "F.I.O",
-                "phone": "Telefon raqami (agar bo'lsa)",
-                "birth_date": "Tug'ilgan sana YYYY-MM-DD formatida (yoki yoshidan hisobla)",
-                "gender": "male yoki female (ismidan aniqla)",
-                "about": "Professional 'O'zi haqida' matni. Nomzodning kuchli tomonlari, yutuqlari va maqsadlarini ta'kidlaydigan, 3-4 gapdan iborat jozibali matn.",
-                "skills": ["ko'nikma1", "ko'nikma2", ...],
-                "salary_min": "Kutilayotgan minimal maosh (raqamda, so'mda)",
-                "salary_max": "Kutilayotgan maksimal maosh (raqamda, so'mda)",
-                "category_id": "eng mos kategoriya ID si (yoki null)",
-                "district_id": "eng mos tuman ID si (yoki null)",
-                "experience_level": "no_experience, 1_year, 3_years, 5_years, yoki 10_years (matndan aniqla)",
-                "experience_years_count": 0, // Aniq necha yil tajribasi borligi (aniqlay olmasang 0)
-                "education_level": "secondary, vocational, higher, yoki master (matndan aniqla)",
-                "languages": [ "Rus tili", "Ingliz tili" ] // Matnda tilga olingan tillar
+Matn: "${content}"
+
+Mavjud Kategoriyalar: ${JSON.stringify(categories?.map((c: any) => ({ id: c.id, name: c.name })) || [])}
+Mavjud Tumanlar: ${JSON.stringify(districts?.map((d: any) => ({ id: d.id, name: d.name })) || [])}
+
+Quyidagi strukturada JSON qaytar:
+{
+    "title": "Lavozim nomi",
+    "full_name": "F.I.O",
+    "phone": "Telefon raqami",
+    "birth_date": "YYYY-MM-DD formatida",
+    "gender": "male yoki female",
+    "about": "Professional 'O'zi haqida' matni 3-4 gap",
+    "skills": ["ko'nikma1", "ko'nikma2"],
+    "salary_min": null,
+    "salary_max": null,
+    "category_id": null,
+    "district_id": null,
+    "experience_level": "no_experience yoki 1_year yoki 3_years",
+    "experience_years_count": 0,
+    "education_level": "secondary yoki vocational yoki higher",
+    "languages": ["Rus tili", "Ingliz tili"]
+}
+
+Faqat JSON formatida javob ber.`;
+
+            const text = await callGemini(prompt, 800);
+
+            // Parse JSON
+            let result = {};
+            try {
+                const match = text.match(/\{[\s\S]*\}/);
+                if (match) {
+                    result = JSON.parse(match[0]);
+                }
+            } catch {
+                console.error('[Resume Helper] Failed to parse JSON:', text);
             }
 
-            Faqat JSON formatida javob ber. Hech qanday qo'shimcha so'z yozma.
-            `;
-
-
-            const completion = await getOpenAI()!.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: "Sen ma'lumotlarni strukturalashtiruvchi AI yordamchisan. Faqat valid JSON qaytar." },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.3,
-                response_format: { type: "json_object" }
-            });
-
-            const result = JSON.parse(completion.choices[0]?.message?.content || "{}");
-
-            return NextResponse.json({
-                success: true,
-                result: result
-            });
+            return NextResponse.json({ success: true, result });
         }
 
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

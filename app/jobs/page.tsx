@@ -73,7 +73,7 @@ export default function JobsPage() {
     // Filter by Special Categories (Checkboxes)
     if (selectedSpecialCategories.length > 0) {
       if (selectedSpecialCategories.includes('students')) {
-        query = query.eq('is_for_students', true);
+        query = query.or('is_for_students.eq.true,is_for_graduates.eq.true');
       }
       if (selectedSpecialCategories.includes('graduates')) {
         query = query.eq('is_for_graduates', true);

@@ -30,12 +30,29 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
+  /* Telegram WebApp Theme Overrides */
+  .telegram-app {
+    --background: var(--tg-theme-bg-color, #ffffff);
+    --foreground: var(--tg-theme-text-color, #000000);
+    --card: var(--tg-theme-bg-color, #ffffff);
+    --card-foreground: var(--tg-theme-text-color, #000000);
+    --primary: var(--tg-theme-button-color, #3b82f6);
+    --primary-foreground: var(--tg-theme-button-text-color, #ffffff);
+    --secondary: var(--tg-theme-secondary-bg-color, #f1f5f9);
+    --border: var(--tg-theme-hint-color, #e2e8f0);
+
+    /* Ensure body background matches */
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -45,10 +62,11 @@
   .animation-delay-200 {
     animation-delay: 200ms;
   }
+
   .animation-delay-400 {
     animation-delay: 400ms;
   }
-  
+
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -56,8 +74,10 @@
 
   /* Hide scrollbar for IE, Edge and Firefox */
   .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }
 
@@ -114,9 +134,12 @@
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -131,6 +154,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -145,6 +169,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }

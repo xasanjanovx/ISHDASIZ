@@ -28,10 +28,13 @@ const languageLabels = {
   ru: 'РУС',
 };
 
+import { useTelegram } from '@/contexts/telegram-context';
+
 export default function Header() {
   const { lang, setLang } = useLanguage();
   const { user: adminUser, adminProfile, signOut: adminSignOut } = useAuth();
   const { user, isAuthenticated, isLoading, logout, switchRole } = useUserAuth();
+  const { isTelegram } = useTelegram();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -40,6 +43,11 @@ export default function Header() {
   const [activeTab, setActiveTab] = useState('Bosh sahifa');
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadApplications, setUnreadApplications] = useState(0);
+
+  // If in Telegram Mini App, hide this standard header to rely on simplified nav or native feel
+  if (isTelegram) {
+    return null;
+  }
 
   // Check if admin is logged in
   const isAdmin = !!adminUser && !!adminProfile;

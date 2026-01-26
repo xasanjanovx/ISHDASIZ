@@ -3,49 +3,31 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/language-context';
-import { useUserAuth } from '@/contexts/user-auth-context';
-import { supabase } from '@/lib/supabase';
-import { JobCard } from '@/components/jobs/job-card';
+import { useSession } from '@/lib/contexts/session-context';
+import { AIJobCard } from '@/components/ai/ai-job-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { JobWithRelations, Category, District } from '@/types/database';
-import { Send, User, Bot, Loader2 } from '@/components/ui/icons';
+import { Send, User, Loader2, MapPin } from '@/components/ui/icons';
 import Image from 'next/image';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  jobs?: JobWithRelations[];
+  jobs?: any[];
 }
 
 export default function AISearchPage() {
   const { lang, t } = useLanguage();
-  const { user } = useUserAuth();
+  const { sessionId, profile, updateProfile, userLocation, requestLocation } = useSession();
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [allJobs, setAllJobs] = useState<JobWithRelations[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
   const initialQueryProcessed = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const [jobsRes, catRes, distRes] = await Promise.all([
-        supabase.from('jobs').select('*, categories(*), districts(*, regions(*))').eq('status', 'active'),
-        supabase.from('categories').select('*'),
-        supabase.from('districts').select('*'),
-      ]);
-      setAllJobs(jobsRes.data || []);
-      setCategories(catRes.data || []);
-      setDistricts(distRes.data || []);
-    };
-    fetchData();
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -53,7 +35,7 @@ export default function AISearchPage() {
     }
   }, [messages]);
 
-  // Auto-send query from URL params (from AI widget redirect)
+  // Auto-send query from URL params
   useEffect(() => {
     const q = searchParams.get('q');
     if (q && !initialQueryProcessed.current) {
@@ -66,8 +48,6 @@ export default function AISearchPage() {
     }
   }, [searchParams]);
 
-
-
   const performSearch = async (query: string, history: Message[]) => {
     setLoading(true);
     try {
@@ -76,8 +56,9 @@ export default function AISearchPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: query,
-          history: history.map(m => ({ role: m.role, content: m.content })),
-          userId: user?.id
+          session_id: sessionId,
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+          user_location: userLocation
         }),
       });
       const data = await response.json();
@@ -87,6 +68,11 @@ export default function AISearchPage() {
           ...prev,
           { role: 'assistant', content: data.response, jobs: data.jobs }
         ]);
+
+        // Update profile from server
+        if (data.profile) {
+          updateProfile(data.profile);
+        }
       }
     } catch (error) {
       console.error('Chat error:', error);
@@ -109,11 +95,28 @@ export default function AISearchPage() {
     performSearch(userMessage, messages);
   };
 
+  const handleRequestLocation = async () => {
+    setGeoLoading(true);
+    const location = await requestLocation();
+    setGeoLoading(false);
+
+    if (location) {
+      // Add system message about location
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: `📍 Joylashuvingiz aniqlandi! Endi yaqiningizda ish qidirish uchun soha yozing.` }
+      ]);
+    } else {
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: `Joylashuvni aniqlab bo'lmadi. Brauzer sozlamalarini tekshiring.` }
+      ]);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <div className="bg-indigo-900 text-white py-8 relative overflow-hidden flex-shrink-0">
-        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl opacity-20 translate-x-1/2 -translate-y-1/2"></div>
         </div>
@@ -126,6 +129,14 @@ export default function AISearchPage() {
             {t.ai.title}
           </h1>
           <p className="text-indigo-200 mt-2 max-w-xl text-lg">{t.ai.placeholder}</p>
+
+          {/* Location indicator */}
+          {userLocation && (
+            <div className="mt-2 flex items-center gap-2 text-emerald-300 text-sm">
+              <MapPin className="w-4 h-4" />
+              Joylashuv aniqlangan
+            </div>
+          )}
         </div>
       </div>
 
@@ -141,11 +152,24 @@ export default function AISearchPage() {
                   <h2 className="text-2xl font-black text-slate-900 mb-2">
                     {lang === 'uz' ? 'AI Yordamchiga xush kelibsiz!' : 'Добро пожаловать в AI помощник!'}
                   </h2>
-                  <p className="text-slate-500 mb-8 max-w-md leading-relaxed">{t.ai.placeholder}</p>
+                  <p className="text-slate-500 mb-6 max-w-md leading-relaxed">{t.ai.placeholder}</p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
-                    {/* Suggestion Chips removed */}
-                  </div>
+                  {/* Geo button */}
+                  {!userLocation && (
+                    <Button
+                      variant="outline"
+                      className="mb-4 gap-2"
+                      onClick={handleRequestLocation}
+                      disabled={geoLoading}
+                    >
+                      {geoLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <MapPin className="w-4 h-4" />
+                      )}
+                      {lang === 'uz' ? 'Joylashuvni aniqlash' : 'Определить местоположение'}
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -169,7 +193,7 @@ export default function AISearchPage() {
                           <div className="mt-4 space-y-3">
                             {msg.jobs.map((job) => (
                               <div key={job.id} className="scale-95 origin-top-left">
-                                <JobCard job={job} />
+                                <AIJobCard job={job} />
                               </div>
                             ))}
                           </div>
@@ -198,6 +222,19 @@ export default function AISearchPage() {
             </ScrollArea>
 
             <div className="p-4 md:p-5 border-t border-slate-100 bg-white">
+              {/* Geo button in input area if not set */}
+              {!userLocation && messages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mb-2 text-xs text-slate-500 gap-1"
+                  onClick={handleRequestLocation}
+                  disabled={geoLoading}
+                >
+                  <MapPin className="w-3 h-3" />
+                  {lang === 'uz' ? 'Yaqinimda qidirish' : 'Поиск рядом'}
+                </Button>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

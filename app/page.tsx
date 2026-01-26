@@ -42,22 +42,28 @@ async function getHomeData() {
     women: 0,
   };
 
-  // We need to fetch all active jobs to count correctly (or use count query, but iterating is fine for < 1000 jobs)
-  // Optimization: use separate count queries if dataset grows large. For now, we iterate the limit(8) jobs which is WRONG for total count.
-  // We should fetch counts separately or fetch metadata.
-  // Let's do a separate lightweight query for counts of special categories for all active jobs.
-  const { data: allActiveJobs } = await supabase
-    .from('jobs')
-    .select('is_for_students, is_for_disabled, is_for_women')
-    .eq('is_active', true);
+  // Use separate count queries for accuracy
+  const [studentsResult, disabledResult, womenResult] = await Promise.all([
+    supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true)
+      .or('is_for_students.eq.true,is_for_graduates.eq.true'),
+    supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true)
+      .eq('is_for_disabled', true),
+    supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true)
+      .eq('is_for_women', true),
+  ]);
 
-  if (allActiveJobs) {
-    allActiveJobs.forEach(job => {
-      if (job.is_for_students) specialCounts.students++;
-      if (job.is_for_disabled) specialCounts.disabled++;
-      if (job.is_for_women) specialCounts.women++;
-    });
-  }
+  specialCounts.students = studentsResult.count || 0;
+  specialCounts.disabled = disabledResult.count || 0;
+  specialCounts.women = womenResult.count || 0;
 
   const { count: totalJobs } = await supabase
     .from('jobs')

@@ -18,16 +18,29 @@ import {
   FileText,
   BarChart3,
   Shield,
+  RefreshCw,
 } from '@/components/ui/icons';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface DashboardStats {
   totalJobs: number;
   activeJobs: number;
+  disabledJobs: number;
+  removedJobs: number;
   totalApplications: number;
   totalViews: number;
   recentJobs: any[];
   recentApplications: any[];
+}
+
+interface ImportResult {
+  success: boolean;
+  sources?: {
+    osonish: { found: number; new: number; updated: number };
+  };
+  totals?: { new_imported: number; updated: number; errors: number };
+  duration_ms?: number;
 }
 
 export default function AdminDashboard() {
@@ -37,6 +50,7 @@ export default function AdminDashboard() {
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || !adminProfile)) {
@@ -45,8 +59,38 @@ export default function AdminDashboard() {
   }, [user, adminProfile, authLoading, router]);
 
   const fetchStats = useCallback(async () => {
-    const [jobsResult, applicationsResult] = await Promise.all([
-      supabase.from('jobs').select('id, is_active, views_count, title_uz, title_ru, created_at'),
+    // Use count queries instead of fetching all records (Supabase limits to 1000)
+    const [
+      totalJobsResult,
+      activeJobsResult,
+      disabledJobsResult,
+      removedJobsResult,
+      applicationsCountResult,
+      viewsResult,
+      recentJobsResult,
+      recentAppsResult
+    ] = await Promise.all([
+      // Total jobs count
+      supabase.from('jobs').select('*', { count: 'exact', head: true }),
+      // Active jobs count
+      supabase.from('jobs').select('*', { count: 'exact', head: true })
+        .eq('is_active', true).eq('source_status', 'active'),
+      // Disabled jobs count
+      supabase.from('jobs').select('*', { count: 'exact', head: true })
+        .eq('is_active', false),
+      // Removed at source count
+      supabase.from('jobs').select('*', { count: 'exact', head: true })
+        .eq('source_status', 'removed_at_source'),
+      // Applications count
+      supabase.from('job_applications').select('*', { count: 'exact', head: true }),
+      // Total views (sum)
+      supabase.from('jobs').select('views_count'),
+      // Recent jobs (limit 5)
+      supabase.from('jobs')
+        .select('id, title_uz, title_ru, created_at, views_count, is_active')
+        .order('created_at', { ascending: false })
+        .limit(5),
+      // Recent applications
       supabase
         .from('job_applications')
         .select('id, full_name, phone, created_at, jobs(title_uz, title_ru)')
@@ -54,25 +98,23 @@ export default function AdminDashboard() {
         .limit(5),
     ]);
 
-    const jobs = jobsResult.data || [];
-    const applications = applicationsResult.data || [];
-
-    const totalJobs = jobs.length;
-    const activeJobs = jobs.filter((j) => j.is_active).length;
-    const totalViews = jobs.reduce((sum, j) => sum + (j.views_count || 0), 0);
-    const totalApplications = applications.length;
-
-    const recentJobs = jobs
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5);
+    const totalJobs = totalJobsResult.count || 0;
+    const activeJobs = activeJobsResult.count || 0;
+    const disabledJobs = disabledJobsResult.count || 0;
+    const removedJobs = removedJobsResult.count || 0;
+    const totalApplications = applicationsCountResult.count || 0;
+    const totalViews = (viewsResult.data || []).reduce((sum, j) => sum + (j.views_count || 0), 0);
+    const recentJobs = recentJobsResult.data || [];
 
     setStats({
       totalJobs,
       activeJobs,
+      disabledJobs,
+      removedJobs,
       totalApplications,
       totalViews,
       recentJobs,
-      recentApplications: applications,
+      recentApplications: recentAppsResult.data || [],
     });
     setLoading(false);
   }, []);
@@ -82,6 +124,32 @@ export default function AdminDashboard() {
       fetchStats();
     }
   }, [user, adminProfile, fetchStats]);
+
+  // Manual import trigger
+  const handleImportAll = async () => {
+    setImporting(true);
+    try {
+      const response = await fetch('/api/cron/import-all');
+      const result: ImportResult = await response.json();
+
+      if (result.success && result.sources) {
+        toast.success(
+          lang === 'uz'
+            ? `Import tugadi! OsonIsh: ${result.sources.osonish.new} yangi.`
+            : `Импорт завершён! OsonIsh: ${result.sources.osonish.new} новых.`
+        );
+        // Refresh stats
+        fetchStats();
+      } else {
+        toast.error(lang === 'uz' ? 'Import xatolik bilan tugadi' : 'Импорт завершился с ошибкой');
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error(lang === 'uz' ? 'Import xatolik' : 'Ошибка импорта');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -103,10 +171,22 @@ export default function AdminDashboard() {
       color: 'bg-sky-500',
     },
     {
-      title: lang === 'uz' ? 'Faol vakansiyalar' : 'Активных вакансий',
+      title: lang === 'uz' ? 'Faol vakansiyalar' : 'Активных',
       value: stats?.activeJobs || 0,
       icon: TrendingUp,
       color: 'bg-emerald-500',
+    },
+    {
+      title: lang === 'uz' ? 'O\'chirilgan' : 'Отключённых',
+      value: stats?.disabledJobs || 0,
+      icon: Briefcase,
+      color: 'bg-slate-400',
+    },
+    {
+      title: lang === 'uz' ? 'Manba\'da o\'chirilgan' : 'Удалённых в источнике',
+      value: stats?.removedJobs || 0,
+      icon: Briefcase,
+      color: 'bg-rose-400',
     },
     {
       title: lang === 'uz' ? 'Arizalar' : 'Заявок',
@@ -118,7 +198,7 @@ export default function AdminDashboard() {
       title: lang === 'uz' ? 'Ko\'rishlar' : 'Просмотров',
       value: stats?.totalViews || 0,
       icon: Eye,
-      color: 'bg-rose-500',
+      color: 'bg-violet-500',
     },
   ];
 
@@ -133,12 +213,26 @@ export default function AdminDashboard() {
                 {lang === 'uz' ? 'Xush kelibsiz' : 'Добро пожаловать'}, {adminProfile.full_name}
               </p>
             </div>
-            <Link href="/admin/jobs/new">
-              <Button className="bg-white text-sky-600 hover:bg-sky-50">
-                <Plus className="w-4 h-4 mr-2" />
-                {t.admin.createJob}
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleImportAll}
+                disabled={importing}
+                className="bg-emerald-500 text-white hover:bg-emerald-600"
+              >
+                {importing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                {lang === 'uz' ? 'Import qilish' : 'Импортировать'}
               </Button>
-            </Link>
+              <Link href="/admin/jobs/new">
+                <Button className="bg-white text-sky-600 hover:bg-sky-50">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t.admin.createJob}
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
