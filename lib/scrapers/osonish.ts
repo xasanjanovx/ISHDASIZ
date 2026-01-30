@@ -10,7 +10,10 @@
  * - Concurrent requests with rate limiting
  * - Retry with exponential backoff
  * - Only imports vacancies with contacts
+ * - DYNAMIC CONFIG SUPPORT (v4)
  */
+
+import { OsonishConfigs } from './osonish-config';
 
 // ==================== INTERFACES ====================
 
@@ -60,6 +63,20 @@ export interface OsonishDetail {
     edu_directions?: Array<{ id: number; name_uz: string }>;
     languages?: Array<{ language: number; level: number }>;
     benefit_ids?: number[];
+
+    // Category info
+    mmk_group?: {
+        id: number;
+        cat1: string; // e.g. "PROFESSIONAL-MUTAXASSISLAR"
+        cat2: string; // e.g. "SOGʻLIQNI SAQLASH SOHASIDA..."
+        cat3: string; // e.g. "SHIFOKORLAR"
+    };
+
+    mmk_position?: {
+        id: number;
+        position_name: string;
+        mmk_code?: number;
+    };
 
     // Location
     filial?: {
@@ -167,6 +184,10 @@ export interface TransformedVacancy {
 
     // Raw JSON for full UI parity
     raw_source_json?: Record<string, unknown>;
+
+    // Source category info (for debugging / filters)
+    source_category?: string;
+    source_subcategory?: string;
 }
 
 export interface ScrapeResult {
@@ -328,7 +349,115 @@ function stripHtml(html?: string): string {
     cleaned = cleaned.replace(/[ \t]+/g, ' ');
     // Collapse multiple newlines
     cleaned = cleaned.replace(/\n\s*\n/g, '\n').trim();
+    cleaned = cleaned.replace(/\n\s*\n/g, '\n').trim();
     return cleaned;
+}
+
+/**
+ * Extract benefits from HTML description
+ * Looks for "Ijtimоiy paketlar:" section
+ */
+function extractBenefitsFromHtml(html?: string): number[] {
+    if (!html) return [];
+    const benefits: number[] = [];
+
+    // Normalize HTML content for searching
+    const content = html.toLowerCase();
+
+    // Common mappings based on text
+    const textToId: Record<string, number> = {
+        'ovqat': 1, // Ovqat bilan ta'minlanadi
+        'transport': 2, // Transport xizmati mavjud
+        'maxsus kiyim': 3, // Maxsus kiyim bilan ta'minlanadi
+        'yotoqxona': 4, // Yotoqxona yoki turar joy bilan ta'minlanadi
+        'turar joy': 4, // Yotoqxona yoki turar joy bilan ta'minlanadi
+        'tibbiy ko': 5, // Tibbiy ko'rik mavjud
+        'moddiy rag': 6, // Moddiy rag'batlantirish mavjud
+        'ijtimoiy paket': 7 // Boshqa ijtimoiy paketlar mavjud
+    };
+
+    // Check roughly if "Ijtimоiy paketlar" or "Qulayliklar" context exists? 
+    // Actually, just searching for the phrases is safer as they are quite specific using "mavjud" often.
+
+    for (const [key, id] of Object.entries(textToId)) {
+        if (content.includes(key)) {
+            benefits.push(id);
+        }
+    }
+
+    return benefits;
+}
+
+/**
+ * Extract structured sections from HTML textual content
+ */
+function extractSectionsFromHtml(html?: string): { talablar: string[], ish_vazifalari: string[], qulayliklar: string[] } {
+    if (!html) return { talablar: [], ish_vazifalari: [], qulayliklar: [] };
+
+    const text = stripHtml(html);
+
+    const sections = {
+        talablar: [] as string[],
+        ish_vazifalari: [] as string[],
+        qulayliklar: [] as string[]
+    };
+
+    const headerTokens = {
+        ish_vazifalari: /(?:Ish vazifalari|Vazifalar|Majburiyatlar|Obyazannosti|Обязанности)/i,
+        talablar: /(?:Talablar|Ish talablari|Nomzodga talablar|Trebovaniya|Требования)/i,
+        qulayliklar: /(?:Imkoniyatlar|Qulayliklar|Sharoitlar|Usloviya|Условия|Ijtim[oо]iy(?:\s+paketlar)?|Ijtimoiiy|Preimushchestva|Sotsialniy|Социальн\w*)/i
+    };
+
+    const markSection = (input: string, key: keyof typeof headerTokens, regex: RegExp) => {
+        return input.replace(new RegExp(`${regex.source}\\s*[:\\-–—\\.]`, 'gi'), `\n__SECTION_${key}__\n`);
+    };
+
+    let marked = text;
+    marked = markSection(marked, 'ish_vazifalari', headerTokens.ish_vazifalari);
+    marked = markSection(marked, 'talablar', headerTokens.talablar);
+    marked = markSection(marked, 'qulayliklar', headerTokens.qulayliklar);
+
+    const headerGuard = new RegExp(
+        `${headerTokens.ish_vazifalari.source}|${headerTokens.talablar.source}|${headerTokens.qulayliklar.source}`,
+        'i'
+    );
+
+    const splitToItems = (content: string): string[] => {
+        let normalized = content
+            .replace(/\r/g, '\n')
+            // Handle bullets right after headers like "Vazifalar: -Backend"
+            .replace(/:\s*[\u2013\u2014-]\s*/g, ':\n- ')
+            // Normalize explicit bullet characters
+            .replace(/[\u2022\u00b7]/g, '\n- ')
+            // Handle dashes at the start of a line (with or without a space)
+            .replace(/^\s*[\u2013\u2014-]\s*/gm, '\n- ')
+            // Handle dashes used as list separators mid-line
+            .replace(/(?:^|\s)[\u2013\u2014-]\s+/g, '\n- ')
+            // Handle numbered lists
+            .replace(/(?:^|\s)\d+\.\s+/g, '\n- ')
+            // Split on semicolons too
+            .replace(/;/g, '\n')
+            .replace(/\n{2,}/g, '\n');
+
+        const items = normalized
+            .split('\n')
+            .map(line => line.trim().replace(/^[\u2013\u2014\u2022\u00b7*\-]+\s*/, '').trim())
+            .filter(line => line.length > 2 && !headerGuard.test(line));
+
+        return items;
+    };
+
+    const parts = marked.split(/__SECTION_(ish_vazifalari|talablar|qulayliklar)__/);
+    for (let i = 1; i < parts.length; i += 2) {
+        const key = parts[i] as keyof typeof sections;
+        const content = parts[i + 1] || '';
+        const items = splitToItems(content);
+        if (items.length > 0) {
+            sections[key].push(...items);
+        }
+    }
+
+    return sections;
 }
 
 /**
@@ -346,35 +475,61 @@ function mapEmploymentType(busyness_type?: number): string {
 }
 
 /**
- * Map work mode ID to string
- * Values: 'onsite', 'remote', 'hybrid'
+ * Map work mode from dynamic config or ID fallback
  */
-function mapWorkMode(work_type?: number): string | null {
+function mapWorkMode(id?: number, configs?: OsonishConfigs): string | null {
+    if (!id) return null;
+
+    // 1. Dynamic Map (if config available)
+    if (configs?.workMode[id]) {
+        const label = configs.workMode[id].toLowerCase();
+        if (label.includes('masofaviy') || label.includes('uydan')) return 'remote';
+        if (label.includes('gibrid')) return 'hybrid';
+        if (label.includes('ofis') || label.includes('odatiy') || label.includes('joyida')) return 'onsite';
+    }
+
+    // 2. Fallback ID Map
     const map: Record<number, string> = {
-        1: 'onsite',   // Odatiy/Ofisda
+        1: 'onsite',   // Odatiy/Ish joyida
         2: 'remote',   // Uydan
         3: 'remote',   // Masofaviy
         4: 'hybrid'    // Gibrid
     };
-    return work_type ? (map[work_type] || null) : null;
+    return map[id] || null;
 }
 
 /**
- * Map experience ID to approximate years
- * 1: Tajriba talab qilinmaydi -> 0
- * 2: 1-3 yil -> 2
- * 3: 3-6 yil -> 5
- * 4: 6+ yil -> 7
+ * Map experience from dynamic config or ID fallback
  */
-function mapExperience(expId?: number): number {
-    if (!expId) return 0;
+function mapExperience(id?: number, configs?: OsonishConfigs): number {
+    if (!id) return 0;
+
+    // 1. Dynamic Map (if config available)
+    if (configs?.experience[id]) {
+        const label = configs.experience[id].toLowerCase();
+        if (label.includes('talab etilmaydi') || label.includes('bez opita')) return 0;
+
+        // Parse "1-3 yil", "3-6 yil", "5 yildan"
+        const numbers = label.match(/\d+/g)?.map(Number);
+        if (numbers && numbers.length > 0) {
+            // "1-3" -> avg 2? Or min 1? Existing logic used approx values.
+            // "1-3" was 2. "3-6" was 5. "6+" was 7.
+            const val = numbers[0];
+            if (val >= 6) return 7;
+            if (val >= 5) return 6; // 5+
+            if (val >= 3) return 5; // 3-6
+            if (val >= 1) return 2; // 1-3
+        }
+    }
+
+    // 2. Fallback ID Map
     const map: Record<number, number> = {
         1: 0,   // No experience
         2: 2,   // 1-3 years
         3: 5,   // 3-6 years
         4: 7    // 6+ years
     };
-    return map[expId] || 0;
+    return map[id] || 0;
 }
 
 // ==================== API FUNCTIONS ====================
@@ -509,7 +664,7 @@ async function fetchDetailsWithConcurrency(
 /**
  * Transform detail to our format
  */
-function transformDetail(detail: OsonishDetail): TransformedVacancy {
+export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs): TransformedVacancy {
     // Extract contacts
     const contact_phone = normalizePhone(detail.hr?.phone) || normalizePhone(detail.additional_phone);
     const contact_telegram = extractTelegram(detail.another_network);
@@ -521,8 +676,13 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
     const is_for_graduates = forWhos.includes(2);
     const is_for_students = forWhos.includes(3);
 
-    // Gender flag (2 = Ayol)
-    const is_for_women = detail.gender === 2;
+    // Do not infer "Ayollar uchun" from gender; use only explicit special categories
+    const is_for_women = false;
+
+    // Extract benefits from HTML too
+    const htmlBenefits = extractBenefitsFromHtml(detail.info);
+    const apiBenefits = detail.benefit_ids || [];
+    const allBenefits = Array.from(new Set([...apiBenefits, ...htmlBenefits]));
 
     // Extract skills
     const skills = detail.skills_details?.map(s => s.skill_name).filter(Boolean) || [];
@@ -533,6 +693,12 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
         working_hours = `${detail.working_time_from} - ${detail.working_time_to}`;
     }
 
+    // Extract structured sections
+    const extractedSections = extractSectionsFromHtml(detail.info);
+
+    // Merge extracted benefits from text "Imkoniyatlar" into extractedSections.qulayliklar if needed?
+    // Already handled by regex logic in extractSectionsFromHtml (Imkoniyatlar -> qulayliklar)
+
     return {
         // Source
         source: 'osonish',
@@ -542,7 +708,10 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
         // Basic
         title: detail.title || 'Noma\'lum lavozim',
         company_name: detail.company?.name || 'Noma\'lum kompaniya',
-        description: stripHtml(detail.info) || undefined,
+        description: stripHtml(detail.info) ||
+            (detail.mmk_position?.position_name
+                ? `${detail.mmk_position.position_name}${detail.skills_details?.length ? '\n\nTalablar:\n' + detail.skills_details.map(s => '- ' + s.skill_name).join('\n') : ''}`
+                : undefined),
 
         // Salary
         salary_min: detail.min_salary || undefined,
@@ -551,13 +720,13 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
 
         // Work type
         employment_type: mapEmploymentType(detail.busyness_type),
-        work_mode: mapWorkMode(detail.work_type),
+        work_mode: mapWorkMode(detail.work_type, configs),
         working_days: detail.working_days_id ? String(detail.working_days_id) : undefined,
         working_hours,
 
         // Requirements
         education_level: detail.min_education,
-        experience_years: mapExperience(detail.work_experiance),
+        experience_years: mapExperience(detail.work_experiance, configs),
         age_min: detail.age_from,
         age_max: detail.age_to,
         gender: detail.gender,
@@ -582,6 +751,10 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
         hr_name: detail.hr?.fio || undefined,
         has_contact,
 
+        // Benefits (passed via raw_source_json override or we need to add a benefits field to parsed? 
+        // Currently route.ts uses raw_source_json.benefit_ids.
+        // We should update the raw_source_json.benefit_ids to include our extracted ones.
+
         // Skills
         skills: skills.length > 0 ? skills : undefined,
 
@@ -594,7 +767,18 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
         source_updated_at: detail.updated_at,
 
         // Raw JSON for full UI parity
-        raw_source_json: detail as unknown as Record<string, unknown>
+        // Update benefit_ids in raw json so route.ts picks it up
+        // Raw JSON for full UI parity
+        // Update benefit_ids in raw json so route.ts picks it up
+        raw_source_json: {
+            ...(detail as unknown as Record<string, unknown>),
+            benefit_ids: allBenefits,
+            sections: extractedSections
+        },
+
+        // Source category info (for filtering / debugging)
+        source_category: detail.mmk_group?.cat2 || detail.mmk_group?.cat1 || undefined,
+        source_subcategory: detail.mmk_group?.cat3 || undefined
     };
 }
 
@@ -608,7 +792,8 @@ function transformDetail(detail: OsonishDetail): TransformedVacancy {
  */
 export async function scrapeOsonishFull(
     maxPages: number = 20,
-    onlyWithContacts: boolean = true
+    onlyWithContacts: boolean = true,
+    configs?: OsonishConfigs
 ): Promise<ScrapeResult> {
     const vacancies: TransformedVacancy[] = [];
     const activeIds: string[] = [];
@@ -692,7 +877,7 @@ export async function scrapeOsonishFull(
         activeIds.push(String(id));
 
         // Transform
-        const transformed = transformDetail(detail);
+        const transformed = transformDetail(detail, configs);
 
         // Fallback to company contacts if missing
         if (!transformed.has_contact && detail.company?.id) {

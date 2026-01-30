@@ -31,19 +31,16 @@ export async function GET(request: NextRequest) {
         const webhookUrl = `${appUrl.startsWith('http') ? appUrl : 'https://' + appUrl}/api/telegram/webhook`;
 
         // Set webhook with optional secret
-        const params: Record<string, any> = { url: webhookUrl };
+        const params: { url: string; secret_token?: string; allowed_updates?: string[] } = {
+            url: webhookUrl,
+            allowed_updates: ['message', 'callback_query']
+        };
 
         if (process.env.TELEGRAM_WEBHOOK_SECRET) {
             params.secret_token = process.env.TELEGRAM_WEBHOOK_SECRET;
         }
 
-        // Set allowed updates
-        params.allowed_updates = ['message', 'callback_query'];
-
-        const result = await setWebhookWithOptions(params);
-        console.log('✅ Webhook set:', result);
-
-        // Get current webhook info
+        await setWebhookWithOptions(params);
         const info = await getWebhookInfo();
 
         return NextResponse.json({

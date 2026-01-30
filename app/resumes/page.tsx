@@ -65,12 +65,12 @@ export default function ResumesPage() {
         }
 
         // Build Query - simplified select, enrichResumes handles districts/regions join
+        // REMOVED is_public and status filters to show all resumes (user request)
         let query = supabase
             .from('resumes')
             .select('*')
-            .eq('is_public', true) // Only public resumes
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(100);
 
         // Category filter
         if (selectedCategory !== 'all') query = query.eq('category_id', selectedCategory);

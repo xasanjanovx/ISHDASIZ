@@ -47,7 +47,7 @@ const PAYMENT_TYPES = [
 ];
 
 const WORK_MODES = [
-  { value: 'onsite', label: 'Ofisda (ish joyida)' },
+  { value: 'onsite', label: 'Ish joyida' },
   { value: 'remote', label: 'Masofaviy' },
   { value: 'hybrid', label: 'Gibrid (ofis + masofaviy)' },
 ];

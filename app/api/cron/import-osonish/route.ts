@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeOsonishFull } from '@/lib/scrapers/osonish';
-import { mapOsonishCategory } from '@/lib/mappers/osonish-mapper';
+import { mapOsonishCategory, OSONISH_GENDER_MAP, OSONISH_EDUCATION_MAP } from '@/lib/mappers/osonish-mapper';
 import { getMappedValue } from '@/lib/mappings';
 import { createClient } from '@supabase/supabase-js';
+import { OSONISH_REGION_MAP, OSONISH_DISTRICT_MAP } from '@/lib/mappers/osonish-locations';
+
+// Force dynamic to prevent static generation timeout
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes for long-running import
 
 // Service role client for import operations
 const supabaseAdmin = createClient(
@@ -16,7 +21,7 @@ const CODE_VERSION = '2026-01-25-osonish-title-mapping-v3';
 // ==================== CACHED LOOKUP ====================
 
 interface RegionCache { id: number; name_uz: string; name_ru: string; slug: string; }
-interface DistrictCache { id: string; name_uz: string; name_ru: string; region_id: number; }
+interface DistrictCache { id: number; name_uz: string; name_ru: string; region_id: number; }
 interface CategoryCache { id: string; name_uz: string; name_ru: string; }
 
 type RegionType = 'city' | 'region' | 'republic' | null;
@@ -255,7 +260,7 @@ function lookupRegionId(regionName?: string): number | null {
     return null;
 }
 
-function lookupDistrictId(districtName?: string, regionId?: number | null): string | null {
+function lookupDistrictId(districtName?: string, regionId?: number | null): number | null {
     if (!districtName || districtsCacheNorm.length === 0) return null;
 
     const normalizedFull = normalizeGeoName(districtName);
@@ -349,22 +354,19 @@ function normalizeSalaryRange(minValue: unknown, maxValue: unknown): { min: numb
 
 
 function mapExperienceToCode(rawId: number | undefined, years: number | null | undefined): string {
-    // 1. Try ID from OsonIsh
-    if (typeof rawId === 'number') {
-        if (rawId === 1) return 'no_experience'; // Talab etilmaydi
-        if (rawId === 2) return '1_3'; // 1-3 yil
-        if (rawId === 3) return '3_6'; // 3-6 yil
-        if (rawId === 4) return '6_plus'; // 6+ yil
-        return 'no_experience'; // Default
+    // 1. Try ID from OsonIsh - return as string ID
+    if (typeof rawId === 'number' && rawId >= 1 && rawId <= 5) {
+        return String(rawId);
     }
-    // 2. Fallback to years count
+    // 2. Fallback to years count -> map to OsonIsh IDs
     if (typeof years === 'number') {
-        if (years === 0) return 'no_experience';
-        if (years <= 3) return '1_3';
-        if (years <= 6) return '3_6';
-        return '6_plus';
+        if (years === 0) return '1';      // Talab etilmaydi
+        if (years <= 1) return '2';       // 1 yilgacha
+        if (years <= 3) return '3';       // 1-3 yil
+        if (years <= 5) return '4';       // 3-5 yil
+        return '5';                       // 5 yildan ortiq
     }
-    return 'no_experience';
+    return '1'; // Default: Talab etilmaydi
 }
 
 function mapEducationToCode(rawId: number | undefined, rawLevel: string | null | undefined): string | null {
@@ -395,6 +397,30 @@ function convertBenefitsToText(benefitIds: number[] | undefined, lang: 'uz' | 'r
         .filter(Boolean);
 
     return benefitLabels.length > 0 ? benefitLabels.join(', ') : null;
+}
+
+async function upsertBatchWithRetry(chunk: any[], retries = 3): Promise<{ error: any }> {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const { error } = await supabaseAdmin.from('jobs').upsert(chunk, {
+                onConflict: 'source,source_id',
+                ignoreDuplicates: false
+            });
+            if (!error) return { error: null };
+
+            console.warn(`[OSONISH] Batch upsert error (attempt ${i + 1}/${retries}): ${error.message}`);
+            // If it's a fetch error, we definitely want to retry. 
+            // If it's a Postgres error (e.g. invalid type), it might not help, but safer to retry transient issues.
+
+            if (i === retries - 1) return { error };
+        } catch (err: any) {
+            console.warn(`[OSONISH] Batch upsert exception (attempt ${i + 1}/${retries}): ${err.message}`);
+            if (i === retries - 1) return { error: { message: err.message } };
+        }
+        // Exponential backoff: 200ms, 400ms, 800ms
+        await new Promise(r => setTimeout(r, 200 * Math.pow(2, i)));
+    }
+    return { error: { message: 'Max retries reached' } };
 }
 
 
@@ -462,36 +488,101 @@ export async function GET(request: NextRequest) {
         let stats = { newImported: 0, updated: 0, errors: 0 };
         const now = new Date().toISOString();
 
+        // ...
+
+        const validJobs: any[] = [];
+
         for (const vacancy of result.vacancies) {
             try {
                 const raw = (vacancy.raw_source_json as any) || {};
 
-                // Region/District normalization (strict, no new records)
-                const regionIdByName = lookupRegionId(vacancy.region_name);
-                let districtId = lookupDistrictId(vacancy.district_name, regionIdByName);
+                // 1. LOCATION MAPPING - ID PRIORITY (Verified Compatible)
+                let regionId: number | null = null;
+                let districtId: number | null = null;
 
-                // If region was missing but district is unique globally, try without region scope
-                if (!districtId && !regionIdByName && vacancy.district_name) {
-                    districtId = lookupDistrictId(vacancy.district_name, null);
+                const rawRegionId = raw.filial?.region?.id;
+                const rawDistrictId = raw.filial?.city?.id;
+
+                // A. Try Direct ID Match (Fastest & Most Reliable)
+                if (rawRegionId) {
+                    const cached = regionsCache.find(r => r.id === rawRegionId);
+                    if (cached) regionId = cached.id;
                 }
 
-                const districtInfo = districtId ? districtsCacheNorm.find(d => d.id === districtId) : null;
-                const regionId = districtInfo?.region_id ?? regionIdByName;
-                const regionInfo = regionId ? regionsCacheNorm.find(r => r.id === regionId) : null;
+                if (rawDistrictId) {
+                    const cached = districtsCache.find(d => d.id === rawDistrictId);
+                    if (cached) {
+                        districtId = cached.id;
+                        // Implicitly set region if not set
+                        if (!regionId && cached.region_id) {
+                            regionId = cached.region_id;
+                        }
+                    }
+                }
+
+                // B. Fallback to Name Lookup
+                if (!regionId && vacancy.region_name) {
+                    // console.log(`[OSONISH] Fallback region lookup for ${vacancy.region_name} (ID: ${rawRegionId})`);
+                    regionId = lookupRegionId(vacancy.region_name);
+                }
+
+                if (!districtId && vacancy.district_name) {
+                    districtId = lookupDistrictId(vacancy.district_name, regionId);
+                }
 
                 if (!regionId) {
-                    console.warn(`[OSONISH] Skip vacancy ${vacancy.source_id}: region not resolved (region="${vacancy.region_name}", district="${vacancy.district_name}")`);
+                    // console.warn(`[OSONISH] Skip vacancy ${vacancy.source_id}: region not resolved`);
                     stats.errors++;
                     continue;
                 }
 
                 if (!districtId && vacancy.district_name) {
-                    console.warn(`[OSONISH] District not resolved for vacancy ${vacancy.source_id}: "${vacancy.district_name}". Using region only.`);
+                    // console.warn(`[OSONISH] District not resolved for vacancy ${vacancy.source_id}: "${vacancy.district_name}" (Raw ID: ${rawDistrictId}). Using region only.`);
                 }
 
-                // Map Category strictly by title (OsonIsh has no source category)
-                const mappingResult = mapOsonishCategory('', null, vacancy.title);
-                const categoryId = mappingResult.categoryId;
+                const regionInfo = regionId ? regionsCacheNorm.find(r => r.id === regionId) : null;
+                const districtInfo = districtId ? districtsCacheNorm.find(d => d.id === districtId) : null;
+
+                // Map Category STRICTLY by OsonIsh category group if available
+                let sourceCategoryName = '';
+                if (raw.mmk_group?.cat2) {
+                    sourceCategoryName = raw.mmk_group.cat2;
+                } else if (raw.mmk_group?.cat1) {
+                    sourceCategoryName = raw.mmk_group.cat1;
+                }
+
+                // Map using source category name first, fallback to title
+                const mappingResult = mapOsonishCategory(sourceCategoryName, null, vacancy.title);
+
+                // Find matching category from DB cache
+                let categoryId: string | null = null;
+                const categoryNameToFind = mappingResult.categoryName.toLowerCase();
+
+                // 1. Try DIRECT MATCH by ID (if mapper returned a known GUID that exists in our DB)
+                const directIdMatch = categoriesCache.find(c => c.id === mappingResult.categoryId);
+                if (directIdMatch) {
+                    categoryId = directIdMatch.id;
+                }
+                else {
+                    // 2. Fallback to name partial match
+                    const matchedCategory = categoriesCache.find(c =>
+                        c.name_uz.toLowerCase().includes(categoryNameToFind) ||
+                        categoryNameToFind.includes(c.name_uz.toLowerCase().split(' ')[0]) ||
+                        (c.name_ru && c.name_ru.toLowerCase().includes(categoryNameToFind))
+                    );
+                    if (matchedCategory) {
+                        categoryId = matchedCategory.id;
+                    }
+                }
+
+                if (!categoryId && categoriesCache.length > 0) {
+                    // Fallback to "Boshqa" category or first available
+                    const otherCategory = categoriesCache.find(c =>
+                        c.name_uz.toLowerCase().includes('boshqa') ||
+                        c.name_ru?.toLowerCase().includes('друг')
+                    );
+                    categoryId = otherCategory?.id || categoriesCache[0].id;
+                }
 
                 const salary = normalizeSalaryRange(
                     vacancy.salary_min ?? raw.min_salary,
@@ -503,7 +594,16 @@ export async function GET(request: NextRequest) {
                 const paymentType = typeof vacancy.payment_type === 'number' ? vacancy.payment_type : (typeof raw.payment_type === 'number' ? raw.payment_type : null);
 
                 const experienceCode = mapExperienceToCode(raw?.work_experiance, vacancy.experience_years);
-                const educationCode = mapEducationToCode(raw?.min_education, null);
+
+                // Use centralized maps from osonish-mapper.ts
+                // Note: Types in map are strings, raw values are numbers.
+                const genderVal = raw.gender ? OSONISH_GENDER_MAP[raw.gender as keyof typeof OSONISH_GENDER_MAP] ?? null : null;
+                const educationVal = raw.min_education ? OSONISH_EDUCATION_MAP[raw.min_education as keyof typeof OSONISH_EDUCATION_MAP] ?? 'any' : mapEducationToCode(raw?.min_education, null);
+                // Fallback to old mapper if ID not in map (though map covers 1-5)
+
+                // Benefits labels
+                const benefitsUz = convertBenefitsToText(raw?.benefit_ids, 'uz');
+                const benefitsRu = convertBenefitsToText(raw?.benefit_ids, 'ru');
 
                 // Build job data - ALL values come directly from OsonIsh API
                 const jobData = {
@@ -539,11 +639,11 @@ export async function GET(request: NextRequest) {
                     additional_phone: vacancy.additional_phone || null,
                     hr_name: vacancy.hr_name || null,
 
-                    gender: vacancy.gender || null,
+                    gender: genderVal,
                     age_min: vacancy.age_min || null,
                     age_max: vacancy.age_max || null,
-                    education_level: educationCode, // Normalized code from mapEducationToCode
-                    experience: experienceCode,     // Normalized code from mapExperienceToCode
+                    education_level: educationVal,
+                    experience: experienceCode,
                     experience_years: vacancy.experience_years || null,
                     working_hours: vacancy.working_hours || null,
                     working_days: vacancy.working_days || null,
@@ -551,11 +651,11 @@ export async function GET(request: NextRequest) {
                     payment_type: paymentType,
                     skills: vacancy.skills || null,
 
-                    // Convert benefit_ids (Ijtimoiy paketlar) to text (Qulayliklar)
-                    benefits: convertBenefitsToText(
-                        raw?.benefit_ids,
-                        'uz'
-                    ),
+                    // Convert benefit_ids to structured JSON { uz: [], ru: [] }
+                    benefits: benefitsUz ? {
+                        uz: benefitsUz.split(', '),
+                        ru: benefitsRu ? benefitsRu.split(', ') : []
+                    } : null,
 
                     category_id: categoryId,
 
@@ -574,24 +674,26 @@ export async function GET(request: NextRequest) {
                     raw_source_json: vacancy.raw_source_json || null,
                 };
 
-                // Use UPSERT to handle duplicates and updates atomically
-                const { error } = await supabaseAdmin
-                    .from('jobs')
-                    .upsert(jobData, {
-                        onConflict: 'source,source_id',
-                        ignoreDuplicates: false
-                    });
-
-                if (error) {
-                    console.error(`[OSONISH] Upsert error ${vacancy.source_id}:`, error.message);
-                    stats.errors++;
-                } else {
-                    stats.updated++;
-                }
+                validJobs.push(jobData);
 
             } catch (err) {
                 console.error(`[OSONISH] Exception ${vacancy.source_id}:`, err);
                 stats.errors++;
+            }
+        }
+
+        console.log(`[OSONISH] Ready to upsert ${validJobs.length} jobs. Starting batch process...`);
+
+        // Batch upsert (chunk size 50)
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < validJobs.length; i += BATCH_SIZE) {
+            const chunk = validJobs.slice(i, i + BATCH_SIZE);
+            const { error } = await upsertBatchWithRetry(chunk);
+            if (error) {
+                console.error(`[OSONISH] Batch failed (chunk ${Math.floor(i / BATCH_SIZE)}):`, error.message);
+                stats.errors += chunk.length;
+            } else {
+                stats.updated += chunk.length;
             }
         }
 
