@@ -215,7 +215,7 @@ export function getNextQuestion(session: UserSession): { stage: ConversationStag
     if (!profile.work_mode) {
         return {
             stage: 'work_mode',
-            question: "Ofisda ishlaysizmi yoki masofaviy ham boladimi?"
+            question: "Ish joyida ishlaysizmi yoki masofaviy ham bo‘ladimi?"
         };
     }
 

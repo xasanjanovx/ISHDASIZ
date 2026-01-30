@@ -1,4 +1,4 @@
-/**
+﻿/**
  * System Prompts for Gemini AI
  * Optimized for job search filter extraction (RU/UZ)
  */
@@ -6,8 +6,8 @@
 // Available regions for reference
 export const UZBEKISTAN_REGIONS = [
     'Toshkent shahri', 'Toshkent viloyati', 'Andijon', 'Buxoro',
-    'Farg\'ona', 'Jizzax', 'Xorazm', 'Namangan', 'Navoiy',
-    'Qashqadaryo', 'Qoraqalpog\'iston', 'Samarqand', 'Sirdaryo', 'Surxondaryo'
+    "Farg'ona", 'Jizzax', 'Xorazm', 'Namangan', 'Navoiy',
+    'Qashqadaryo', "Qoraqalpog'iston", 'Samarqand', 'Sirdaryo', 'Surxondaryo'
 ];
 
 // Main system prompt for filter extraction
@@ -41,7 +41,7 @@ Query: "работа для студентов без опыта"
 Query: "salom"
 {"intent":"greeting","filters":{"keywords":[]},"reply_language":"uz","user_message":"Salom! Men sizga ish topishda yordam beraman. Qanday ish qidiryapsiz?"}
 
-Query: "маош 5 миллиондан юкори"
+Query: "maosh 5 milliondan yuqori"
 {"intent":"search","filters":{"keywords":[],"salary_min":5000000},"reply_language":"uz"}
 
 EXTRACT FILTERS AND RESPOND WITH JSON ONLY:`;
@@ -74,29 +74,29 @@ export const GREETING_RESPONSES = {
     uz: [
         "Salom! Men sizga ish topishda yordam beraman. Qanday ish qidiryapsiz?",
         "Assalomu alaykum! Qanday vakansiya sizni qiziqtirmoqda?",
-        "Salom! ISHDASIZ yordamchisiman. Qaysi sohada ish izlayapsiz?",
+        "Salom! ISHDASIZ yordamchisiman. Qaysi sohada ish izlayapsiz?"
     ],
     ru: [
         "Привет! Я помогу вам найти работу. Какую вакансию ищете?",
         "Здравствуйте! Какая работа вас интересует?",
-        "Привет! Я ассистент ISHDASIZ. В какой сфере ищете работу?",
-    ],
+        "Привет! Я ассистент ISHDASIZ. В какой сфере ищете работу?"
+    ]
 };
 
 // Error responses
 export const ERROR_RESPONSES = {
     uz: "Kechirasiz, xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
-    ru: "Извините, произошла ошибка. Пожалуйста, попробуйте ещё раз.",
+    ru: "Извините, произошла ошибка. Пожалуйста, попробуйте ещё раз."
 };
 
 // No results responses
 export const NO_RESULTS_RESPONSES = {
     uz: "Afsuski, so'rovingiz bo'yicha vakansiya topilmadi. Boshqa kalit so'zlar yoki hududni sinab ko'ring.",
-    ru: "К сожалению, по вашему запросу вакансий не найдено. Попробуйте другие ключевые слова или регион.",
+    ru: "К сожалению, по вашему запросу вакансий не найдено. Попробуйте другие ключевые слова или регион."
 };
 
 // Success response templates
 export const SUCCESS_TEMPLATES = {
-    uz: (count: number) => `${count} ta mos vakansiya topildi! 🎯`,
-    ru: (count: number) => `Найдено ${count} подходящих вакансий! 🎯`,
+    uz: (count: number) => `${count} ta mos vakansiya topildi.`,
+    ru: (count: number) => `Найдено ${count} подходящих вакансий.`
 };

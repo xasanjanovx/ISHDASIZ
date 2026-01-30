@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeOsonishFull } from '@/lib/scrapers/osonish';
-import { mapOsonishCategory } from '@/lib/mappers/osonish-mapper';
+import { mapOsonishCategory, OSONISH_GENDER_MAP } from '@/lib/mappers/osonish-mapper';
 import { createClient } from '@supabase/supabase-js';
+import { getMappedValue } from '@/lib/mappings';
+
+// Force dynamic to prevent static generation timeout
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes for long-running import
 
 // Service role client for import operations
 const supabaseAdmin = createClient(
@@ -16,6 +21,20 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const CODE_VERSION = '2026-01-24-osonish-only-v1';
 
 // ==================== CACHED LOOKUP (из import-osonish) ====================
+
+/**
+ * Convert benefit_ids array to localized text string
+ * This maps OsonIsh "Ijtimoiy paketlar" to our "Qulayliklar" field
+ */
+function convertBenefitsToText(benefitIds: number[] | undefined, lang: 'uz' | 'ru' = 'uz'): string | null {
+    if (!benefitIds || benefitIds.length === 0) return null;
+
+    const benefitLabels = benefitIds
+        .map(id => getMappedValue('benefits', id, lang))
+        .filter(Boolean);
+
+    return benefitLabels.length > 0 ? benefitLabels.join(', ') : null;
+}
 
 interface RegionCache { id: number; name_uz: string; name_ru: string; slug: string; }
 interface DistrictCache { id: string; name_uz: string; name_ru: string; region_id: number; }
@@ -321,9 +340,12 @@ export async function GET(request: NextRequest) {
                     hr_name: vacancy.hr_name || null,
 
                     // ALL fields from OsonIsh
-                    gender: vacancy.gender || null,
+                    gender: typeof vacancy.gender === 'number'
+                        ? (OSONISH_GENDER_MAP[vacancy.gender as keyof typeof OSONISH_GENDER_MAP] || 'any')
+                        : (typeof vacancy.gender === 'string' ? vacancy.gender : 'any'),
                     age_min: vacancy.age_min || null,
                     age_max: vacancy.age_max || null,
+
                     education_level: vacancy.education_level || null,
                     experience_years: vacancy.experience_years || null,
                     working_hours: vacancy.working_hours || null,
@@ -331,12 +353,10 @@ export async function GET(request: NextRequest) {
                     work_mode: vacancy.work_mode || null,
                     payment_type: vacancy.payment_type || null,
                     skills: vacancy.skills || null,
-                    region_name: vacancy.region_name || null,
-                    district_name: vacancy.district_name || null,
 
                     category_id: categoryId,
 
-                    address: vacancy.address || null,
+
                     vacancy_count: vacancy.vacancy_count || 1,
                     views_count: vacancy.views_count || 0,
 
@@ -345,11 +365,21 @@ export async function GET(request: NextRequest) {
                     is_for_students: vacancy.is_for_students,
                     is_for_women: vacancy.is_for_women,
 
+                    // Convert benefit_ids (Ijtimoiy paketlar) to text (Qulayliklar)
+                    benefits: convertBenefitsToText(
+                        (vacancy.raw_source_json as any)?.benefit_ids,
+                        'uz'
+                    ),
+
                     employment_type: vacancy.employment_type || 'full_time',
                     status: 'active',
                     is_active: true,
 
                     raw_source_json: vacancy.raw_source_json || null,
+
+                    // Source category info (for filtering/debugging)
+                    source_category: vacancy.source_category || null,
+                    source_subcategory: vacancy.source_subcategory || null,
                 };
 
                 if (existing) {

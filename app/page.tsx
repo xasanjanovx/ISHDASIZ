@@ -58,7 +58,7 @@ async function getHomeData() {
       .from('jobs')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true)
-      .eq('is_for_women', true),
+      .or('is_for_women.eq.true,gender.eq.female,gender.eq.2,gender.eq.any,gender.eq.3,gender.is.null'),
   ]);
 
   specialCounts.students = studentsResult.count || 0;

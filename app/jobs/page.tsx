@@ -58,6 +58,24 @@ export default function JobsPage() {
     searchParams.get('gender') || 'all'
   );
 
+  const [selectedPaymentType, setSelectedPaymentType] = useState(
+    searchParams.get('payment_type') || 'all'
+  );
+
+  const [selectedWorkMode, setSelectedWorkMode] = useState(
+    searchParams.get('work_mode') || 'all'
+  );
+
+  const [selectedWorkingDays, setSelectedWorkingDays] = useState(
+    searchParams.get('working_days') || 'all'
+  );
+
+  const initialAge = searchParams.get('age')
+    ? searchParams.get('age')!.split('-').map(Number) as [number | undefined, number | undefined]
+    : [undefined, undefined] as [number | undefined, number | undefined];
+
+  const [ageRange, setAgeRange] = useState<[number | undefined, number | undefined]>(initialAge);
+
 
   const fetchJobs = useCallback(async () => {
     setLoading(true);
@@ -69,6 +87,10 @@ export default function JobsPage() {
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
+
+    const genderAnyClause = 'gender.eq.any,gender.eq.3,gender.is.null';
+    const genderFemaleClause = `gender.eq.female,gender.eq.2,${genderAnyClause}`;
+    const genderMaleClause = `gender.eq.male,gender.eq.1,${genderAnyClause}`;
 
     // Filter by Special Categories (Checkboxes)
     if (selectedSpecialCategories.length > 0) {
@@ -82,7 +104,8 @@ export default function JobsPage() {
         query = query.eq('is_for_disabled', true);
       }
       if (selectedSpecialCategories.includes('women')) {
-        query = query.eq('is_for_women', true);
+        // "Ayollar uchun" should include women-specific and "Ahamiyatsiz"
+        query = query.or(`is_for_women.eq.true,${genderFemaleClause}`);
       }
     }
 
@@ -105,7 +128,58 @@ export default function JobsPage() {
       query = query.eq('education_level', selectedEducation);
     }
     if (selectedGender !== 'all') {
-      query = query.eq('gender', selectedGender);
+      const normalizedGender =
+        selectedGender === '1' || selectedGender === 'male'
+          ? 'male'
+          : selectedGender === '2' || selectedGender === 'female'
+            ? 'female'
+            : selectedGender === '3' || selectedGender === 'any'
+              ? 'any'
+              : selectedGender;
+
+      if (normalizedGender === 'male') {
+        query = query.or(genderMaleClause);
+      } else if (normalizedGender === 'female') {
+        query = query.or(genderFemaleClause);
+      } else if (normalizedGender === 'any') {
+        query = query.or(genderAnyClause);
+      } else {
+        query = query.eq('gender', normalizedGender);
+      }
+    }
+    if (selectedPaymentType !== 'all') {
+      query = query.eq('payment_type', parseInt(selectedPaymentType));
+    }
+    if (selectedWorkMode !== 'all') {
+      query = query.eq('work_mode', selectedWorkMode);
+    }
+    if (selectedWorkingDays !== 'all') {
+      // working_days_id in DB is integer, but working_days is text?
+      // Let's check scraper again... it maps to working_days_id string.
+      // Actually `working_days_id` column exists in DB? Step 1816 says `working_days` (text) and `working_days_id` (integer) both exist?
+      // Step 1816 output: `working_days` (text) exists. `working_days_id` NOT in list?
+      // Let's re-read step 1816 carefully.
+      // [{\"column_name\":\"working_days\",\"data_type\":\"text\"}] - NO working_days_id!
+      // So we filter by `working_days` column which holds the ID as string based on scraper?
+      // Scraper: `working_days: detail.working_days_id ? String(detail.working_days_id) : undefined`
+      // Yes, so filter by `working_days` column using string value.
+      query = query.eq('working_days', selectedWorkingDays);
+    }
+
+    // Age Filter
+    if (ageRange[0]) {
+      // age_min <= range[0] ?? No, usually user wants "Age X" -> fits in [age_min, age_max]
+      // OR user inputs their age? "Yosh: 20 dan 30 gacha" usually means "Vacancies suitable for this age range".
+      // Let's assume user is searching for jobs suitable for age X.
+      // But UI is "Dan ... Gacha" (From ... To). This implies User Age Range?
+      // If user says "18-25", do we find jobs that accept 18-25?
+      // Logic: job.age_min <= filter.max AND job.age_max >= filter.min
+      // If filter.min is set: job.age_max >= filter.min OR job.age_max is null
+      query = query.or(`age_max.gte.${ageRange[0]},age_max.is.null`);
+    }
+    if (ageRange[1]) {
+      // If filter.max is set: job.age_min <= filter.max OR job.age_min is null
+      query = query.or(`age_min.lte.${ageRange[1]},age_min.is.null`);
     }
 
 
@@ -135,7 +209,7 @@ export default function JobsPage() {
     setJobs(filteredJobs);
     setTotalCount(count || 0);
     setLoading(false);
-  }, [selectedCategory, selectedDistrict, selectedRegion, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, searchQuery, page]);
+  }, [selectedCategory, selectedDistrict, selectedRegion, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, selectedPaymentType, selectedWorkMode, selectedWorkingDays, ageRange, searchQuery, page]);
 
 
 
@@ -176,11 +250,16 @@ export default function JobsPage() {
     if (selectedEmploymentType !== 'all') params.set('type', selectedEmploymentType);
     if (selectedExperience !== 'all') params.set('experience', selectedExperience);
     if (selectedEducation !== 'all') params.set('education', selectedEducation);
+    if (selectedEducation !== 'all') params.set('education', selectedEducation);
     if (selectedGender !== 'all') params.set('gender', selectedGender);
+    if (selectedPaymentType !== 'all') params.set('payment_type', selectedPaymentType);
+    if (selectedWorkMode !== 'all') params.set('work_mode', selectedWorkMode);
+    if (selectedWorkingDays !== 'all') params.set('working_days', selectedWorkingDays);
+    if (ageRange[0] || ageRange[1]) params.set('age', `${ageRange[0] || ''}-${ageRange[1] || ''}`);
 
     const newURL = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
     router.push(newURL, { scroll: false });
-  }, [searchQuery, selectedCategory, selectedRegion, selectedDistrict, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, router]);
+  }, [searchQuery, selectedCategory, selectedRegion, selectedDistrict, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, selectedPaymentType, selectedWorkMode, selectedWorkingDays, ageRange, router]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -192,7 +271,7 @@ export default function JobsPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [selectedCategory, selectedRegion, selectedDistrict, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, searchQuery]);
+  }, [selectedCategory, selectedRegion, selectedDistrict, selectedSpecialCategories, salaryRange, selectedEmploymentType, selectedExperience, selectedEducation, selectedGender, selectedPaymentType, selectedWorkMode, selectedWorkingDays, ageRange, searchQuery]);
 
   const clearFilters = () => {
     setSelectedCategory('all');
@@ -204,6 +283,10 @@ export default function JobsPage() {
     setSelectedExperience('all');
     setSelectedEducation('all');
     setSelectedGender('all');
+    setSelectedPaymentType('all');
+    setSelectedWorkMode('all');
+    setSelectedWorkingDays('all');
+    setAgeRange([undefined, undefined]);
     setSearchQuery('');
     setPage(1);
   };
@@ -261,6 +344,17 @@ export default function JobsPage() {
               onExperienceChange={setSelectedExperience}
               onEducationChange={setSelectedEducation}
               onGenderChange={setSelectedGender}
+
+              selectedPaymentType={selectedPaymentType}
+              selectedWorkMode={selectedWorkMode}
+              selectedWorkingDays={selectedWorkingDays}
+              ageRange={ageRange}
+
+              onPaymentTypeChange={setSelectedPaymentType}
+              onWorkModeChange={setSelectedWorkMode}
+              onWorkingDaysChange={setSelectedWorkingDays}
+              onAgeRangeChange={setAgeRange}
+
               onClear={clearFilters}
             />
 

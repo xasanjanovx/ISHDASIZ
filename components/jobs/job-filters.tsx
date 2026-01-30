@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Category, District, Region } from '@/types/database';
-import { EMPLOYMENT_TYPES, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, GENDER_OPTIONS } from '@/lib/constants';
+import { EMPLOYMENT_TYPES, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, GENDER_OPTIONS, PAYMENT_TYPE_OPTIONS, WORK_MODE_OPTIONS, WORKING_DAYS_OPTIONS } from '@/lib/constants';
 import { Filter, X, ChevronDown, ChevronUp } from '@/components/ui/icons';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SPECIAL_CATEGORIES } from '@/lib/special-categories';
@@ -34,6 +34,10 @@ interface JobFiltersProps {
   selectedExperience: string;
   selectedEducation: string;
   selectedGender: string;
+  selectedPaymentType: string;
+  selectedWorkMode: string;
+  selectedWorkingDays: string;
+  ageRange: [number | undefined, number | undefined];
   onSpecialCategoriesChange: (categories: string[]) => void;
   onSalaryRangeChange: (range: [number, number]) => void;
   onCategoryChange: (value: string) => void;
@@ -43,6 +47,10 @@ interface JobFiltersProps {
   onExperienceChange: (value: string) => void;
   onEducationChange: (value: string) => void;
   onGenderChange: (value: string) => void;
+  onPaymentTypeChange: (value: string) => void;
+  onWorkModeChange: (value: string) => void;
+  onWorkingDaysChange: (value: string) => void;
+  onAgeRangeChange: (range: [number | undefined, number | undefined]) => void;
   onClear: () => void;
 }
 
@@ -58,6 +66,10 @@ export function JobFilters({
   selectedExperience,
   selectedEducation,
   selectedGender,
+  selectedPaymentType,
+  selectedWorkMode,
+  selectedWorkingDays,
+  ageRange,
   onSpecialCategoriesChange,
   onSalaryRangeChange,
   onCategoryChange,
@@ -67,6 +79,10 @@ export function JobFilters({
   onExperienceChange,
   onEducationChange,
   onGenderChange,
+  onPaymentTypeChange,
+  onWorkModeChange,
+  onWorkingDaysChange,
+  onAgeRangeChange,
   onClear,
 }: JobFiltersProps) {
   const { lang, t } = useLanguage();
@@ -196,9 +212,75 @@ export function JobFilters({
           </Select>
         </div>
 
+        {/* 5. Work Mode (Ish rejimi - Remote/Hybrid) */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">
+            {lang === 'uz' ? 'Ish usuli' : 'Режим работы'}
+          </Label>
+          <Select value={selectedWorkMode} onValueChange={onWorkModeChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой'}
+              </SelectItem>
+              {WORK_MODE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {lang === 'uz' ? option.label_uz : option.label_ru}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 6. Payment Type (To'lov shakli) */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">
+            {lang === 'uz' ? "To'lov shakli" : 'Тип оплаты'}
+          </Label>
+          <Select value={selectedPaymentType} onValueChange={onPaymentTypeChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {lang === 'uz' ? 'Ahamiyatsiz' : 'Не важно'}
+              </SelectItem>
+              {PAYMENT_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {lang === 'uz' ? option.label_uz : option.label_ru}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 7. Working Days (Ish kunlari) */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">
+            {lang === 'uz' ? "Ish kunlari" : 'График работы'}
+          </Label>
+          <Select value={selectedWorkingDays} onValueChange={onWorkingDaysChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {lang === 'uz' ? 'Ahamiyatsiz' : 'Не важно'}
+              </SelectItem>
+              {WORKING_DAYS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {lang === 'uz' ? option.label_uz : option.label_ru}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Все фильтры показываются сразу без accordion */}
         <>
-          {/* 5. Salary */}
+          {/* 8. Salary */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">{t.filters.salary}</Label>
@@ -227,7 +309,7 @@ export function JobFilters({
             </div>
           </div>
 
-          {/* 6. Experience */}
+          {/* 9. Experience */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               {lang === 'uz' ? 'Tajriba' : 'Опыт работы'}
@@ -249,7 +331,7 @@ export function JobFilters({
             </Select>
           </div>
 
-          {/* 7. Education */}
+          {/* 10. Education */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               {lang === 'uz' ? "Ta'lim" : 'Образование'}
@@ -271,7 +353,7 @@ export function JobFilters({
             </Select>
           </div>
 
-          {/* 8. Gender */}
+          {/* 11. Gender */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               {lang === 'uz' ? 'Jins' : 'Пол'}
@@ -292,6 +374,36 @@ export function JobFilters({
               </SelectContent>
             </Select>
           </div>
+
+          {/* 12. Age (Yosh) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">{lang === 'uz' ? 'Yosh' : 'Возраст'}</Label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                placeholder={lang === 'uz' ? 'Dan' : 'От'}
+                value={ageRange?.[0] || ''}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : undefined;
+                  onAgeRangeChange([val, ageRange?.[1]]);
+                }}
+                className="h-10"
+              />
+              <Input
+                type="number"
+                placeholder={lang === 'uz' ? 'Gacha' : 'До'}
+                value={ageRange?.[1] || ''}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : undefined;
+                  onAgeRangeChange([ageRange?.[0], val]);
+                }}
+                className="h-10"
+              />
+            </div>
+          </div>
+
 
           {/* 9. Special Categories - вынесены за аккордеон */}
         </>
