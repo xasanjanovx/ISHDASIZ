@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { AiAssistantWidget } from '@/components/home/ai-assistant-widget';
 import { HeroSection } from '@/components/home/hero-section';
 import { CategoriesSection } from '@/components/home/categories-section';
 import { LatestJobsSection } from '@/components/home/latest-jobs-section';
@@ -14,7 +13,7 @@ async function getHomeData() {
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(6),
-    supabase.from('categories').select('*').order('name_uz'),
+    supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz'),
     supabase.from('districts').select('*').order('type', { ascending: false }),
   ]);
 
@@ -22,15 +21,25 @@ async function getHomeData() {
   const categories = categoriesResult.data || [];
   const districts = districtsResult.data || [];
 
-  // FIX: Count jobs per category from ALL active jobs, not just the limited 6
-  const { data: allJobsForCounts } = await supabase
-    .from('jobs')
-    .select('category_id')
-    .eq('is_active', true);
+  // FIX: Count jobs per category from ALL jobs (paginated; Supabase defaults to 1000 rows)
+  const allJobsForCounts: Array<{ category_id: string | null }> = [];
+  const pageSize = 1000;
+  let offset = 0;
+  while (true) {
+    const { data } = await supabase
+      .from('jobs')
+      .select('category_id')
+      .eq('is_active', true)
+      .range(offset, offset + pageSize - 1);
+    if (!data || data.length === 0) break;
+    allJobsForCounts.push(...data);
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
 
   const jobCounts: Record<string, number> = {};
   (allJobsForCounts || []).forEach((job) => {
-    if (job.category_id) {
+    if (job.category_id && job.category_id !== 'a0000011-0011-4000-8000-000000000011') {
       jobCounts[job.category_id] = (jobCounts[job.category_id] || 0) + 1;
     }
   });
@@ -67,8 +76,7 @@ async function getHomeData() {
 
   const { count: totalJobs } = await supabase
     .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('is_active', true);
+    .select('*', { count: 'exact', head: true });
 
   return {
     jobs,
@@ -100,7 +108,6 @@ export default async function HomePage() {
       <CategoriesSection categories={categories} jobCounts={jobCounts} />
 
       {/* <StatsCards /> removed as requested */}
-      <AiAssistantWidget />
     </>
   );
 }

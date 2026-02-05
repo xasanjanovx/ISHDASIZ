@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/language-context';
-import { useUserAuth } from '@/contexts/user-auth-context';
 import { ProfileLayout } from '@/components/profile/profile-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
     Settings, Phone, Bell, Shield, Trash2, ChevronRight,
-    AlertTriangle, LogOut, Building2, Loader2
+    AlertTriangle, LogOut
 } from '@/components/ui/icons';
 import { toast } from 'sonner';
 import {
@@ -29,11 +27,8 @@ import {
 
 export default function SettingsPage() {
     const { lang } = useLanguage();
-    const { user, updateProfile } = useUserAuth();
-    const router = useRouter();
 
     const [phone, setPhone] = useState('+998 90 123-45-67');
-    const [addingProfile, setAddingProfile] = useState(false);
     const [notifications, setNotifications] = useState({
         newMessages: true,
         applicationUpdates: true,
@@ -50,40 +45,6 @@ export default function SettingsPage() {
         toast.error(lang === 'ru' ? 'Аккаунт удалён' : 'Akkaunt o\'chirildi');
     };
 
-    const handleAddEmployerProfile = async () => {
-        if (!user?.id) return;
-
-        setAddingProfile(true);
-        try {
-            const res = await fetch('/api/auth/add-profile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, role: 'employer' })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                toast.error(data.error || 'Xatolik yuz berdi');
-                setAddingProfile(false);
-                return;
-            }
-
-            toast.success(data.message);
-
-            // Update local user state
-            updateProfile({ has_employer_profile: true });
-
-            // Navigate to employer profile
-            router.push('/profile/employer');
-        } catch (error) {
-            toast.error('Tarmoq xatosi');
-        }
-        setAddingProfile(false);
-    };
-
-    // Check if user already has employer profile
-    const hasEmployerProfile = user?.has_employer_profile;
 
     return (
         <ProfileLayout userType="job_seeker" userName="Ism Familiya">
@@ -97,42 +58,6 @@ export default function SettingsPage() {
                         {lang === 'ru' ? 'Управляйте настройками аккаунта' : 'Akkaunt sozlamalarini boshqaring'}
                     </p>
                 </div>
-
-                {/* Add Employer Profile - Show only if not already has one */}
-                {!hasEmployerProfile && (
-                    <Card className="border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-lg text-violet-700">
-                                <Building2 className="w-5 h-5" />
-                                {lang === 'ru' ? 'Добавить профиль работодателя' : 'Ish beruvchi profilini qo\'shish'}
-                            </CardTitle>
-                            <CardDescription>
-                                {lang === 'ru'
-                                    ? 'Вы сможете размещать вакансии и искать сотрудников с этим же аккаунтом'
-                                    : 'Shu akkaunt bilan vakansiyalar joylash va xodimlar qidirish mumkin bo\'ladi'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button
-                                onClick={handleAddEmployerProfile}
-                                disabled={addingProfile}
-                                className="bg-violet-600 hover:bg-violet-700"
-                            >
-                                {addingProfile ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        {lang === 'ru' ? 'Создание...' : 'Yaratilmoqda...'}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Building2 className="w-4 h-4 mr-2" />
-                                        {lang === 'ru' ? 'Добавить профиль' : 'Profil qo\'shish'}
-                                    </>
-                                )}
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
 
                 {/* Phone Number */}
                 <Card>
@@ -354,3 +279,4 @@ export default function SettingsPage() {
         </ProfileLayout>
     );
 }
+

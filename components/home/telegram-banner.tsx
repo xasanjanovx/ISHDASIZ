@@ -1,9 +1,8 @@
-'use client';
+﻿'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
-import { MessageCircle, ArrowRight } from '@/components/ui/icons';
+import { MessageCircle, ArrowRight, Send } from '@/components/ui/icons';
 
 export function TelegramBanner() {
     const { lang } = useLanguage();
@@ -11,7 +10,7 @@ export function TelegramBanner() {
     return (
         <div className="container mx-auto px-4 py-6 md:py-8">
             <Link
-                href="https://t.me/ishdasizbot"
+                href="https://t.me/ishdasiz_bot"
                 target="_blank"
                 className="block"
             >
@@ -26,16 +25,10 @@ export function TelegramBanner() {
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
                         {/* Left side - Icon and Text */}
                         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                            {/* AI Icon */}
+                            {/* Telegram Icon */}
                             <div className="relative">
                                 <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300 border border-white/20">
-                                    <Image
-                                        src="/ai-sparkle.png"
-                                        alt="AI Bot"
-                                        width={40}
-                                        height={40}
-                                        className="w-8 h-8 md:w-10 md:h-10 brightness-0 invert"
-                                    />
+                                    <Send className="w-8 h-8 md:w-10 md:h-10 text-white" />
                                 </div>
                             </div>
 
@@ -43,8 +36,8 @@ export function TelegramBanner() {
                             <div className="max-w-md">
                                 <p className="text-white/90 text-sm md:text-base leading-relaxed font-medium">
                                     {lang === 'uz'
-                                        ? "Telegram botimiz orqali osongina ish toping! Shunchaki yozing qanday ish kerak - bot sizga mos vakansiyalarni topib beradi."
-                                        : "Найдите работу легко через наш Telegram бот! Просто напишите какую работу ищете - бот найдет подходящие вакансии."}
+                                        ? "Bot orqali ish va ishchi topish oson! O'zingizga mos vakansiyalarni toping yoki malakali xodim izlang — barchasi bir joyda."
+                                        : "Найти работу и сотрудников легко! Подберите подходящие вакансии или найдите квалифицированных работников — всё в одном месте."}
                                 </p>
                             </div>
                         </div>

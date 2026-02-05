@@ -21,22 +21,22 @@ interface Resume {
     id: string;
     user_id: string;
     title: string;
-    full_name: string;
+    full_name: string | null;
     birth_date: string | null;
     phone: string;
     city: string | null;
     about: string | null;
-    skills: string[];
-    experience: string;
-    experience_details: any[];
+    skills: any;
+    experience: any;
+    experience_details: any;
     experience_years: number;
-    education_level: string;
-    education: any[];
-    languages: any[];
+    education_level: string | null;
+    education: any;
+    languages: any;
     expected_salary_min: number | null;
     expected_salary_max: number | null;
-    gender: string;
-    employment_type: string;
+    gender: string | null;
+    employment_type: string | null;
     created_at: string;
     district_id: string | null;
     is_public: boolean;
@@ -55,6 +55,67 @@ export default function ResumeDetailPage() {
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
     const [districtName, setDistrictName] = useState<string>('');
+
+    const toArray = (value: any): any[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return [];
+            if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) return parsed;
+                    if (parsed && typeof parsed === 'object') return [parsed];
+                } catch {
+                    // fall through to comma split
+                }
+            }
+            return trimmed.split(',').map(item => item.trim()).filter(Boolean);
+        }
+        if (typeof value === 'object') return [value];
+        return [];
+    };
+
+    const normalizeSkills = (value: any): string[] => {
+        return toArray(value)
+            .map(item => {
+                if (typeof item === 'string') return item;
+                if (item?.name) return item.name;
+                if (item?.title) return item.title;
+                return '';
+            })
+            .map(item => String(item).trim())
+            .filter(Boolean);
+    };
+
+    const normalizeLanguages = (value: any): Array<{ name: string; level?: string }> => {
+        return toArray(value)
+            .map(item => {
+                if (typeof item === 'string') return { name: item };
+                if (item?.language) return { name: item.language, level: item.level || item.grade };
+                if (item?.name) return { name: item.name, level: item.level || item.grade };
+                return null;
+            })
+            .filter(Boolean) as Array<{ name: string; level?: string }>;
+    };
+
+    const normalizeExperience = (resumeValue: Resume | null): any[] => {
+        if (!resumeValue) return [];
+        const primary = toArray(resumeValue.experience_details);
+        if (primary.length > 0) return primary;
+        if (resumeValue.experience && (Array.isArray(resumeValue.experience) || typeof resumeValue.experience === 'object')) {
+            return toArray(resumeValue.experience);
+        }
+        return [];
+    };
+
+    const normalizeEducation = (resumeValue: Resume | null): any[] => {
+        if (!resumeValue) return [];
+        const primary = toArray(resumeValue.education);
+        if (primary.length > 0) return primary;
+        return [];
+    };
 
     useEffect(() => {
         const fetchResume = async () => {
@@ -198,6 +259,11 @@ export default function ResumeDetailPage() {
         );
     }
 
+    const skillsList = normalizeSkills(resume.skills);
+    const languageList = normalizeLanguages(resume.languages);
+    const experienceList = normalizeExperience(resume);
+    const educationList = normalizeEducation(resume);
+
     return (
         <div className="min-h-screen bg-white">
             {/* Profile Hero Section - Solid Indigo Gradient (Matches Job Page) */}
@@ -222,25 +288,25 @@ export default function ResumeDetailPage() {
                         <div className="flex flex-col md:flex-row gap-6 md:items-center">
                             {/* Profile Avatar Placeholder - Solid White/Indigo */}
                             <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-3xl md:text-4xl font-bold text-white shadow-xl">
-                                {resume.full_name.charAt(0)}
+                                {(resume.full_name || resume.title || 'I').charAt(0)}
                             </div>
 
                             <div className="space-y-4">
                                 <div className="flex flex-wrap gap-2">
                                     <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/20 backdrop-blur-sm px-3 py-1 text-xs font-bold capitalize">
-                                        {getEducationLabel(resume.education_level)}
+                                        {getEducationLabel(resume.education_level || '')}
                                     </Badge>
                                     <Badge className="bg-indigo-500/20 text-indigo-100 border-indigo-500/30 backdrop-blur-sm px-3 py-1 text-xs font-bold capitalize">
                                         {getExperienceLabel(resume.experience)}
                                     </Badge>
                                 </div>
                                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                                    {resume.title}
+                                    {resume.title || (lang === 'ru' ? 'Специалист' : 'Mutaxassis')}
                                 </h1>
                                 <div className="flex flex-wrap items-center gap-5 text-indigo-100/90 text-sm font-medium">
                                     <div className="flex items-center gap-2">
                                         <User className="w-4 h-4 text-indigo-300" />
-                                        <span>{resume.full_name}</span>
+                                        <span>{resume.full_name || (lang === 'ru' ? 'Имя не указано' : 'Ism ko'rsatilmagan')}</span>
                                     </div>
                                     {districtName && (
                                         <div className="flex items-center gap-2">
@@ -291,14 +357,20 @@ export default function ResumeDetailPage() {
                         )}
 
                         {/* Professional Timeline: Experience */}
-                        {resume.experience_details && resume.experience_details.length > 0 && (
+                        {experienceList.length > 0 && (
                             <section className="space-y-6">
                                 <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-3 px-1">
                                     <div className="w-1.5 h-7 bg-indigo-600 rounded-full shadow-[0_0_10px_rgba(79,70,229,0.3)]"></div>
                                     {lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}
                                 </h2>
                                 <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200">
-                                    {resume.experience_details.map((exp, idx) => (
+                                    {experienceList.map((exp, idx) => {
+                                        const position = exp?.position || exp?.role || exp?.title || '';
+                                        const company = exp?.company || exp?.employer || exp?.organization || '';
+                                        const start = exp?.start_date || exp?.start_year || exp?.start || '';
+                                        const end = exp?.end_date || exp?.end_year || exp?.end || '';
+                                        const timeLabel = start || end ? `${start || ''} - ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
+                                        return (
                                         <div key={idx} className="relative flex items-start gap-6 group">
                                             {/* Dot Icon */}
                                             <div className="flex items-center justify-center w-8 h-8 rounded-xl border-2 border-white bg-indigo-600 text-white shadow-lg shadow-indigo-200 shrink-0 z-10 transition-transform group-hover:scale-110 duration-300">
@@ -308,34 +380,44 @@ export default function ResumeDetailPage() {
                                             <div className="flex-1 p-5 rounded-3xl border border-slate-200/60 bg-white shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
                                                     <div>
-                                                        <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">{exp.position}</div>
-                                                        <div className="text-indigo-600 font-bold text-sm tracking-tight">{exp.company}</div>
+                                                        <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">
+                                                            {position || (lang === 'uz' ? 'Lavozim' : 'Должность')}
+                                                        </div>
+                                                        {company && <div className="text-indigo-600 font-bold text-sm tracking-tight">{company}</div>}
                                                     </div>
-                                                    <time className="font-bold text-[10px] text-white bg-indigo-500/90 px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm self-start">
-                                                        {exp.start_date} — {exp.end_date || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}
-                                                    </time>
+                                                    {timeLabel && (
+                                                        <time className="font-bold text-[10px] text-white bg-indigo-500/90 px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm self-start">
+                                                            {timeLabel}
+                                                        </time>
+                                                    )}
                                                 </div>
-                                                {exp.description && (
+                                                {exp?.description && (
                                                     <div className="text-slate-500 text-sm leading-relaxed whitespace-pre-wrap pl-0 border-l-0 border-slate-100">
                                                         {exp.description}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-                                    ))}
+                                    );})}
                                 </div>
                             </section>
                         )}
 
                         {/* Professional Timeline: Education */}
-                        {resume.education && resume.education.length > 0 && (
+                        {educationList.length > 0 && (
                             <section className="space-y-6">
                                 <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-3 px-1">
                                     <div className="w-1.5 h-7 bg-indigo-600 rounded-full shadow-[0_0_10px_rgba(79,70,229,0.3)]"></div>
                                     {lang === 'ru' ? 'Образование' : "Ma'lumot"}
                                 </h2>
                                 <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200">
-                                    {resume.education.map((edu, idx) => (
+                                    {educationList.map((edu, idx) => {
+                                        const institution = edu?.institution || edu?.school || edu?.university || '';
+                                        const field = edu?.field || edu?.specialty || edu?.faculty || '';
+                                        const start = edu?.start_year || edu?.start_date || edu?.start || '';
+                                        const end = edu?.end_year || edu?.end_date || edu?.end || '';
+                                        const timeLabel = start || end ? `${start || ''} - ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
+                                        return (
                                         <div key={idx} className="relative flex items-start gap-6 group">
                                             {/* Dot Icon */}
                                             <div className="flex items-center justify-center w-8 h-8 rounded-xl border-2 border-white bg-indigo-600 text-white shadow-lg shadow-indigo-200 shrink-0 z-10 transition-transform group-hover:scale-110 duration-300">
@@ -345,38 +427,42 @@ export default function ResumeDetailPage() {
                                             <div className="flex-1 p-5 rounded-3xl border border-slate-200/60 bg-white shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
                                                     <div>
-                                                        <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">{edu.institution}</div>
-                                                        <div className="text-indigo-600 font-bold text-sm tracking-tight">{edu.field}</div>
+                                                        <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">
+                                                            {institution || (lang === 'uz' ? 'O'quv muassasa' : 'Учебное заведение')}
+                                                        </div>
+                                                        {field && <div className="text-indigo-600 font-bold text-sm tracking-tight">{field}</div>}
                                                     </div>
-                                                    <time className="font-bold text-[10px] text-white bg-indigo-500/90 px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm self-start">
-                                                        {edu.start_year} — {edu.end_year || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}
-                                                    </time>
+                                                    {timeLabel && (
+                                                        <time className="font-bold text-[10px] text-white bg-indigo-500/90 px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm self-start">
+                                                            {timeLabel}
+                                                        </time>
+                                                    )}
                                                 </div>
-                                                {edu.degree && (
+                                                {edu?.degree && (
                                                     <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-slate-50 rounded-lg text-slate-500 text-[10px] font-bold border border-slate-100 uppercase tracking-wider">
                                                         {edu.degree}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-                                    ))}
+                                    );})}
                                 </div>
                             </section>
                         )}
 
                         {/* Skills & Languages */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {resume.skills && resume.skills.length > 0 && (
+                            {skillsList.length > 0 && (
                                 <Card className="border-slate-200/60 shadow-sm overflow-hidden rounded-3xl">
                                     <div className="bg-slate-50 px-5 py-4 border-b border-slate-100">
                                         <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
                                             <CheckCircle className="w-4 h-4 text-indigo-600" />
-                                            {lang === 'ru' ? 'Профессиональные навыки' : 'Ko\'nikmalar'}
+                                            {lang === 'ru' ? 'Профессиональные навыки' : "Ko'nikmalar"}
                                         </h3>
                                     </div>
                                     <CardContent className="p-5">
                                         <div className="flex flex-wrap gap-2">
-                                            {resume.skills.map((skill, idx) => (
+                                            {skillsList.map((skill, idx) => (
                                                 <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-indigo-50/50 text-indigo-700 border-indigo-100/50 text-[11px] font-bold rounded-xl transition-all hover:bg-indigo-100">
                                                     {skill}
                                                 </Badge>
@@ -386,7 +472,7 @@ export default function ResumeDetailPage() {
                                 </Card>
                             )}
 
-                            {resume.languages && resume.languages.length > 0 && (
+                            {languageList.length > 0 && (
                                 <Card className="border-slate-200/60 shadow-sm overflow-hidden rounded-3xl">
                                     <div className="bg-slate-50 px-5 py-4 border-b border-slate-100">
                                         <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
@@ -396,10 +482,9 @@ export default function ResumeDetailPage() {
                                     </div>
                                     <CardContent className="p-5">
                                         <div className="flex flex-col gap-3">
-                                            {resume.languages.map((langItem, idx) => {
-                                                const name = typeof langItem === 'string' ? langItem : (langItem.name || (langItem as any).language || (langItem as any).lang);
-                                                const level = typeof langItem === 'object' ? (langItem.level || (langItem as any).grade) : null;
-
+                                            {languageList.map((langItem, idx) => {
+                                                const name = langItem?.name;
+                                                const level = langItem?.level;
                                                 if (!name) return null;
 
                                                 return (

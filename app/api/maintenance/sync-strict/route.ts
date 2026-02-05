@@ -73,7 +73,11 @@ async function fetchJson(url: string, retries: number = 3): Promise<{ ok: boolea
     try {
         for (let attempt = 1; attempt <= retries; attempt++) {
             const response = await fetch(url, {
-                headers: { 'Accept': 'application/json' },
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': 'https://osonish.uz/vacancies'
+                },
                 next: { revalidate: 0 }
             });
 

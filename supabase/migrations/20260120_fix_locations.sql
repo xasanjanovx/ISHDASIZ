@@ -26,7 +26,7 @@ WHERE source = 'osonish'
 UPDATE jobs SET region_id = NULL WHERE source = 'osonish';
 
 -- Step 5: Map osonish region IDs to our regions
--- Based on osonish.uz API /api/api/v1/regions
+-- Based on osonish.uz API /api/v1/regions
 
 -- Toshkent shahri (osonish id: 1)
 UPDATE jobs SET region_id = (SELECT id FROM regions WHERE slug = 'toshkent-shahri' LIMIT 1)

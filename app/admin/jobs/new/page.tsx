@@ -172,7 +172,7 @@ export default function NewJobPage() {
     if (!user?.id) { setLoading(false); return; }
     try {
       const [catRes, profileRes] = await Promise.all([
-        supabase.from('categories').select('*').order('name_uz'),
+        supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz'),
         supabase.from('employer_profiles').select('*').eq('user_id', user.id).single(),
       ]);
       setCategories(catRes.data || []);

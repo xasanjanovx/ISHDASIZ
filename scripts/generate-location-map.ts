@@ -1,9 +1,13 @@
-
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
-// Load env from root
+// Load env (prefer .env.local if present)
+const envLocal = path.resolve(process.cwd(), '.env.local');
+if (fs.existsSync(envLocal)) {
+    dotenv.config({ path: envLocal });
+}
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -12,14 +16,13 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 function normalize(str: string) {
-    return str.toLowerCase()
-        .replace(/[''`’‘]/g, '')
-        .replace(/viloyati/g, '')
-        .replace(/tumani/g, '')
-        .replace(/shahri/g, '')
-        .replace(/shahar/g, '')
-        .replace(/respublikasi/g, '')
-        .replace(/ /g, '')
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .replace(/[\u2018\u2019\u00B4\u02BB\u02BC\u02BF\u02BE]/g, "'")
+        .replace(/['`]/g, '')
+        .replace(/(viloyati|viloyat|tumani|tuman|shahri|shahar|respublikasi|respublika)/g, '')
+        .replace(/\s+/g, '')
         .trim();
 }
 
@@ -30,12 +33,11 @@ async function generateMap() {
 
     if (!regions || !districts) throw new Error('Failed to fetch local dict');
 
-    console.log('Fetching OsonIsh jobs location data...');
-    // We fetch distinct pairs of (id, name) from raw json
-    // Since we can't do DISTINCT on json fields easily in API, we fetch all and aggregate in JS
-    // Actually we can use the rpc/query via raw sql if needed, but let's just fetch simplified subset
+    const regionsById = new Map(regions.map(r => [String(r.id), r]));
+    const districtsById = new Map(districts.map(d => [String(d.id), d]));
 
-    // Using simple approach: fetch 5000 records (should cover all variations)
+    console.log('Fetching OsonIsh jobs location data...');
+
     const { data: jobs } = await supabase
         .from('jobs')
         .select('raw_source_json')
@@ -44,15 +46,15 @@ async function generateMap() {
 
     if (!jobs) throw new Error('No jobs');
 
-    const osonishRegions = new Map<string, string>(); // id -> name
-    const osonishDistricts = new Map<string, string>(); // id -> name
+    const osonishRegions = new Map<string, string>();
+    const osonishDistricts = new Map<string, string>();
 
     jobs.forEach(job => {
         const r = job.raw_source_json?.filial?.region;
         const d = job.raw_source_json?.filial?.city;
 
-        if (r?.id) osonishRegions.set(String(r.id), r.name_uz || r.name_ru);
-        if (d?.id) osonishDistricts.set(String(d.id), d.name_uz || d.name_ru);
+        if (r?.id) osonishRegions.set(String(r.id), r.name_uz || r.name_ru || '');
+        if (d?.id) osonishDistricts.set(String(d.id), d.name_uz || d.name_ru || '');
     });
 
     console.log(`Found ${osonishRegions.size} distinct OsonIsh regions`);
@@ -61,41 +63,50 @@ async function generateMap() {
     const regionMap: Record<string, string> = {};
     const districtMap: Record<string, string> = {};
 
-    // Match Regions
     console.log('\n--- REGION MAPPING ---');
     for (const [id, name] of Array.from(osonishRegions.entries())) {
+        // Prefer direct ID match if region exists
+        const direct = regionsById.get(id);
+        if (direct) {
+            regionMap[id] = direct.id;
+            continue;
+        }
+
         const normName = normalize(name);
-        // Try strict name match
         const match = regions.find(r => normalize(r.name_uz) === normName);
         if (match) {
             regionMap[id] = match.id;
-            // console.log(`✅ ${name} -> ${match.name_uz}`);
         } else {
-            console.log(`❌ NO MATCH FOR REGION: ${id} - ${name}`);
-            // Manual fallbacks can be added here
+            console.log(`NO MATCH FOR REGION: ${id} - ${name}`);
         }
     }
 
-    // Match Districts
     console.log('\n--- DISTRICT MAPPING ---');
     for (const [id, name] of Array.from(osonishDistricts.entries())) {
+        // Prefer direct ID match if district exists
+        const direct = districtsById.get(id);
+        if (direct) {
+            districtMap[id] = direct.id;
+            continue;
+        }
+
         const normName = normalize(name);
-        // Try match
         const match = districts.find(d => normalize(d.name_uz) === normName);
         if (match) {
             districtMap[id] = match.id;
         } else {
-            // Try simplified match (contains)
-            const semiMatch = districts.find(d => normalize(d.name_uz).includes(normName) || normName.includes(normalize(d.name_uz)));
+            const semiMatch = districts.find(d => {
+                const norm = normalize(d.name_uz);
+                return norm.includes(normName) || normName.includes(norm);
+            });
             if (semiMatch) {
                 districtMap[id] = semiMatch.id;
-                console.log(`⚠️ Fuzzy match: ${name} -> ${semiMatch.name_uz}`);
+                console.log(`Fuzzy match: ${name} -> ${semiMatch.name_uz}`);
             } else {
-                console.log(`❌ NO MATCH FOR DISTRICT: ${id} - ${name}`);
+                console.log(`NO MATCH FOR DISTRICT: ${id} - ${name}`);
             }
         }
     }
-
 
     console.log(`\nWriting to lib/mappers/osonish-locations.ts...`);
 
@@ -109,7 +120,6 @@ export const OSONISH_REGION_MAP: Record<string, number> = ${JSON.stringify(regio
 export const OSONISH_DISTRICT_MAP: Record<string, number> = ${JSON.stringify(districtMap, null, 4)};
 `;
 
-    const fs = require('fs');
     fs.writeFileSync(path.join(process.cwd(), 'lib/mappers/osonish-locations.ts'), fileContent);
     console.log('Done!');
 }

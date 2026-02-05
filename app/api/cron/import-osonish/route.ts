@@ -23,6 +23,8 @@ const CODE_VERSION = '2026-01-25-osonish-title-mapping-v3';
 interface RegionCache { id: number; name_uz: string; name_ru: string; slug: string; }
 interface DistrictCache { id: number; name_uz: string; name_ru: string; region_id: number; }
 interface CategoryCache { id: string; name_uz: string; name_ru: string; }
+interface OsonishRegion { id: number; name_uz?: string; name_ru?: string; soato?: number; }
+interface OsonishCity { id: number; name_uz?: string; name_ru?: string; region_id?: number; soato_region?: number; }
 
 type RegionType = 'city' | 'region' | 'republic' | null;
 type DistrictType = 'city' | 'district' | null;
@@ -47,6 +49,93 @@ let categoriesCache: CategoryCache[] = [];
 let regionsCacheNorm: RegionCacheNorm[] = [];
 let districtsCacheNorm: DistrictCacheNorm[] = [];
 
+// Runtime maps for OsonIsh -> ISHDASIZ IDs (built by name)
+let runtimeRegionMap: Map<string, number> = new Map();
+let runtimeDistrictMap: Map<string, number> = new Map();
+
+const OSONISH_API_BASE = 'https://osonish.uz/api/api/v1';
+const OSONISH_HEADERS: Record<string, string> = {
+    'Accept': 'application/json',
+    'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',
+    'Referer': 'https://osonish.uz/vacancies',
+    'Origin': 'https://osonish.uz',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+    'sec-ch-ua': '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'Connection': 'keep-alive',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Dest': 'empty',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+};
+
+let osonishRegionById: Map<number, OsonishRegion> = new Map();
+let osonishCityById: Map<number, OsonishCity> = new Map();
+let osonishRegionBySoato: Map<number, OsonishRegion> = new Map();
+let osonishCityBySoato: Map<number, OsonishCity> = new Map();
+
+async function loadOsonishGeoCache(): Promise<void> {
+    if (osonishRegionById.size > 0) return;
+
+    try {
+        const res = await fetch(`${OSONISH_API_BASE}/regions`, { headers: OSONISH_HEADERS });
+        if (!res.ok) {
+            console.warn(`[OSONISH] Failed to fetch regions: ${res.status} ${res.statusText}`);
+            return;
+        }
+        const json = await res.json();
+        if (json?.error) {
+            console.warn(`[OSONISH] Regions fetch blocked: ${json.error}`);
+            return;
+        }
+        const rawRegions = Array.isArray(json?.data)
+            ? json.data
+            : (Array.isArray(json?.data?.data) ? json.data.data : []);
+        const regions: OsonishRegion[] = rawRegions || [];
+        regions.forEach(region => {
+            if (region?.id) osonishRegionById.set(region.id, region);
+            if (region?.soato) osonishRegionBySoato.set(Number(region.soato), region);
+        });
+
+        // Fetch cities per region (by soato if available)
+        const cityPromises = regions.map(async (region) => {
+            const soato = region?.soato;
+            if (!soato) return;
+            const url = `${OSONISH_API_BASE}/cities?region_soato=${soato}`;
+            const cityRes = await fetch(url, { headers: OSONISH_HEADERS });
+            if (!cityRes.ok) return;
+            const cityJson = await cityRes.json();
+            const rawCities = Array.isArray(cityJson?.data)
+                ? cityJson.data
+                : (Array.isArray(cityJson?.data?.data) ? cityJson.data.data : []);
+            const cities: OsonishCity[] = rawCities || [];
+            cities.forEach(city => {
+                if (city?.id) {
+                    osonishCityById.set(city.id, {
+                        ...city,
+                        region_id: city.region_id ?? region.id,
+                        soato_region: region.soato
+                    });
+                }
+                if (city?.soato) {
+                    osonishCityBySoato.set(Number(city.soato), {
+                        ...city,
+                        region_id: city.region_id ?? region.id,
+                        soato_region: region.soato
+                    });
+                }
+            });
+        });
+
+        await Promise.all(cityPromises);
+        console.log(`[OSONISH] Geo cache: ${osonishRegionById.size} regions, ${osonishCityById.size} cities`);
+    } catch (err) {
+        console.warn('[OSONISH] Failed to load OsonIsh geo cache', err);
+    }
+}
+
 async function loadCache(): Promise<void> {
     if (regionsCache.length > 0) return;
 
@@ -64,6 +153,45 @@ async function loadCache(): Promise<void> {
     districtsCacheNorm = districtsCache.map(buildDistrictNorm);
 
     console.log(`[OSONISH] Cache: ${regionsCache.length} regions, ${districtsCache.length} districts, ${categoriesCache.length} categories`);
+}
+
+function buildRuntimeGeoMaps(): void {
+    runtimeRegionMap = new Map();
+    runtimeDistrictMap = new Map();
+
+    if (osonishRegionById.size === 0 || regionsCacheNorm.length === 0) {
+        return;
+    }
+
+    for (const region of osonishRegionById.values()) {
+        const name = region?.name_uz || region?.name_ru;
+        if (!name) continue;
+        const mapped = lookupRegionId(name);
+        if (mapped) {
+            runtimeRegionMap.set(String(region.id), mapped);
+            if (region.soato) runtimeRegionMap.set(`soato:${region.soato}`, mapped);
+        }
+    }
+
+    for (const city of osonishCityById.values()) {
+        const name = city?.name_uz || city?.name_ru;
+        if (!name) continue;
+        let mappedRegionId: number | null = null;
+        if (city.region_id) {
+            mappedRegionId = runtimeRegionMap.get(String(city.region_id)) ?? null;
+        }
+        if (!mappedRegionId && city.soato_region) {
+            mappedRegionId = runtimeRegionMap.get(`soato:${city.soato_region}`) ?? null;
+        }
+
+        const mappedDistrict = lookupDistrictId(name, mappedRegionId ?? undefined) || lookupDistrictId(name);
+        if (mappedDistrict) {
+            runtimeDistrictMap.set(String(city.id), mappedDistrict);
+            if (city.soato) runtimeDistrictMap.set(`soato:${city.soato}`, mappedDistrict);
+        }
+    }
+
+    console.log(`[OSONISH] Runtime geo map built: ${runtimeRegionMap.size} regions, ${runtimeDistrictMap.size} districts`);
 }
 
 // ==================== GEO NORMALIZATION ====================
@@ -85,6 +213,14 @@ const GEO_FIXES: Record<string, string> = {
     'khodjeyli': 'xojayli',
     'qoraqolpogiston': 'qoraqalpogiston',
     'karakalpakstan': 'qoraqalpogiston',
+    'shayxontoxur': 'shayxontohur',
+    'qoshrabod': 'qoshrabot',
+    'dexqonobod': 'dehqonobod',
+    'navbaxor': 'navbahor',
+    'qonlikol': 'qanlikol',
+    'taxtakoprik': 'taxtakopir',
+    'bogdod': 'bagdod',
+    'yangi hayot': 'yangihayot',
 };
 
 const GEO_ALIASES: Record<string, string> = {
@@ -231,6 +367,8 @@ function lookupRegionId(regionName?: string): number | null {
     if (normalizedFull.includes('toshkent')) {
         if (flags.hasCity) return findRegionBySlug('toshkent-shahri')?.id ?? null;
         if (flags.hasRegion) return findRegionBySlug('toshkent-viloyati')?.id ?? null;
+        // If ambiguous, prefer city first (more common in vacancy data)
+        return findRegionBySlug('toshkent-shahri')?.id ?? findRegionBySlug('toshkent-viloyati')?.id ?? null;
     }
 
     // Exact match by full normalized name or slug
@@ -267,30 +405,81 @@ function lookupDistrictId(districtName?: string, regionId?: number | null): numb
     const normalizedLoose = stripGeoTypeTokens(normalizedFull);
     const flags = detectGeoType(districtName);
 
+    const search = (list: DistrictCacheNorm[]): number | null => {
+        const exact = list.find(d => d.normsFull.includes(normalizedFull));
+        if (exact) return exact.id;
+
+        const looseMatches = list.filter(d => normalizedLoose && d.normsLoose.includes(normalizedLoose));
+        if (looseMatches.length === 1) return looseMatches[0].id;
+
+        if (looseMatches.length > 1) {
+            if (flags.hasCity) {
+                const city = looseMatches.find(d => d.type === 'city');
+                if (city) return city.id;
+            }
+            if (flags.hasDistrict) {
+                const district = looseMatches.find(d => d.type === 'district');
+                if (district) return district.id;
+            }
+            console.warn(`[OSONISH] District ambiguous: "${districtName}" (region_id: ${regionId ?? 'any'})`);
+            return null;
+        }
+
+        return null;
+    };
+
     const candidates = regionId
         ? districtsCacheNorm.filter(d => d.region_id === regionId)
         : districtsCacheNorm;
 
-    const exact = candidates.find(d => d.normsFull.includes(normalizedFull));
-    if (exact) return exact.id;
+    const primary = search(candidates);
+    if (primary) return primary;
 
-    const looseMatches = candidates.filter(d => normalizedLoose && d.normsLoose.includes(normalizedLoose));
-    if (looseMatches.length === 1) return looseMatches[0].id;
-
-    if (looseMatches.length > 1) {
-        if (flags.hasCity) {
-            const city = looseMatches.find(d => d.type === 'city');
-            if (city) return city.id;
-        }
-        if (flags.hasDistrict) {
-            const district = looseMatches.find(d => d.type === 'district');
-            if (district) return district.id;
-        }
-        console.warn(`[OSONISH] District ambiguous: "${districtName}" (region_id: ${regionId ?? 'any'})`);
-        return null;
+    // Fallback: if region-limited search failed, try global
+    if (regionId) {
+        return search(districtsCacheNorm);
     }
 
     return null;
+}
+
+function findRegionIdInText(text?: string): number | null {
+    if (!text) return null;
+    const normalized = normalizeGeoName(text);
+    let best: { id: number; len: number } | null = null;
+    for (const region of regionsCacheNorm) {
+        const candidates = [...region.normsFull, ...region.normsLoose].filter(Boolean);
+        for (const candidate of candidates) {
+            if (candidate.length < 4) continue;
+            if (normalized.includes(candidate)) {
+                if (!best || candidate.length > best.len) {
+                    best = { id: region.id, len: candidate.length };
+                }
+            }
+        }
+    }
+    return best?.id ?? null;
+}
+
+function findDistrictIdInText(text?: string, regionId?: number | null): number | null {
+    if (!text) return null;
+    const normalized = normalizeGeoName(text);
+    const pool = regionId
+        ? districtsCacheNorm.filter(d => d.region_id === regionId)
+        : districtsCacheNorm;
+    let best: { id: number; len: number } | null = null;
+    for (const district of pool) {
+        const candidates = [...district.normsFull, ...district.normsLoose].filter(Boolean);
+        for (const candidate of candidates) {
+            if (candidate.length < 4) continue;
+            if (normalized.includes(candidate)) {
+                if (!best || candidate.length > best.len) {
+                    best = { id: district.id, len: candidate.length };
+                }
+            }
+        }
+    }
+    return best?.id ?? null;
 }
 
 // ==================== FIELD NORMALIZATION ====================
@@ -444,24 +633,16 @@ export async function GET(request: NextRequest) {
         categoriesCache = [];
         regionsCacheNorm = [];
         districtsCacheNorm = [];
+        runtimeRegionMap = new Map();
+        runtimeDistrictMap = new Map();
 
-        // Clear stale FK references from existing jobs BEFORE loading cache
-        // This is needed because sync-strict may have deleted old districts/regions
-        // leaving orphaned references that cause FK violations during upsert
-        console.log('[OSONISH] Clearing stale district_id/region_id references from existing jobs...');
-        const { error: clearError } = await supabaseAdmin
-            .from('jobs')
-            .update({ district_id: null, region_id: null })
-            .not('district_id', 'is', null);
-
-        if (clearError) {
-            console.warn('[OSONISH] Warning: Could not clear stale FK references:', clearError.message);
-        } else {
-            console.log('[OSONISH] Stale FK references cleared successfully');
-        }
+        // NOTE: We no longer clear all region/district references.
+        // It caused massive nulling and broke region filters when mapping failed.
 
         // Load lookup cache (will re-fetch from DB)
         await loadCache();
+        await loadOsonishGeoCache();
+        buildRuntimeGeoMaps();
 
         // Create import log
         const { data: logEntry } = await supabaseAdmin
@@ -479,14 +660,15 @@ export async function GET(request: NextRequest) {
 
         // ==================== SCRAPE OSONISH ====================
 
-        const result = await scrapeOsonishFull(50, true);
+        const result = await scrapeOsonishFull(500, false);
 
         console.log(`[OSONISH] Scraped ${result.vacancies.length} vacancies with contacts`);
 
         // ==================== IMPORT TO DATABASE ====================
 
         let stats = { newImported: 0, updated: 0, errors: 0 };
-        const now = new Date().toISOString();
+        const runStartedAt = new Date().toISOString();
+        const now = runStartedAt;
 
         // ...
 
@@ -500,48 +682,175 @@ export async function GET(request: NextRequest) {
                 let regionId: number | null = null;
                 let districtId: number | null = null;
 
-                const rawRegionId = raw.filial?.region?.id;
-                const rawDistrictId = raw.filial?.city?.id;
+                let rawRegionId = raw.filial?.region?.id ?? raw.region?.id ?? raw.region_id ?? null;
+                let rawDistrictId = raw.filial?.city?.id ?? raw.city?.id ?? raw.city_id ?? null;
+                const rawRegionSoato = raw.filial?.soato_region ?? raw.filial?.region?.soato ?? raw.region?.soato ?? null;
+                const rawDistrictSoato = raw.filial?.soato_district ?? raw.filial?.city?.soato ?? raw.city?.soato ?? null;
 
-                // A. Try Direct ID Match (Fastest & Most Reliable)
-                if (rawRegionId) {
-                    const cached = regionsCache.find(r => r.id === rawRegionId);
-                    if (cached) regionId = cached.id;
+                let rawRegionName = vacancy.region_name
+                    || raw.filial?.region?.name_uz
+                    || raw.filial?.region?.name_ru
+                    || raw.region?.name_uz
+                    || raw.region?.name_ru
+                    || null;
+
+                let rawDistrictName = vacancy.district_name
+                    || raw.filial?.city?.name_uz
+                    || raw.filial?.city?.name_ru
+                    || raw.city?.name_uz
+                    || raw.city?.name_ru
+                    || null;
+
+                const rawAddress = raw.filial?.address || raw.address || vacancy.address || null;
+
+                // Fill missing names from OsonIsh geo cache if IDs exist
+                const osonishRegion = rawRegionId ? osonishRegionById.get(Number(rawRegionId)) : null;
+                if (!rawRegionName && osonishRegion) {
+                    rawRegionName = osonishRegion.name_uz || osonishRegion.name_ru || null;
                 }
 
-                if (rawDistrictId) {
-                    const cached = districtsCache.find(d => d.id === rawDistrictId);
-                    if (cached) {
-                        districtId = cached.id;
-                        // Implicitly set region if not set
-                        if (!regionId && cached.region_id) {
-                            regionId = cached.region_id;
+                const osonishCity = rawDistrictId ? osonishCityById.get(Number(rawDistrictId)) : null;
+                if (!rawDistrictName && osonishCity) {
+                    rawDistrictName = osonishCity.name_uz || osonishCity.name_ru || null;
+                }
+
+                // Fill missing names/ids from SOATO maps if present
+                const soatoRegion = rawRegionSoato ? osonishRegionBySoato.get(Number(rawRegionSoato)) : null;
+                if (!rawRegionName && soatoRegion) {
+                    rawRegionName = soatoRegion.name_uz || soatoRegion.name_ru || null;
+                }
+                if (!rawRegionId && soatoRegion?.id) {
+                    rawRegionId = soatoRegion.id;
+                }
+
+                const soatoCity = rawDistrictSoato ? osonishCityBySoato.get(Number(rawDistrictSoato)) : null;
+                if (!rawDistrictName && soatoCity) {
+                    rawDistrictName = soatoCity.name_uz || soatoCity.name_ru || null;
+                }
+                if (!rawDistrictId && soatoCity?.id) {
+                    rawDistrictId = soatoCity.id;
+                }
+
+                // A. Try strict OsonIsh ID mapping (only if it exists in our DB)
+                if (rawRegionId && rawRegionName) {
+                    const mapped = OSONISH_REGION_MAP[String(rawRegionId)];
+                    if (mapped) {
+                        const mappedRegion = regionsCacheNorm.find(r => r.id === mapped);
+                        if (mappedRegion) {
+                            const rawNorm = stripGeoTypeTokens(normalizeGeoName(rawRegionName));
+                            const matches = mappedRegion.normsLoose.includes(rawNorm) || mappedRegion.normsFull.includes(normalizeGeoName(rawRegionName));
+                            if (matches) regionId = mapped;
                         }
                     }
                 }
 
-                // B. Fallback to Name Lookup
-                if (!regionId && vacancy.region_name) {
-                    // console.log(`[OSONISH] Fallback region lookup for ${vacancy.region_name} (ID: ${rawRegionId})`);
-                    regionId = lookupRegionId(vacancy.region_name);
+                if (rawDistrictId && rawDistrictName) {
+                    const mapped = OSONISH_DISTRICT_MAP[String(rawDistrictId)];
+                    if (mapped) {
+                        const mappedDistrict = districtsCacheNorm.find(d => d.id === mapped);
+                        if (mappedDistrict) {
+                            const rawNorm = stripGeoTypeTokens(normalizeGeoName(rawDistrictName));
+                            const matches = mappedDistrict.normsLoose.includes(rawNorm) || mappedDistrict.normsFull.includes(normalizeGeoName(rawDistrictName));
+                            if (matches) districtId = mapped;
+                        }
+                    }
                 }
 
-                if (!districtId && vacancy.district_name) {
-                    districtId = lookupDistrictId(vacancy.district_name, regionId);
+                // A2. Runtime SOATO mapping (if available)
+                if (!regionId && rawRegionSoato) {
+                    const cached = runtimeRegionMap.get(`soato:${rawRegionSoato}`);
+                    if (cached) regionId = cached;
+                }
+                if (!districtId && rawDistrictSoato) {
+                    const cached = runtimeDistrictMap.get(`soato:${rawDistrictSoato}`);
+                    if (cached) districtId = cached;
+                }
+
+                // B. Runtime mapping by OsonIsh ID + name
+                if (!regionId && rawRegionId) {
+                    const cached = runtimeRegionMap.get(String(rawRegionId));
+                    if (cached) {
+                        regionId = cached;
+                    } else if (rawRegionName) {
+                        const mapped = lookupRegionId(rawRegionName);
+                        if (mapped) {
+                            runtimeRegionMap.set(String(rawRegionId), mapped);
+                            regionId = mapped;
+                        }
+                    }
+                }
+
+                if (!districtId && rawDistrictId) {
+                    const cached = runtimeDistrictMap.get(String(rawDistrictId));
+                    if (cached) {
+                        districtId = cached;
+                    } else if (rawDistrictName) {
+                        const mapped = lookupDistrictId(rawDistrictName, regionId ?? undefined);
+                        if (mapped) {
+                            runtimeDistrictMap.set(String(rawDistrictId), mapped);
+                            districtId = mapped;
+                        }
+                    }
+                }
+
+                // If region is still missing, try deriving from city -> region mapping
+                if (!regionId && osonishCity?.region_id) {
+                    const cityRegion = osonishRegionById.get(osonishCity.region_id);
+                    if (cityRegion) {
+                        const mapped = lookupRegionId(cityRegion.name_uz || cityRegion.name_ru || '');
+                        if (mapped) {
+                            regionId = mapped;
+                            if (rawRegionId) runtimeRegionMap.set(String(rawRegionId), mapped);
+                        }
+                    }
+                }
+
+                // C. Fallback to name lookup
+                if (!regionId && rawRegionName) {
+                    regionId = lookupRegionId(rawRegionName);
+                    if (regionId && rawRegionId) {
+                        runtimeRegionMap.set(String(rawRegionId), regionId);
+                    }
+                }
+
+                if (!districtId && rawDistrictName) {
+                    districtId = lookupDistrictId(rawDistrictName, regionId ?? undefined);
+                    if (districtId && rawDistrictId) {
+                        runtimeDistrictMap.set(String(rawDistrictId), districtId);
+                    }
+                }
+
+                // D. Derive region from district if still missing
+                if (!regionId && districtId) {
+                    const districtMatch = districtsCacheNorm.find(d => d.id === districtId);
+                    if (districtMatch?.region_id) {
+                        regionId = districtMatch.region_id;
+                    }
+                }
+
+                // E. Last resort: attempt to extract from address text
+                if (!regionId && rawAddress) {
+                    regionId = findRegionIdInText(rawAddress);
+                }
+                if (!districtId && rawAddress) {
+                    districtId = findDistrictIdInText(rawAddress, regionId ?? undefined);
+                }
+
+                if (!regionId && districtId) {
+                    const districtMatch = districtsCacheNorm.find(d => d.id === districtId);
+                    if (districtMatch?.region_id) {
+                        regionId = districtMatch.region_id;
+                    }
                 }
 
                 if (!regionId) {
-                    // console.warn(`[OSONISH] Skip vacancy ${vacancy.source_id}: region not resolved`);
                     stats.errors++;
-                    continue;
-                }
-
-                if (!districtId && vacancy.district_name) {
-                    // console.warn(`[OSONISH] District not resolved for vacancy ${vacancy.source_id}: "${vacancy.district_name}" (Raw ID: ${rawDistrictId}). Using region only.`);
                 }
 
                 const regionInfo = regionId ? regionsCacheNorm.find(r => r.id === regionId) : null;
                 const districtInfo = districtId ? districtsCacheNorm.find(d => d.id === districtId) : null;
+                const resolvedRegionName = regionInfo?.name_uz || rawRegionName || vacancy.region_name || null;
+                const resolvedDistrictName = districtInfo?.name_uz || rawDistrictName || vacancy.district_name || null;
 
                 // Map Category STRICTLY by OsonIsh category group if available
                 let sourceCategoryName = '';
@@ -556,32 +865,25 @@ export async function GET(request: NextRequest) {
 
                 // Find matching category from DB cache
                 let categoryId: string | null = null;
-                const categoryNameToFind = mappingResult.categoryName.toLowerCase();
+                if (mappingResult) {
+                    const categoryNameToFind = mappingResult.categoryName.toLowerCase();
 
-                // 1. Try DIRECT MATCH by ID (if mapper returned a known GUID that exists in our DB)
-                const directIdMatch = categoriesCache.find(c => c.id === mappingResult.categoryId);
-                if (directIdMatch) {
-                    categoryId = directIdMatch.id;
-                }
-                else {
-                    // 2. Fallback to name partial match
-                    const matchedCategory = categoriesCache.find(c =>
-                        c.name_uz.toLowerCase().includes(categoryNameToFind) ||
-                        categoryNameToFind.includes(c.name_uz.toLowerCase().split(' ')[0]) ||
-                        (c.name_ru && c.name_ru.toLowerCase().includes(categoryNameToFind))
-                    );
-                    if (matchedCategory) {
-                        categoryId = matchedCategory.id;
+                    // 1. Try DIRECT MATCH by ID (if mapper returned a known GUID that exists in our DB)
+                    const directIdMatch = categoriesCache.find(c => c.id === mappingResult.categoryId);
+                    if (directIdMatch) {
+                        categoryId = directIdMatch.id;
                     }
-                }
-
-                if (!categoryId && categoriesCache.length > 0) {
-                    // Fallback to "Boshqa" category or first available
-                    const otherCategory = categoriesCache.find(c =>
-                        c.name_uz.toLowerCase().includes('boshqa') ||
-                        c.name_ru?.toLowerCase().includes('друг')
-                    );
-                    categoryId = otherCategory?.id || categoriesCache[0].id;
+                    else {
+                        // 2. Fallback to name partial match
+                        const matchedCategory = categoriesCache.find(c =>
+                            c.name_uz.toLowerCase().includes(categoryNameToFind) ||
+                            categoryNameToFind.includes(c.name_uz.toLowerCase().split(' ')[0]) ||
+                            (c.name_ru && c.name_ru.toLowerCase().includes(categoryNameToFind))
+                        );
+                        if (matchedCategory) {
+                            categoryId = matchedCategory.id;
+                        }
+                    }
                 }
 
                 const salary = normalizeSalaryRange(
@@ -602,8 +904,22 @@ export async function GET(request: NextRequest) {
                 // Fallback to old mapper if ID not in map (though map covers 1-5)
 
                 // Benefits labels
-                const benefitsUz = convertBenefitsToText(raw?.benefit_ids, 'uz');
-                const benefitsRu = convertBenefitsToText(raw?.benefit_ids, 'ru');
+                let benefitsUz = convertBenefitsToText(raw?.benefit_ids, 'uz');
+                let benefitsRu = convertBenefitsToText(raw?.benefit_ids, 'ru');
+                const sectionPerks = Array.isArray(raw?.sections?.qulayliklar)
+                    ? raw.sections.qulayliklar.filter((item: any) => typeof item === 'string' && item.trim().length > 0)
+                    : [];
+                if (!benefitsUz && sectionPerks.length > 0) {
+                    benefitsUz = sectionPerks.join(', ');
+                    benefitsRu = sectionPerks.join(', ');
+                }
+
+                const sectionTasks = Array.isArray(raw?.sections?.ish_vazifalari)
+                    ? raw.sections.ish_vazifalari.filter((item: any) => typeof item === 'string' && item.trim().length > 0)
+                    : [];
+                const sectionReqs = Array.isArray(raw?.sections?.talablar)
+                    ? raw.sections.talablar.filter((item: any) => typeof item === 'string' && item.trim().length > 0)
+                    : [];
 
                 // Build job data - ALL values come directly from OsonIsh API
                 const jobData = {
@@ -627,8 +943,8 @@ export async function GET(request: NextRequest) {
 
                     region_id: regionId,
                     district_id: districtId,
-                    region_name: regionInfo?.name_uz || null,
-                    district_name: districtInfo?.name_uz || null,
+                    region_name: resolvedRegionName,
+                    district_name: resolvedDistrictName,
                     address: vacancy.address || null,
                     latitude: vacancy.latitude || null,
                     longitude: vacancy.longitude || null,
@@ -648,8 +964,13 @@ export async function GET(request: NextRequest) {
                     working_hours: vacancy.working_hours || null,
                     working_days: vacancy.working_days || null,
                     work_mode: workMode,
+                    languages: Array.isArray(raw?.languages) ? raw.languages : (Array.isArray(raw?.language_ids) ? raw.language_ids : []),
                     payment_type: paymentType,
                     skills: vacancy.skills || null,
+                    sections: raw?.sections || null,
+                    responsibilities_uz: sectionTasks.length > 0 ? sectionTasks.join('\n') : null,
+                    requirements_uz: sectionReqs.length > 0 ? sectionReqs.join('\n') : null,
+                    requirements_ru: sectionReqs.length > 0 ? sectionReqs.join('\n') : null,
 
                     // Convert benefit_ids to structured JSON { uz: [], ru: [] }
                     benefits: benefitsUz ? {
@@ -658,6 +979,8 @@ export async function GET(request: NextRequest) {
                     } : null,
 
                     category_id: categoryId,
+                    source_category: vacancy.source_category || sourceCategoryName || null,
+                    source_subcategory: vacancy.source_subcategory || null,
 
                     vacancy_count: vacancy.vacancy_count || 1,
                     views_count: vacancy.views_count || 0,
@@ -695,6 +1018,17 @@ export async function GET(request: NextRequest) {
             } else {
                 stats.updated += chunk.length;
             }
+        }
+
+        // Deactivate jobs no longer present on OsonIsh
+        const { error: deactivateError } = await supabaseAdmin
+            .from('jobs')
+            .update({ is_active: false, status: 'inactive', source_status: 'inactive' })
+            .eq('source', 'osonish')
+            .lt('last_seen_at', runStartedAt);
+
+        if (deactivateError) {
+            console.warn('[OSONISH] Failed to deactivate stale jobs:', deactivateError.message);
         }
 
         // ==================== UPDATE LOG ====================

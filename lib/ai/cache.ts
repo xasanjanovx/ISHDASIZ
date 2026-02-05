@@ -24,7 +24,7 @@ const CLEANUP_THRESHOLD = 800;             // Start cleanup at 80%
 export function generateCacheKey(query: string, lang: string): string {
     const normalized = query
         .toLowerCase()
-        .replace(/[^\w\sа-яўғқҳёa-z]/gi, '') // Keep only letters and spaces
+        .replace(/[^\w\sа-яёa-z]/gi, '') // Keep only letters and spaces
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 100); // Limit key length

@@ -26,3 +26,4 @@ async function fetchConfigs() {
 }
 
 fetchConfigs();
+

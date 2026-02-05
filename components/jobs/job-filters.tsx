@@ -140,7 +140,7 @@ export function JobFilters({
 
 
   return (
-    <Card className="sticky top-24">
+    <Card className="lg:sticky lg:top-24">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">

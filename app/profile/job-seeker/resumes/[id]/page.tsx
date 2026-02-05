@@ -108,7 +108,7 @@ export default function EditResumePage() {
 
             try {
                 const [catsRes, resumeRes] = await Promise.all([
-                    supabase.from('categories').select('*').order('name_uz'),
+                    supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz'),
                     supabase.from('resumes').select('*').eq('id', resumeId).single()
                 ]);
                 // supabase.from('districts').select('*').order('name_uz'), // removed

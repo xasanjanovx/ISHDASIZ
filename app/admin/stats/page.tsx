@@ -38,7 +38,7 @@ export default function AdminStatsPage() {
     const [jobsRes, appsRes, categoriesRes, districtsRes] = await Promise.all([
       supabase.from('jobs').select('*, categories(*), districts(*, regions(*))'),
       supabase.from('job_applications').select('id'),
-      supabase.from('categories').select('*'),
+      supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011'),
       supabase.from('districts').select('*'),
     ]);
 

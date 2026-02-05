@@ -1,44 +1,19 @@
 /**
- * Vacancy Helper API - Gemini Powered
+ * Vacancy Helper API - DeepSeek Powered
  * Helps employers create better job postings with AI
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-const PRIMARY_MODEL = 'gemini-2.5-flash';
-const FALLBACK_MODEL = 'gemini-2.0-flash';
-
-async function callGemini(prompt: string, maxTokens: number = 500): Promise<string> {
-    try {
-        const model = genAI.getGenerativeModel({
-            model: PRIMARY_MODEL,
-            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-        });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    } catch {
-        // Fallback
-        const model = genAI.getGenerativeModel({
-            model: FALLBACK_MODEL,
-            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-        });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    }
-}
+import { callDeepSeekText } from '@/lib/ai/deepseek';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { action, title, description, category } = body;
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!process.env.DEEPSEEK_API_KEY) {
             return NextResponse.json({
-                error: "AI xizmati sozlanmagan. GEMINI_API_KEY ni qo'shing.",
+                error: "AI xizmati sozlanmagan. DEEPSEEK_API_KEY ni qo'shing.",
                 fallback: true
             }, { status: 503 });
         }
@@ -66,7 +41,7 @@ Talablar:
 
 Faqat tavsifni yoz.`;
 
-            const result = await callGemini(prompt);
+            const result = await callDeepSeekText(prompt);
             return NextResponse.json({ success: true, result });
         }
 
@@ -92,7 +67,7 @@ VAZIFALAR:
 
 Har birida 4-6 ta punkt bo'lsin.`;
 
-            const result = await callGemini(prompt, 600);
+            const result = await callDeepSeekText(prompt, 600);
             return NextResponse.json({ success: true, result });
         }
 
@@ -105,7 +80,7 @@ Har birida 4-6 ta punkt bo'lsin.`;
 {"min": 3000000, "max": 6000000}
 Boshqa hech narsa yozma.`;
 
-            const text = await callGemini(prompt, 100);
+            const text = await callDeepSeekText(prompt, 100, undefined, 0.2);
 
             let result = { min: 3000000, max: 5000000 }; // default
             try {
@@ -133,7 +108,7 @@ Format:
 
 5-8 ta punkt yoz. Faqat ro'yxatni yoz.`;
 
-            const result = await callGemini(prompt, 400);
+            const result = await callDeepSeekText(prompt, 400);
             return NextResponse.json({ success: true, result });
         }
 
@@ -147,3 +122,4 @@ Format:
         );
     }
 }
+

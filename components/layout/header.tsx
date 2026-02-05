@@ -24,7 +24,6 @@ import { supabase } from '@/lib/supabase';
 
 const languageLabels = {
   uz: "O'ZB",
-  uzCyrillic: 'ЎЗБ',
   ru: 'РУС',
 };
 
@@ -192,9 +191,9 @@ export default function Header() {
   }, [user?.id, user?.active_role]);
 
   useEffect(() => {
-    if (pathname === '/') setActiveTab(lang === 'uz' || lang === 'uzCyrillic' ? 'Bosh sahifa' : 'Главная');
-    else if (pathname === '/jobs') setActiveTab(lang === 'uz' || lang === 'uzCyrillic' ? 'Vakansiyalar' : 'Вакансии');
-    else if (pathname === '/resumes') setActiveTab(lang === 'uz' || lang === 'uzCyrillic' ? 'Rezyumelar' : 'Резюме');
+    if (pathname === '/') setActiveTab(lang === 'uz' ? 'Bosh sahifa' : 'Главная');
+    else if (pathname === '/jobs') setActiveTab(lang === 'uz' ? 'Vakansiyalar' : 'Вакансии');
+    else if (pathname === '/resumes') setActiveTab(lang === 'uz' ? 'Rezyumelar' : 'Резюме');
   }, [pathname, lang]);
   // ... (navItems logic unchanged)
 
@@ -270,25 +269,24 @@ export default function Header() {
 
   const navItems = [
     {
-      name: lang === 'uz' || lang === 'uzCyrillic' ? 'Bosh sahifa' : 'Главная',
+      name: lang === 'uz' ? 'Bosh sahifa' : 'Главная',
       url: '/',
       icon: Home
     },
     {
-      name: lang === 'uz' || lang === 'uzCyrillic' ? 'Vakansiyalar' : 'Вакансии',
+      name: lang === 'uz' ? 'Vakansiyalar' : 'Вакансии',
       url: '/jobs',
       icon: Briefcase
     },
     {
-      name: lang === 'uz' || lang === 'uzCyrillic' ? 'Rezyumelar' : 'Резюме',
+      name: lang === 'uz' ? 'Rezyumelar' : 'Резюме',
       url: '/resumes',
       icon: FileText
     },
   ];
 
   const cycleLang = () => {
-    if (lang === 'uz') setLang('uzCyrillic');
-    else if (lang === 'uzCyrillic') setLang('ru');
+    if (lang === 'uz') setLang('ru');
     else setLang('uz');
   };
 
@@ -723,7 +721,7 @@ export default function Header() {
                         className="w-full px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium text-left"
                       >
                         <LogIn className="w-5 h-5" />
-                        {lang === 'uz' || lang === 'uzCyrillic' ? 'Kirish' : 'Войти'}
+                        {lang === 'uz' ? 'Kirish' : 'Войти'}
                       </button>
                     )}
                   </nav>

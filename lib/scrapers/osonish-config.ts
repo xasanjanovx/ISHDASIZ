@@ -31,16 +31,19 @@ export interface OsonishConfigs {
 }
 
 const API_URL = 'https://osonish.uz/api/api/v1/system-configs';
+const DEFAULT_HEADERS: Record<string, string> = {
+    'Accept': 'application/json',
+    'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',
+    'Referer': 'https://osonish.uz/vacancies',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'sec-ch-ua': '"Google Chrome";v="120", "Chromium";v="120", "Not A(Brand";v="24"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"'
+};
 
 export async function fetchOsonishConfigs(): Promise<OsonishConfigs | null> {
     try {
-        const response = await fetch(API_URL, {
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                // Basic public headers, no auth needed for this endpoint strictly speaking, but safer to include if we had it
-            }
-        });
+        const response = await fetch(API_URL, { headers: DEFAULT_HEADERS });
 
         if (!response.ok) return null;
 

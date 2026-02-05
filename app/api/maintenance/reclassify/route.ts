@@ -35,6 +35,10 @@ export async function GET(request: NextRequest) {
                 job.title_uz || ''
             );
 
+            if (!mapping) {
+                continue;
+            }
+
             // Only update if the category is different
             if (mapping.categoryId !== job.category_id) {
                 updates.push({

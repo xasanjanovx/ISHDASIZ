@@ -1,13 +1,12 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useLanguage } from '@/contexts/language-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Sparkles, MapPin, Briefcase, Eye, Users, ArrowRight } from '@/components/ui/icons';
+import { Search, MapPin, ArrowRight, Send, MessageCircle } from '@/components/ui/icons';
 import { FlipCounter } from '@/components/ui/flip-counter';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
@@ -105,7 +104,6 @@ export function HeroSection() {
 
       {/* Smooth Fade REMOVED as requested */}
 
-
       <div className="container mx-auto px-4 relative z-10 w-full mb-8">
         <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
 
@@ -120,7 +118,7 @@ export function HeroSection() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
               </span>
-              {lang === 'uz' || lang === 'uzCyrillic' ? "Rasmiy portal" : "Официальный портал"}
+              {lang === 'uz' ? 'Rasmiy portal' : 'Официальный портал'}
             </span>
           </motion.div>
 
@@ -132,10 +130,10 @@ export function HeroSection() {
             className="text-4xl md:text-5xl lg:text-7xl font-bold mb-5 tracking-tight text-white"
           >
             <span className="block mb-1">
-              {lang === 'uz' || lang === 'uzCyrillic' ? "Kelajak kasbini" : "Найдите профессию"}
+              {lang === 'uz' ? 'Kelajak kasbini' : 'Найдите профессию'}
             </span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-300 to-indigo-300 drop-shadow-sm">
-              {lang === 'uz' || lang === 'uzCyrillic' ? "biz bilan toping" : "будущего вместе с нами"}
+              {lang === 'uz' ? 'biz bilan toping' : 'будущего вместе с нами'}
             </span>
           </motion.h1>
 
@@ -145,7 +143,7 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg md:text-xl text-blue-100/90 mb-8 max-w-2xl font-light leading-relaxed"
           >
-            {lang === 'uz' || lang === 'uzCyrillic' ? (
+            {lang === 'uz' ? (
               <>
                 Eng so'nggi vakansiyalar va malakali mutaxassislar bazasi. <br className="hidden md:block" />
                 O'z karyerangizni bugun boshlang.
@@ -203,7 +201,7 @@ export function HeroSection() {
                 size="lg"
                 className="w-full md:w-auto h-12 md:h-14 px-8 rounded-xl md:rounded-full bg-white hover:bg-blue-50 text-blue-600 font-bold text-base shadow-lg hover:shadow-white/20 transition-all duration-300"
               >
-                {lang === 'uz' || lang === 'uzCyrillic' ? 'Qidirish' : 'Поиск'}
+                {lang === 'uz' ? 'Qidirish' : 'Поиск'}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </form>
@@ -216,17 +214,21 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.35 }}
             className="flex flex-wrap items-center justify-center gap-4 mb-16"
           >
-            <Link href="/ai-search">
-              <Button className="h-10 px-6 rounded-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-100 font-medium transition-all shadow-lg backdrop-blur-sm">
-                <Image src="/ai-sparkle.png" alt="AI" width={16} height={16} className="w-4 h-4 mr-2" />
-                {lang === 'uz' || lang === 'uzCyrillic' ? 'AI Yordamchi' : 'ИИ Помощник'}
+            <Link href="https://t.me/ishdasiz_bot" target="_blank" rel="noopener noreferrer" className="group relative">
+              {/* Small gold badge with pulse animation */}
+              <span className="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-[9px] font-bold text-amber-900 shadow-md whitespace-nowrap animate-pulse">
+                {lang === 'uz' ? 'Tez va qulay' : 'Быстро'}
+              </span>
+              <Button className="h-10 px-6 rounded-full bg-blue-600/80 hover:bg-blue-500 border border-blue-400/60 text-white font-medium transition-all duration-300 shadow-lg backdrop-blur-sm group-hover:scale-105">
+                <MessageCircle className="w-4 h-4 mr-2 text-white" />
+                {lang === 'uz' ? 'Telegram bot' : 'Telegram бот'}
               </Button>
             </Link>
 
             <Link href="/map">
               <Button className="h-10 px-6 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-100 font-medium transition-all shadow-lg backdrop-blur-sm">
                 <MapPin className="w-4 h-4 mr-2 text-emerald-200" />
-                {lang === 'uz' || lang === 'uzCyrillic' ? 'Xaritada izlash' : 'Поиск на карте'}
+                {lang === 'uz' ? 'Xaritada izlash' : 'Поиск на карте'}
               </Button>
             </Link>
           </motion.div>
@@ -263,7 +265,6 @@ export function HeroSection() {
                 <FlipCounter value={stats.totalUsers} suffix="+" />
               </span>
               <span className="text-blue-200/60 text-xs uppercase tracking-wider font-medium">
-                {/* Changed to Foydalanuvchilar */}
                 {lang === 'uz' ? 'Foydalanuvchilar' : 'Пользователи'}
               </span>
             </div>

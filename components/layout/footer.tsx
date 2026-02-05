@@ -17,7 +17,7 @@ export function Footer() {
               <BadgeCheck className="w-5 h-5 text-blue-400" />
             </div>
             <p className="text-sm text-slate-400 leading-relaxed">
-              {lang === 'uz' || lang === 'uzCyrillic'
+              {lang === 'uz'
                 ? "O'zbekiston bo'ylab tasdiqlangan rasmiy ish joylari"
                 : 'Официальный портал проверенных вакансий по всему Узбекистану'
               }
@@ -26,7 +26,7 @@ export function Footer() {
 
           <div>
             <h3 className="font-semibold mb-3 text-slate-200">
-              {lang === 'uz' || lang === 'uzCyrillic' ? 'Bog\'lanish' : 'Контакты'}
+              {lang === 'uz' ? 'Bog\'lanish' : 'Контакты'}
             </h3>
             <div className="space-y-2 text-sm text-slate-400">
               <div className="flex items-center gap-2">
@@ -39,24 +39,24 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                <span>{lang === 'uz' || lang === 'uzCyrillic' ? "Andijon viloyati" : 'Андижанская область'}</span>
+                <span>{lang === 'uz' ? "Andijon viloyati" : 'Андижанская область'}</span>
               </div>
             </div>
           </div>
 
           <div>
             <h3 className="font-semibold mb-3 text-slate-200">
-              {lang === 'uz' || lang === 'uzCyrillic' ? 'Foydali havolalar' : 'Полезные ссылки'}
+              {lang === 'uz' ? 'Foydali havolalar' : 'Полезные ссылки'}
             </h3>
             <div className="space-y-2 text-sm text-slate-400">
               <a href="/" className="block hover:text-white transition-colors">
-                {lang === 'uz' || lang === 'uzCyrillic' ? 'Bosh sahifa' : 'Главная'}
+                {lang === 'uz' ? 'Bosh sahifa' : 'Главная'}
               </a>
               <a href="/jobs" className="block hover:text-white transition-colors">
-                {lang === 'uz' || lang === 'uzCyrillic' ? 'Vakansiyalar' : 'Вакансии'}
+                {lang === 'uz' ? 'Vakansiyalar' : 'Вакансии'}
               </a>
               <a href="/map" className="block hover:text-white transition-colors">
-                {lang === 'uz' || lang === 'uzCyrillic' ? 'Xarita' : 'Карта'}
+                {lang === 'uz' ? 'Xarita' : 'Карта'}
               </a>
             </div>
           </div>

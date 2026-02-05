@@ -1,44 +1,19 @@
 /**
- * Resume Helper API - Gemini Powered
+ * Resume Helper API - DeepSeek Powered
  * Helps users improve their resumes with AI suggestions
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-const PRIMARY_MODEL = 'gemini-2.5-flash';
-const FALLBACK_MODEL = 'gemini-2.0-flash';
-
-async function callGemini(prompt: string, maxTokens: number = 500): Promise<string> {
-    try {
-        const model = genAI.getGenerativeModel({
-            model: PRIMARY_MODEL,
-            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-        });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    } catch {
-        // Fallback
-        const model = genAI.getGenerativeModel({
-            model: FALLBACK_MODEL,
-            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-        });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    }
-}
+import { callDeepSeekText } from '@/lib/ai/deepseek';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { action, content, title, jobTitle } = body;
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!process.env.DEEPSEEK_API_KEY) {
             return NextResponse.json({
-                error: "AI xizmati sozlanmagan. GEMINI_API_KEY ni qo'shing.",
+                error: "AI xizmati sozlanmagan. DEEPSEEK_API_KEY ni qo'shing.",
                 fallback: true
             }, { status: 503 });
         }
@@ -65,7 +40,7 @@ Talablar:
 
 Faqat matnni yoz.`;
 
-            const result = await callGemini(prompt);
+            const result = await callDeepSeekText(prompt);
             return NextResponse.json({ success: true, result });
         }
 
@@ -89,7 +64,7 @@ Talablar:
 
 Faqat ro'yxatni yoz.`;
 
-            const result = await callGemini(prompt);
+            const result = await callDeepSeekText(prompt);
             return NextResponse.json({ success: true, result });
         }
 
@@ -100,7 +75,7 @@ Faqat ro'yxatni yoz.`;
 
             const prompt = `"${title}" lavozimi uchun eng muhim 10 ta professional ko'nikmani (hard skills & soft skills) vergul bilan ajratib yoz. Faqat ko'nikmalar nomini yoz.`;
 
-            const text = await callGemini(prompt, 200);
+            const text = await callDeepSeekText(prompt, 200);
             const skills = text.split(/,|\n/).map(s => s.trim().replace(/^[-•]\s*/, '')).filter(s => s.length > 0);
 
             return NextResponse.json({ success: true, result: skills });
@@ -141,7 +116,7 @@ Quyidagi strukturada JSON qaytar:
 
 Faqat JSON formatida javob ber.`;
 
-            const text = await callGemini(prompt, 800);
+            const text = await callDeepSeekText(prompt, 800, undefined, 0.2);
 
             // Parse JSON
             let result = {};
@@ -167,3 +142,4 @@ Faqat JSON formatida javob ber.`;
         );
     }
 }
+

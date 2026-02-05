@@ -214,7 +214,7 @@ export default function JobsPage() {
 
 
   const fetchCategories = useCallback(async () => {
-    const { data } = await supabase.from('categories').select('*').order('name_uz');
+    const { data } = await supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz');
     setCategories(data || []);
   }, []);
 
@@ -322,7 +322,7 @@ export default function JobsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          <aside className="lg:w-72 flex-shrink-0 sticky top-24 self-start max-h-[calc(100vh-120px)] overflow-y-auto pr-1 no-scrollbar">
+          <aside className="lg:w-72 flex-shrink-0 lg:sticky lg:top-24 self-start lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto pr-1 no-scrollbar">
             <JobFilters
               categories={categories}
               regions={regions}

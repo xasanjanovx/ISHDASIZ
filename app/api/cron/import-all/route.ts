@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeOsonishFull } from '@/lib/scrapers/osonish';
 import { mapOsonishCategory, OSONISH_GENDER_MAP } from '@/lib/mappers/osonish-mapper';
+import { OSONISH_REGION_MAP, OSONISH_DISTRICT_MAP } from '@/lib/mappers/osonish-locations';
 import { createClient } from '@supabase/supabase-js';
 import { getMappedValue } from '@/lib/mappings';
 
@@ -271,7 +272,7 @@ export async function GET(request: NextRequest) {
 
         // ==================== RUN OSONISH SCRAPER ====================
 
-        const osonishResult = await scrapeOsonishFull(50, true).catch(err => {
+        const osonishResult = await scrapeOsonishFull(500, false).catch(err => {
             console.error('[OSONISH] OsonIsh error:', err);
             return { vacancies: [], active_ids: [], filled_ids: [], debug: { list_items_count: 0, detail_success_count: 0, vacancies_with_contacts: 0 } };
         });
@@ -281,7 +282,8 @@ export async function GET(request: NextRequest) {
         // ==================== IMPORT OSONISH (existing logic) ====================
 
         let osonishStats = { newImported: 0, updated: 0, errors: 0 };
-        const now = new Date().toISOString();
+        const runStartedAt = new Date().toISOString();
+        const now = runStartedAt;
 
         for (const vacancy of osonishResult.vacancies) {
             try {
@@ -292,10 +294,40 @@ export async function GET(request: NextRequest) {
                     .eq('source_id', vacancy.source_id)
                     .maybeSingle();
 
-                // FIXED: Get district first, then derive region from district's FK
-                const districtId = lookupDistrictId(vacancy.district_name, null);
+                const raw = (vacancy.raw_source_json as any) || {};
+                const rawRegionId = raw.filial?.region?.id ?? raw.region?.id ?? raw.region_id ?? null;
+                const rawDistrictId = raw.filial?.city?.id ?? raw.city?.id ?? raw.city_id ?? null;
+
+                let regionId: number | null = null;
+                let districtId: string | null = null;
+
+                // A. Strict OsonIsh ID mapping
+                if (rawRegionId) {
+                    const mapped = OSONISH_REGION_MAP[String(rawRegionId)];
+                    if (mapped) regionId = mapped;
+                }
+                if (rawDistrictId) {
+                    const mapped = OSONISH_DISTRICT_MAP[String(rawDistrictId)];
+                    if (mapped) districtId = String(mapped);
+                }
+
+                // B. Direct ID match (if already aligned)
+                if (!regionId && rawRegionId) {
+                    const cached = regionsCache.find(r => r.id === rawRegionId);
+                    if (cached) regionId = cached.id;
+                }
+                if (!districtId && rawDistrictId) {
+                    const cached = districtsCache.find(d => d.id === String(rawDistrictId));
+                    if (cached) {
+                        districtId = cached.id;
+                        if (!regionId && cached.region_id) regionId = cached.region_id;
+                    }
+                }
+
+                // C. Fallback by names
+                if (!districtId) districtId = lookupDistrictId(vacancy.district_name, regionId ?? null);
                 const districtInfo = districtsCache.find(d => d.id === districtId);
-                const regionId = districtInfo?.region_id ?? lookupRegionId(vacancy.region_name);
+                if (!regionId) regionId = districtInfo?.region_id ?? lookupRegionId(vacancy.region_name);
 
                 // Map Category for OsonIsh (using title as main signal)
                 const mappingResult = mapOsonishCategory(
@@ -303,7 +335,7 @@ export async function GET(request: NextRequest) {
                     null,
                     vacancy.title
                 );
-                const categoryId = mappingResult.categoryId;
+                const categoryId = mappingResult ? mappingResult.categoryId : null;
 
                 const jobData = {
                     source: 'osonish',
@@ -403,6 +435,17 @@ export async function GET(request: NextRequest) {
                 console.error(`[OSONISH] Osonish exception ${vacancy.source_id}:`, err);
                 osonishStats.errors++;
             }
+        }
+
+        // Deactivate jobs no longer present on OsonIsh
+        const { error: deactivateError } = await supabaseAdmin
+            .from('jobs')
+            .update({ is_active: false, status: 'inactive', source_status: 'inactive' })
+            .eq('source', 'osonish')
+            .lt('last_seen_at', runStartedAt);
+
+        if (deactivateError) {
+            console.warn('[OSONISH] Failed to deactivate stale jobs:', deactivateError.message);
         }
 
         // ==================== UPDATE LOG ====================

@@ -46,7 +46,7 @@ export default function ResumesPage() {
 
         if (categories.length === 0) {
             const [cats, regs, dists] = await Promise.all([
-                supabase.from('categories').select('*').order('name_uz'),
+                supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz'),
                 supabase.from('regions').select('*').order('name_uz'),
                 supabase.from('districts').select('*').order('name_uz'),
             ]);

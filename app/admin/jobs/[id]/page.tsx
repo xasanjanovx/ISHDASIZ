@@ -158,7 +158,7 @@ export default function EditJobPage() {
     try {
       const [jobRes, catRes] = await Promise.all([
         supabase.from('jobs').select('*, districts(region_id)').eq('id', id).maybeSingle(),
-        supabase.from('categories').select('*').order('name_uz'),
+        supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz'),
       ]);
       setCategories(catRes.data || []);
       // setDistricts(distRes.data || []);

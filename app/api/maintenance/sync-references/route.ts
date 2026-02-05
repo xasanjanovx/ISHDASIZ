@@ -21,6 +21,8 @@ interface OsonishRegion {
     id: number;
     name_uz: string;
     name_ru: string;
+    soato?: number | string;
+    region_soato?: number | string;
 }
 
 interface OsonishDistrict {
@@ -35,7 +37,11 @@ interface OsonishDistrict {
 async function fetchOsonishRegions(): Promise<OsonishRegion[]> {
     try {
         const response = await fetch(`${OSONISH_API}/regions`, {
-            headers: { 'Accept': 'application/json' },
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0',
+                'Referer': 'https://osonish.uz/vacancies'
+            },
             next: { revalidate: 0 }
         });
         if (!response.ok) return [];
@@ -47,20 +53,26 @@ async function fetchOsonishRegions(): Promise<OsonishRegion[]> {
     }
 }
 
-async function fetchOsonishCities(regionId: number): Promise<OsonishDistrict[]> {
+async function fetchOsonishCities(region: OsonishRegion): Promise<OsonishDistrict[]> {
     try {
-        const response = await fetch(`${OSONISH_API}/cities?region_id=${regionId}`, {
-            headers: { 'Accept': 'application/json' },
+        const regionSoato = region.region_soato ?? region.soato;
+        const param = regionSoato ? `region_soato=${regionSoato}` : `region_id=${region.id}`;
+        const response = await fetch(`${OSONISH_API}/cities?${param}`, {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0',
+                'Referer': 'https://osonish.uz/vacancies'
+            },
             next: { revalidate: 0 }
         });
         if (!response.ok) return [];
         const json = await response.json();
         return (json.data || []).map((city: any) => ({
             ...city,
-            region_id: regionId
+            region_id: region.id
         }));
     } catch (error) {
-        console.error(`[SYNC] Failed to fetch cities for region ${regionId}:`, error);
+        console.error(`[SYNC] Failed to fetch cities for region ${region.id}:`, error);
         return [];
     }
 }
@@ -167,7 +179,7 @@ export async function GET(request: NextRequest) {
         // Fetch all districts (cities) for each region
         const allDistricts: OsonishDistrict[] = [];
         for (const region of regions) {
-            const cities = await fetchOsonishCities(region.id);
+            const cities = await fetchOsonishCities(region);
             allDistricts.push(...cities);
             // Small delay to be nice to API
             await new Promise(resolve => setTimeout(resolve, 100));

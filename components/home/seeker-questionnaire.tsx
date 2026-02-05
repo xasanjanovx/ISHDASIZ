@@ -29,7 +29,6 @@ const CATEGORIES = [
     { id: 'tourism', name_uz: 'Turizm', name_ru: 'Туризм' },
     { id: 'services', name_uz: 'Xizmatlar', name_ru: 'Услуги' },
     { id: 'government', name_uz: 'Davlat xizmati', name_ru: 'Госслужба' },
-    { id: 'other', name_uz: 'Boshqa', name_ru: 'Другое' },
 ];
 
 type Step = 'district' | 'category' | 'salary' | 'geolocation';

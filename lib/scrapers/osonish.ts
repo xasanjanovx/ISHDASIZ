@@ -217,6 +217,22 @@ const CONCURRENCY = 5;
 const DETAIL_DELAY_MS = 300;
 const MAX_RETRIES = 3;
 const BACKOFF_BASE_MS = 1000;
+const DEFAULT_HEADERS: Record<string, string> = {
+    'Accept': 'application/json',
+    'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',
+    'Referer': 'https://osonish.uz/vacancies',
+    'Origin': 'https://osonish.uz',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+    'sec-ch-ua': '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'Connection': 'keep-alive',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Dest': 'empty',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+};
 
 // ==================== HELPERS ====================
 
@@ -239,10 +255,7 @@ async function fetchCompanyContacts(companyId: number): Promise<{ phone?: string
     try {
         const url = `${API_BASE}/companies/${companyId}`;
         const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json',
-            },
+            headers: DEFAULT_HEADERS,
         });
 
         if (!response.ok) {
@@ -541,12 +554,7 @@ async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Respo
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept': 'application/json',
-                    'Accept-Language': 'uz-UZ,uz;q=0.9,ru;q=0.8',
-                    'Referer': 'https://osonish.uz/vacancies'
-                }
+                headers: DEFAULT_HEADERS
             });
 
             // Rate limited - backoff
@@ -581,21 +589,42 @@ export async function fetchVacancyIdList(page: number = 1): Promise<{
     lastPage: number;
 }> {
     const url = `${API_BASE}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&is_offer=0&sort_key=created_at&sort_type=desc`;
+    const fallbackUrl = `${API_BASE}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&sort_key=created_at&sort_type=desc`;
 
     try {
-        const response = await fetchWithRetry(url);
+        let response = await fetchWithRetry(url);
         if (!response.ok) {
+            console.warn(`[Scraper] List fetch failed (${response.status}). Retrying without is_offer...`);
+            response = await fetchWithRetry(fallbackUrl);
+        }
+
+        if (!response.ok) {
+            console.warn(`[Scraper] List fetch failed (${response.status}) for page ${page}`);
             return { ids: [], total: 0, lastPage: 0 };
         }
 
         const json = await response.json();
-        const items = json?.data?.data ?? [];
-        const ids = items.map((item: OsonishListItem) => item.id);
+        if (json?.error) {
+            console.warn('[Scraper] List fetch blocked:', json.error);
+            return { ids: [], total: 0, lastPage: 0 };
+        }
+        const dataBlock = json?.data ?? json;
+        const items = dataBlock?.data ?? dataBlock?.items ?? [];
+        const ids = Array.isArray(items) ? items.map((item: OsonishListItem) => item.id) : [];
+        const total = dataBlock?.total ?? dataBlock?.meta?.total ?? 0;
+        const perPage = dataBlock?.per_page ?? dataBlock?.meta?.per_page ?? PER_PAGE;
+        let lastPage = dataBlock?.last_page ?? dataBlock?.meta?.last_page ?? 0;
+        if (!lastPage && total) {
+            lastPage = Math.ceil(Number(total) / Number(perPage || PER_PAGE));
+        }
+        if (!lastPage && ids.length > 0) {
+            lastPage = page;
+        }
 
         return {
             ids,
-            total: json?.data?.total ?? 0,
-            lastPage: json?.data?.last_page ?? 0
+            total,
+            lastPage
         };
     } catch (error) {
         console.error('Error fetching list:', error);
@@ -739,8 +768,8 @@ export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs)
 
         // Location
         address: detail.filial?.address || undefined,
-        region_name: detail.filial?.region?.name_uz || undefined,
-        district_name: detail.filial?.city?.name_uz || undefined,
+        region_name: detail.filial?.region?.name_uz || detail.filial?.region?.name_ru || detail.filial?.region?.name_en || undefined,
+        district_name: detail.filial?.city?.name_uz || detail.filial?.city?.name_ru || detail.filial?.city?.name_en || undefined,
         latitude: detail.filial?.lat ?? undefined,
         longitude: detail.filial?.long ?? undefined,
 
@@ -824,6 +853,9 @@ export async function scrapeOsonishFull(
         if (page === 1) {
             totalOnSite = total;
             console.log(`[Scraper] Total vacancies on site: ${total}`);
+            if (lastPage && lastPage > maxPages) {
+                maxPages = lastPage;
+            }
         }
 
         if (ids.length === 0) break;

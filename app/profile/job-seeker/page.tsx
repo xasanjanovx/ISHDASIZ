@@ -462,7 +462,7 @@ export default function JobSeekerProfilePage() {
                     <p className="text-sm text-sky-800">
                         {lang === 'ru'
                             ? 'Заполните профиль полностью, чтобы работодатели могли найти вас. Добавьте резюме для большей видимости.'
-                            : "Profilingizni to'liq to'ldiring, shunda ish beruvchilar sizni topishi mumkin. Ko'proq ko'rinish uchun rezyume qo'shing."}
+                            : "Profilingizni to'liq to'ldiring, shunda ish beruvchilar sizni tezroq topishlari mumkin"}
                     </p>
                 </div>
             </div>

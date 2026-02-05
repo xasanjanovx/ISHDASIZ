@@ -67,7 +67,6 @@ Mavjud kategoriyalar (ID bilan):
 - Qishloq xo'jaligi (id: a0000008-0008-4000-8000-000000000008) - fermer, dehqon
 - Transport (id: a0000009-0009-4000-8000-000000000009) - haydovchi, kurier, logist
 - Savdo va marketing (id: a0000010-0010-4000-8000-000000000010) - sotuvchi, kassir, smm
-- Boshqa (id: a0000011-0011-4000-8000-000000000011) - boshqa ishlar
 `;
 
 const REGIONS_INFO = `

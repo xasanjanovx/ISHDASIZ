@@ -1,6 +1,6 @@
 /**
  * Category Mapping for AI Search
- * Aligned with osonish.uz categories (10 + Boshqa)
+ * Aligned with osonish.uz categories (10 core)
  */
 
 interface CategoryDef {
@@ -127,13 +127,6 @@ export const CATEGORIES: Record<string, CategoryDef> = {
             'smm', 'reklama', 'promotion', 'торговля'
         ]
     },
-    OTHER: {
-        id: 'a0000011-0011-4000-8000-000000000011',
-        name_uz: 'Boshqa',
-        name_ru: 'Другое',
-        slug: 'boshqa',
-        keywords: []
-    }
 };
 
 /**
@@ -205,14 +198,13 @@ export function isJobRelevantToCategory(job: any, categoryId: string): boolean {
  */
 export function getCategoriesForPrompt(): string {
     return Object.entries(CATEGORIES)
-        .filter(([key]) => key !== 'OTHER')
         .map(([_, cat]) => `- "${cat.name_uz}" (id: ${cat.id}): ${cat.keywords.slice(0, 5).join(', ')}...`)
         .join('\n');
 }
 
 /**
- * Get default (Other) category ID
+ * Get default category ID
  */
 export function getDefaultCategoryId(): string {
-    return CATEGORIES.OTHER.id;
+    return Object.values(CATEGORIES)[0]?.id || '';
 }
