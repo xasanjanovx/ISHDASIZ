@@ -306,7 +306,7 @@ export default function ResumeDetailPage() {
                                 <div className="flex flex-wrap items-center gap-5 text-indigo-100/90 text-sm font-medium">
                                     <div className="flex items-center gap-2">
                                         <User className="w-4 h-4 text-indigo-300" />
-                                        <span>{resume.full_name || (lang === 'ru' ? 'Имя не указано' : 'Ism ko'rsatilmagan')}</span>
+                                        <span>{resume.full_name || (lang === 'ru' ? 'Имя не указано' : "Ism ko'rsatilmagan")}</span>
                                     </div>
                                     {districtName && (
                                         <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export default function ResumeDetailPage() {
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
                                                     <div>
                                                         <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">
-                                                            {institution || (lang === 'uz' ? 'O'quv muassasa' : 'Учебное заведение')}
+                                                            {institution || (lang === 'uz' ? "O'quv muassasa" : 'Учебное заведение')}
                                                         </div>
                                                         {field && <div className="text-indigo-600 font-bold text-sm tracking-tight">{field}</div>}
                                                     </div>
@@ -622,3 +622,4 @@ export default function ResumeDetailPage() {
         </div>
     );
 }
+

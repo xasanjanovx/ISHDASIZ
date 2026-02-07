@@ -1,0 +1,120 @@
+            const nameUz = String(cat?.name_uz || '').toLowerCase();
+            const nameRu = String(cat?.name_ru || '').toLowerCase();
+            if (id === 'a0000011-0011-4000-8000-000000000011') return false;
+            if (nameUz.includes('boshqa')) return false;
+            if (nameRu.includes('другое')) return false;
+            return true;
+        });
+    if (!categoryList.some(cat => String(cat.id) === financeCategoryId)) {
+        categoryList.push({
+            id: financeCategoryId,
+            name_uz: 'Moliya, iqtisod, boshqaruv',
+            name_ru: 'Финансы, экономика, управление',
+            icon: ''
+        });
+    }
+
+    const buttons: InlineButton[][] = [];
+
+    for (let i = 0; i < categoryList.length; i += 2) {
+        const row: InlineButton[] = [];
+        row.push({
+            text: lang === 'uz' ? categoryList[i].name_uz : categoryList[i].name_ru,
+            callback_data: `category:${categoryList[i].id}`
+        });
+        if (categoryList[i + 1]) {
+            row.push({
+                text: lang === 'uz' ? categoryList[i + 1].name_uz : categoryList[i + 1].name_ru,
+                callback_data: `category:${categoryList[i + 1].id}`
+            });
+        }
+        buttons.push(row);
+    }
+
+    // Back button
+    buttons.push([{ text: lang === 'uz' ? '?? Orqaga' : '?? Назад', callback_data: `back:${backAction}` }]);
+
+    return createInlineKeyboard(buttons);
+}
+
+// ============================================
+// Osonish Fields (Lavozimga yaqin kasb)
+// ============================================
+export function fieldsKeyboard(
+    lang: BotLang,
+    fields: Array<{ id: number | string; title?: string | null; title_uz?: string | null; title_ru?: string | null }>,
+    backAction?: string
+): object {
+    const buttons: InlineButton[][] = [];
+    for (let i = 0; i < fields.length; i += 2) {
+        const row: InlineButton[] = [];
+        const left = fields[i];
+        const leftTitle = (left.title_uz || left.title_ru || left.title || '').trim();
+        row.push({
+            text: leftTitle || (lang === 'uz' ? 'Kasb' : 'Профессия'),
+            callback_data: `field:${left.id}`
+        });
+        if (fields[i + 1]) {
+            const right = fields[i + 1];
+            const rightTitle = (right.title_uz || right.title_ru || right.title || '').trim();
+            row.push({
+                text: rightTitle || (lang === 'uz' ? 'Kasb' : 'Профессия'),
+                callback_data: `field:${right.id}`
+            });
+        }
+        buttons.push(row);
+    }
+    if (backAction) {
+        buttons.push([{ text: lang === 'uz' ? '?? Orqaga' : '?? Назад', callback_data: `back:${backAction}` }]);
+    }
+    return createInlineKeyboard(buttons);
+}
+
+// ============================================
+// Experience Level Keyboard
+// ============================================
+export function experienceKeyboard(lang: BotLang): object {
+    const buttons: InlineButton[][] = EXPERIENCE_LEVELS.map(exp => [{
+        text: lang === 'uz' ? exp.label_uz : exp.label_ru,
+        callback_data: `experience:${exp.value}`
+    }]);
+
+    buttons.push([{ text: lang === 'uz' ? '?? Orqaga' : '?? Назад', callback_data: 'back:district' }]);
+
+    return createInlineKeyboard(buttons);
+}
+
+// ============================================
+// Education Level Keyboard
+// ============================================
+export function educationKeyboard(lang: BotLang): object {
+    const buttons: InlineButton[][] = EDUCATION_LEVELS.map(edu => [{
+        text: lang === 'uz' ? edu.label_uz : edu.label_ru,
+        callback_data: `education:${edu.value}`
+    }]);
+
+    buttons.push([{ text: lang === 'uz' ? '?? Orqaga' : '?? Назад', callback_data: 'back:experience' }]);
+
+    return createInlineKeyboard(buttons);
+}
+
+// ============================================
+// Gender Keyboard
+// ============================================
+export function genderKeyboard(lang: BotLang, includeAny: boolean = true): object {
+    const rows: InlineButton[][] = [
+        [
+            { text: lang === 'uz' ? 'Erkak' : 'Мужской', callback_data: 'gender:male' },
+            { text: lang === 'uz' ? 'Ayol' : 'Женский', callback_data: 'gender:female' }
+        ]
+    ];
+
+    if (includeAny) {
+        rows.push([{ text: lang === 'uz' ? 'Ahamiyatsiz' : 'Не важно', callback_data: 'gender:any' }]);
+    }
+
+    rows.push([{ text: lang === 'uz' ? '?? Orqaga' : '?? Назад', callback_data: 'back:education' }]);
+
+    return createInlineKeyboard(rows);
+}
+

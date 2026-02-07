@@ -1,0 +1,80 @@
+        ru: '? Пароль должен содержать минимум 6 символов.'
+    },
+    passwordCreated: {
+        uz: '? Parol saqlandi.',
+        ru: '? Пароль сохранён.'
+    },
+    passwordNotSet: {
+        uz: "Parol hali yaratilmagan. SMS orqali kiring va parol yarating.",
+        ru: 'Пароль ещё не создан. Войдите через SMS и создайте пароль.'
+    },
+    accountLocked: {
+        uz: '? Akkaunt vaqtincha bloklandi.',
+        ru: '? Аккаунт временно заблокирован.'
+    },
+    loginSuccess: {
+        uz: '? Xush kelibsiz!',
+        ru: '? Добро пожаловать!'
+    },
+
+    // Resume flow
+    askRegion: {
+        uz: '<b>?? | Joylashuv (viloyat) tanlang</b>\n<i>Qaysi hududda ishlamoqchisiz?</i>',
+        ru: '<b>?? | Выберите регион</b>\n<i>В каком регионе хотите работать?</i>'
+    },
+    askDistrict: {
+        uz: '<b>??? | Tuman/Shaharni tanlang</b>',
+        ru: '<b>??? | Выберите район/город</b>'
+    },
+    askDistrictWithCounts: {
+        uz: '<b>??? | Tuman/Shaharni tanlang</b>\n<i>Qavs ichidagi raqam — shu hududdagi jami vakansiyalar soni.</i>',
+        ru: '<b>??? | Выберите район/город</b>\n<i>Число в скобках — количество вакансий в этом районе.</i>'
+    },
+    askCategory: {
+        uz: '<b>?? | Faoliyat sohangizni tanlang</b>\n<i>Bir nechta kategoriya tanlashingiz mumkin.</i>\n<i>Qavs ichidagi son — tanlangan joylashuv bo‘yicha vakansiyalar soni.</i>',
+        ru: '<b>?? | Выберите сферу деятельности</b>\n<i>Можно выбрать несколько категорий.</i>\n<i>Число в скобках — количество вакансий по выбранной локации.</i>'
+    },
+    askField: {
+        uz: '<b>?? | Lavozimga yaqin bo‘lgan kasbni tanlang</b>\n<i>Kasb nomini yozib qidirishingiz mumkin.</i>\n<i>Bu tanlov bo‘yicha soha avtomatik belgilanadi.</i>',
+        ru: '<b>?? | Выберите профессию, близкую к должности</b>\n<i>Можно написать название профессии для поиска.</i>\n<i>По выбору автоматически определится категория.</i>'
+    },
+    askExperience: {
+        uz: '<b>?? | Ish tajribangizni tanlang</b>',
+        ru: '<b>?? | Выберите опыт работы</b>'
+    },
+    askEducation: {
+        uz: '<b>?? | Ma’lumotingizni tanlang</b>',
+        ru: '<b>?? | Выберите образование</b>'
+    },
+    askGender: {
+        uz: '<b>?? | Jinsingizni tanlang</b>',
+        ru: '<b>?? | Выберите пол</b>'
+    },
+    askBirthDate: {
+        uz: '<b>?? | Tug‘ilgan sanangizni kiriting</b>\n<i>kk.oo.yyyy</i>',
+        ru: '<b>?? | Введите дату рождения</b>\n<i>дд.мм.гггг</i>'
+    },
+    birthDateInvalid: {
+        uz: '? Sana noto‘g‘ri. Iltimos, kk.oo.yyyy formatida kiriting.',
+        ru: '? Неверная дата. Введите в формате дд.мм.гггг.'
+    },
+    invalidAlphabet: {
+        uz: "? Tanlangan tilga mos alifboda yozing (uz: lotin, ru: кириллица).",
+        ru: '? Пишите в алфавите выбранного языка (uz: латиница, ru: кириллица).'
+    },
+    askSpecialCriteria: {
+        uz: '<b>? | Alohida toifalarga kirasizmi? (ixtiyoriy)</b>\n<i>Moslarini belgilang yoki “Davom etish”ni bosing.</i>',
+        ru: '<b>? | Относитесь к особым категориям? (необязательно)</b>\n<i>Выберите подходящее или нажмите “Продолжить”.</i>'
+    },
+    askSalary: {
+        uz: '<b>?? | Kutilayotgan maosh (so‘m)</b>',
+        ru: '<b>?? | Ожидаемая зарплата (сум)</b>'
+    },
+    askSalaryMax: {
+        uz: '<b>?? | Maksimal maosh (so‘m)</b>',
+        ru: '<b>?? | Максимальная зарплата (сум)</b>'
+    },
+    askEmploymentType: {
+        uz: '<b>?? | Ish turi (bandlik)</b>',
+        ru: '<b>?? | Тип занятости</b>'
+    },

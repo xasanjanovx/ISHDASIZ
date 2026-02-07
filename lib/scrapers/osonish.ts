@@ -88,11 +88,13 @@ export interface OsonishDetail {
             id: number;
             name_uz?: string;
             name_ru?: string;
+            name_en?: string;
         };
         city?: {
             id: number;
             name_uz?: string;
             name_ru?: string;
+            name_en?: string;
         };
     };
 
@@ -211,7 +213,26 @@ export interface ScrapeResult {
 
 // ==================== CONSTANTS ====================
 
-const API_BASE = 'https://osonish.uz/api/api/v1';
+const trimApiBase = (value: string) => value.replace(/\/+$/, '');
+const buildApiBaseCandidates = (value: string): string[] => {
+    const cleaned = trimApiBase(value);
+    if (!cleaned) return [];
+    if (cleaned.endsWith('/api/api/v1')) {
+        return [cleaned, cleaned.replace('/api/api/v1', '/api/v1')];
+    }
+    if (cleaned.endsWith('/api/v1')) {
+        return [cleaned, cleaned.replace('/api/v1', '/api/api/v1')];
+    }
+    return [`${cleaned}/api/v1`, `${cleaned}/api/api/v1`];
+};
+const API_BASE_ENV = process.env.OSONISH_API_BASE?.trim();
+const API_BASES = Array.from(new Set([
+    'https://osonish.uz/api/v1',
+    'https://osonish.uz/api/api/v1',
+    ...(API_BASE_ENV ? buildApiBaseCandidates(API_BASE_ENV) : [])
+]));
+let API_BASE = API_BASES[0] || 'https://osonish.uz/api/v1';
+let API_BASE_RESOLVED = false;
 const PER_PAGE = 100;
 const CONCURRENCY = 5;
 const DETAIL_DELAY_MS = 300;
@@ -234,6 +255,66 @@ const DEFAULT_HEADERS: Record<string, string> = {
     'Pragma': 'no-cache'
 };
 
+function buildOsonishHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { ...DEFAULT_HEADERS };
+    const cookie = process.env.OSONISH_COOKIE;
+    const token = process.env.OSONISH_BEARER_TOKEN || process.env.OSONISH_API_TOKEN;
+    const userId = process.env.OSONISH_USER_ID || process.env.OSONISH_CURRENT_USER_ID;
+    if (cookie) headers.Cookie = cookie;
+    if (token) headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    if (userId) headers['x-current-user-id'] = userId;
+    return headers;
+}
+
+function buildPublicOsonishHeaders(): Record<string, string> {
+    const headers = buildOsonishHeaders();
+    delete headers.Cookie;
+    delete headers.Authorization;
+    delete headers['x-current-user-id'];
+    return headers;
+}
+
+function hasOsonishAuthHeaders(): boolean {
+    return Boolean(
+        process.env.OSONISH_COOKIE
+        || process.env.OSONISH_BEARER_TOKEN
+        || process.env.OSONISH_API_TOKEN
+        || process.env.OSONISH_USER_ID
+        || process.env.OSONISH_CURRENT_USER_ID
+    );
+}
+
+async function ensureApiBase(): Promise<string> {
+    if (API_BASE_RESOLVED) return API_BASE;
+
+    const isUsableProbeStatus = (status: number) => {
+        if ([401, 403, 404].includes(status)) return false;
+        // 2xx is valid; some environments may return 4xx for query shape but still indicate real endpoint.
+        return status >= 200 && status < 500;
+    };
+
+    for (const base of API_BASES) {
+        try {
+            const probe = `${base}/vacancies?page=1&per_page=1&status=2&sort_key=created_at&sort_type=desc`;
+            let res = await fetchWithRetry(probe, 1, buildOsonishHeaders());
+            if (hasOsonishAuthHeaders() && [401, 403, 404].includes(res.status)) {
+                res = await fetchWithRetry(probe, 1, buildPublicOsonishHeaders());
+            }
+            if (isUsableProbeStatus(res.status)) {
+                API_BASE = base;
+                API_BASE_RESOLVED = true;
+                return API_BASE;
+            }
+        } catch {
+            // ignore and try next base
+        }
+    }
+
+    API_BASE = 'https://osonish.uz/api/v1';
+    API_BASE_RESOLVED = true;
+    return API_BASE;
+}
+
 // ==================== HELPERS ====================
 
 function sleep(ms: number): Promise<void> {
@@ -253,9 +334,10 @@ async function fetchCompanyContacts(companyId: number): Promise<{ phone?: string
     }
 
     try {
-        const url = `${API_BASE}/companies/${companyId}`;
+        const base = await ensureApiBase();
+        const url = `${base}/companies/${companyId}`;
         const response = await fetch(url, {
-            headers: DEFAULT_HEADERS,
+            headers: buildOsonishHeaders(),
         });
 
         if (!response.ok) {
@@ -550,11 +632,15 @@ function mapExperience(id?: number, configs?: OsonishConfigs): number {
 /**
  * Fetch with retry and backoff
  */
-async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+async function fetchWithRetry(
+    url: string,
+    retries = MAX_RETRIES,
+    headers: Record<string, string> = buildOsonishHeaders()
+): Promise<Response> {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             const response = await fetch(url, {
-                headers: DEFAULT_HEADERS
+                headers
             });
 
             // Rate limited - backoff
@@ -588,18 +674,36 @@ export async function fetchVacancyIdList(page: number = 1): Promise<{
     total: number;
     lastPage: number;
 }> {
-    const url = `${API_BASE}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&is_offer=0&sort_key=created_at&sort_type=desc`;
-    const fallbackUrl = `${API_BASE}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&sort_key=created_at&sort_type=desc`;
-
     try {
-        let response = await fetchWithRetry(url);
-        if (!response.ok) {
-            console.warn(`[Scraper] List fetch failed (${response.status}). Retrying without is_offer...`);
-            response = await fetchWithRetry(fallbackUrl);
+        const base = await ensureApiBase();
+        const basesToTry = [base, ...API_BASES.filter(b => b !== base)];
+
+        let response: Response | null = null;
+        for (const candidateBase of basesToTry) {
+            const url = `${candidateBase}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&is_offer=0&sort_key=created_at&sort_type=desc`;
+            const fallbackUrl = `${candidateBase}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&sort_key=created_at&sort_type=desc`;
+
+            response = await fetchWithRetry(url);
+            if ([401, 403, 404].includes(response.status) && hasOsonishAuthHeaders()) {
+                response = await fetchWithRetry(url, MAX_RETRIES, buildPublicOsonishHeaders());
+            }
+            if (!response.ok) {
+                console.warn(`[Scraper] List fetch failed (${response.status}). Retrying without is_offer...`);
+                response = await fetchWithRetry(fallbackUrl);
+                if ([401, 403, 404].includes(response.status) && hasOsonishAuthHeaders()) {
+                    response = await fetchWithRetry(fallbackUrl, MAX_RETRIES, buildPublicOsonishHeaders());
+                }
+            }
+
+            if (response.ok) {
+                API_BASE = candidateBase;
+                API_BASE_RESOLVED = true;
+                break;
+            }
         }
 
-        if (!response.ok) {
-            console.warn(`[Scraper] List fetch failed (${response.status}) for page ${page}`);
+        if (!response || !response.ok) {
+            console.warn(`[Scraper] List fetch failed (all bases) for page ${page}`);
             return { ids: [], total: 0, lastPage: 0 };
         }
 
@@ -641,10 +745,27 @@ export async function fetchVacancyDetail(id: number): Promise<{
     status: number;
     error?: string;
 }> {
-    const url = `${API_BASE}/vacancies/${id}`;
+    const base = await ensureApiBase();
+    const basesToTry = [base, ...API_BASES.filter(b => b !== base)];
 
     try {
-        const response = await fetchWithRetry(url);
+        let response: Response | null = null;
+        for (const candidateBase of basesToTry) {
+            const url = `${candidateBase}/vacancies/${id}`;
+            response = await fetchWithRetry(url);
+            if ([401, 403, 404].includes(response.status) && hasOsonishAuthHeaders()) {
+                response = await fetchWithRetry(url, MAX_RETRIES, buildPublicOsonishHeaders());
+            }
+            if (![401, 403, 404].includes(response.status)) {
+                API_BASE = candidateBase;
+                API_BASE_RESOLVED = true;
+                break;
+            }
+        }
+
+        if (!response) {
+            return { success: false, status: 0, error: 'No response' };
+        }
 
         if (response.status === 404) {
             return { success: false, status: 404, error: 'Not found' };

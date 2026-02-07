@@ -62,7 +62,7 @@ async function main() {
 
     // 1. Fetch from OsonIsh API
     console.log('\n[1] Fetching from OsonIsh API...');
-    const response = await fetch('https://osonish.uz/api/api/v1/vacancies/140', {
+    const response = await fetch('https://osonish.uz/api/v1/vacancies/140', {
         headers: { 'User-Agent': 'Mozilla/5.0' }
     });
     const json = await response.json();

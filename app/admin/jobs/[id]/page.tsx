@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
@@ -28,6 +28,7 @@ import Image from 'next/image';
 import { LocationSelect } from '@/components/ui/location-select';
 import { toast } from 'sonner';
 import { getAllDistricts, getDistrictById } from '@/lib/regions';
+import { mapOsonishCategory } from '@/lib/mappers/osonish-mapper';
 
 // Constants
 const EMPLOYMENT_TYPES = [
@@ -89,6 +90,16 @@ interface LanguageSkill {
   level: string;
 }
 
+interface OsonishField {
+  id: string | number;
+  title: string;
+  title_uz?: string | null;
+  title_ru?: string | null;
+  vacancies_count?: number | null;
+  category_id?: string | number | null;
+  category_title?: string | null;
+}
+
 export default function EditJobPage() {
   const params = useParams();
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
@@ -103,6 +114,10 @@ export default function EditJobPage() {
   const user = adminUser || regularUser;
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [fields, setFields] = useState<OsonishField[]>([]);
+  const [fieldQuery, setFieldQuery] = useState('');
+  const [selectedField, setSelectedField] = useState<OsonishField | null>(null);
+  const [fieldCategory, setFieldCategory] = useState<Category | null>(null);
   // const [districts, setDistricts] = useState<District[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -148,6 +163,70 @@ export default function EditJobPage() {
 
   const isForWomen = formData.gender === 'any' || formData.gender === 'female';
 
+  const normalizeField = (value: string) => value
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u02BC\u02BB`']/g, '')
+    .replace(/[^a-z\u0400-\u04FF0-9\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const filteredFields = useMemo(() => {
+    if (!fields.length) return [];
+    const query = normalizeField(fieldQuery);
+    if (query.length < 3) return [];
+    const scored = fields.map(field => {
+      const title = normalizeField(field.title_uz || field.title_ru || field.title || '');
+      let score = 0;
+      if (query && title === query) score += 100;
+      if (query && title.startsWith(query)) score += 60;
+      if (query && title.includes(query)) score += 40;
+      return { field, score };
+    });
+    const filtered = scored.filter(item => item.score > 0);
+    filtered.sort((a, b) => b.score - a.score);
+    return filtered.slice(0, 60).map(item => item.field);
+  }, [fields, fieldQuery]);
+
+  const handleFieldPick = (field: OsonishField) => {
+    setSelectedField(field);
+    const title = field.title_uz || field.title_ru || field.title || '';
+    setFieldQuery(title);
+    const mapped = mapOsonishCategory(field.category_title || title, null, formData.title || '');
+    let categoryId = mapped?.categoryId || '';
+    if (!categoryId) {
+      const norm = normalizeField(field.category_title || title);
+      const match = categories.find(cat => {
+        const uz = normalizeField(cat.name_uz || '');
+        const ru = normalizeField(cat.name_ru || '');
+        return (uz && (norm === uz || norm.includes(uz))) || (ru && (norm === ru || norm.includes(ru)));
+      });
+      if (match) categoryId = match.id;
+    }
+    setFormData(prev => ({ ...prev, category_id: categoryId }));
+    setFieldCategory(categories.find(cat => cat.id === categoryId) || null);
+  };
+
+  useEffect(() => {
+    const query = fieldQuery.trim();
+    if (query.length < 3) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/osonish/fields?search=${encodeURIComponent(query)}`);
+        const payload = await response.json().catch(() => ({ fields: [] }));
+        if (!cancelled && Array.isArray(payload?.fields)) {
+          setFields(payload.fields);
+        }
+      } catch {
+        // ignore transient search errors
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [fieldQuery]);
+
   useEffect(() => {
     const isLoading = authLoading || userLoading;
     if (!isLoading && !user) router.push('/admin/login');
@@ -158,13 +237,15 @@ export default function EditJobPage() {
     try {
       const [jobRes, catRes] = await Promise.all([
         supabase.from('jobs').select('*, districts(region_id)').eq('id', id).maybeSingle(),
-        supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz'),
+        supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011').order('name_uz')
       ]);
       setCategories(catRes.data || []);
       // setDistricts(distRes.data || []);
 
       if (jobRes.data) {
         const job = jobRes.data;
+        const rawBenefits = job.benefits ?? job.raw_source_json?.qulayliklar ?? job.raw_source_json?.ijtimoiy_paketlar ?? '';
+        const benefitsText = Array.isArray(rawBenefits) ? rawBenefits.join(', ') : (rawBenefits || '');
 
         // Resolve region
         let regionId = job.region_id;
@@ -176,8 +257,8 @@ export default function EditJobPage() {
           setSelectedRegion(regionId.toString());
         }
 
-        setFormData({
-          title: job.title_uz || '',
+          setFormData({
+            title: job.title_uz || '',
           company_name: job.company_name || '',
           category_id: job.category_id || '',
           region_id: regionId ? regionId.toString() : '',
@@ -189,7 +270,7 @@ export default function EditJobPage() {
           salary_max: job.salary_max?.toString() || '',
           salary_negotiable: !job.salary_min && !job.salary_max,
           tasks_requirements: job.description_uz || '',
-          benefits: job.requirements_uz || '',
+          benefits: benefitsText,
           contact_phone: job.contact_phone || job.phone || '',
           contact_telegram: job.contact_telegram || '',
           latitude: job.latitude || 0,
@@ -202,9 +283,16 @@ export default function EditJobPage() {
           languages: [], // TODO: If languages are stored, map them here. Assuming they might not be currently implemented in DB or complex to map back.
           is_for_students: job.is_for_students || false,
           is_for_disabled: job.is_for_disabled || false,
-          is_active: job.is_active ?? true,
-        });
-      }
+            is_active: job.is_active ?? true,
+          });
+          if (job.title_uz || job.title_ru) {
+            setFieldQuery(job.title_uz || job.title_ru || '');
+          }
+          if (job.category_id && catRes.data) {
+            const found = catRes.data.find((c: any) => c.id === job.category_id);
+            setFieldCategory(found || null);
+          }
+        }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Ma\'lumotlarni yuklashda xatolik');
@@ -215,6 +303,12 @@ export default function EditJobPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (formData.category_id && categories.length) {
+      setFieldCategory(categories.find(cat => cat.id === formData.category_id) || null);
+    }
+  }, [formData.category_id, categories]);
 
   // Sync region when district_id is loaded
   useEffect(() => {
@@ -373,7 +467,7 @@ export default function EditJobPage() {
 
     if (!formData.title.trim()) { toast.error("Lavozim nomi!"); return; }
     if (!formData.company_name.trim()) { toast.error("Kompaniya nomi!"); return; }
-    if (!formData.category_id) { toast.error("Kategoriya!"); return; }
+    if (!formData.category_id) { toast.error("Lavozimga yaqin kasbni tanlang!"); return; }
     if (!formData.district_id) { toast.error("Tuman!"); return; }
     if (!formData.tasks_requirements.trim()) { toast.error("Talablar!"); return; }
     if (!formData.latitude) { toast.error("Joylashuv!"); return; }
@@ -579,13 +673,45 @@ export default function EditJobPage() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                       <div className="space-y-2">
-                        <Label className="font-medium">Kategoriya *</Label>
-                        <Select value={formData.category_id} onValueChange={(v) => setFormData({ ...formData, category_id: v })}>
-                          <SelectTrigger className="h-12"><SelectValue placeholder="Tanlang" /></SelectTrigger>
-                          <SelectContent>
-                            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name_uz}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <Label className="font-medium">Lavozimga yaqin bo&apos;lgan kasb *</Label>
+                        <Input
+                          value={fieldQuery}
+                          onChange={(e) => {
+                            setFieldQuery(e.target.value);
+                            if (!e.target.value) {
+                              setSelectedField(null);
+                              setFieldCategory(null);
+                              setFormData(prev => ({ ...prev, category_id: '' }));
+                            }
+                          }}
+                          placeholder="Kasb nomini yozing va tanlang"
+                          className="h-12 text-base"
+                        />
+                        <p className="text-xs text-slate-500">
+                          Kasb tanlang — soha avtomatik belgilanadi.
+                        </p>
+                        {filteredFields.length > 0 && (!selectedField || normalizeField(fieldQuery) !== normalizeField(selectedField.title_uz || selectedField.title_ru || selectedField.title)) && (
+                          <div className="rounded-xl border border-slate-200 bg-white shadow-sm max-h-72 overflow-y-auto">
+                            {filteredFields.map(field => {
+                              const title = field.title_uz || field.title_ru || field.title || '';
+                              return (
+                                <button
+                                  type="button"
+                                  key={field.id}
+                                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50"
+                                  onClick={() => handleFieldPick(field)}
+                                >
+                                  {title}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {fieldCategory && (
+                          <div className="text-xs text-slate-600">
+                            Soha: <span className="font-semibold">{lang === 'uz' ? fieldCategory.name_uz : fieldCategory.name_ru}</span>
+                          </div>
+                        )}
                       </div>
                       <LocationSelect
                         selectedRegion={formData.region_id}

@@ -1,0 +1,220 @@
+        if (error) {
+            console.error('[BOT] Failed to load regions:', error);
+            return this.regionsCache.data;
+        }
+
+        this.regionsCache = { data: data || [], loadedAt: Date.now() };
+        return this.regionsCache.data;
+    }
+
+    private async getCategories(): Promise<CategoryRef[]> {
+        if (this.categoriesCache.data.length > 0 && this.isCacheFresh(this.categoriesCache.loadedAt)) {
+            const cached = this.categoriesCache.data;
+            const hasFinance = cached.some(cat => cat.id === 'a0000006-0006-4000-8000-000000000006');
+            if (hasFinance) return cached;
+            const ensured = await this.ensureRequiredCategories(cached);
+            this.categoriesCache = { data: ensured, loadedAt: Date.now() };
+            return this.categoriesCache.data;
+        }
+
+        const { data, error } = await this.supabase
+            .from('categories')
+            .select('id, name_uz, name_ru, icon, sort_order')
+            .order('sort_order', { ascending: true });
+
+        if (error) {
+            const fallback = await this.supabase
+                .from('categories')
+                .select('id, name_uz, name_ru, icon')
+                .order('name_uz', { ascending: true });
+
+            if (fallback.error) {
+                console.error('[BOT] Failed to load categories:', error);
+                const ensuredDefault = await this.ensureRequiredCategories(DEFAULT_CATEGORIES);
+                this.categoriesCache = { data: ensuredDefault, loadedAt: Date.now() };
+                return this.categoriesCache.data;
+            }
+
+            const normalizedFallback = (fallback.data || []).map((cat: any) => ({
+                ...cat,
+                icon: typeof cat.icon === 'string' ? cat.icon : undefined
+            })) as CategoryRef[];
+            const filteredFallback = normalizedFallback.filter(cat => {
+                const nameUz = (cat.name_uz || '').toLowerCase();
+                const nameRu = (cat.name_ru || '').toLowerCase();
+                return cat.id !== 'a0000011-0011-4000-8000-000000000011'
+                    && !nameUz.includes('boshqa')
+                    && !nameRu.includes('другое');
+            });
+            const ensuredFallback = await this.ensureRequiredCategories(filteredFallback.length ? filteredFallback : DEFAULT_CATEGORIES);
+            this.categoriesCache = { data: ensuredFallback, loadedAt: Date.now() };
+            return this.categoriesCache.data;
+        }
+
+        const normalized = (data || []).map((cat: any) => ({
+            ...cat,
+            icon: typeof cat.icon === 'string' ? cat.icon : undefined
+        })) as CategoryRef[];
+        const filtered = normalized.filter(cat => {
+            const nameUz = (cat.name_uz || '').toLowerCase();
+            const nameRu = (cat.name_ru || '').toLowerCase();
+            return cat.id !== 'a0000011-0011-4000-8000-000000000011'
+                && !nameUz.includes('boshqa')
+                && !nameRu.includes('другое');
+        });
+        const ensured = await this.ensureRequiredCategories(filtered.length ? filtered : DEFAULT_CATEGORIES);
+        this.categoriesCache = { data: ensured, loadedAt: Date.now() };
+        return this.categoriesCache.data;
+    }
+
+    private async getOsonishFields(): Promise<OsonishField[]> {
+        if (this.fieldsCache.data.length > 0 && this.isCacheFresh(this.fieldsCache.loadedAt)) {
+            return this.fieldsCache.data;
+        }
+        try {
+            const authToken = process.env.OSONISH_BEARER_TOKEN || process.env.OSONISH_API_TOKEN || '';
+            const cookie = process.env.OSONISH_COOKIE;
+            const userId = process.env.OSONISH_USER_ID || process.env.OSONISH_CURRENT_USER_ID;
+            const headers: Record<string, string> = {
+                Accept: 'application/json',
+                Referer: 'https://osonish.uz/vacancies',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'Accept-Language': 'uz,ru;q=0.9,en;q=0.8'
+            };
+            if (authToken) {
+                headers.Authorization = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
+            }
+            if (cookie) headers.Cookie = cookie;
+            if (userId) headers['x-current-user-id'] = userId;
+            const hasAuthHeaders = Boolean(authToken || cookie || userId);
+            const publicHeaders = Object.fromEntries(
+                Object.entries(headers).filter(([key]) => !['Authorization', 'Cookie', 'x-current-user-id'].includes(key))
+            ) as Record<string, string>;
+            const apiBaseEnv = process.env.OSONISH_API_BASE?.trim();
+            const trimBase = (value: string) => value.replace(/\/+$/, '');
+            const toBaseCandidates = (value: string): string[] => {
+                const cleaned = trimBase(value);
+                if (!cleaned) return [];
+                if (cleaned.endsWith('/api/api/v1')) return [cleaned, cleaned.replace('/api/api/v1', '/api/v1')];
+                if (cleaned.endsWith('/api/v1')) return [cleaned, cleaned.replace('/api/v1', '/api/api/v1')];
+                return [`${cleaned}/api/v1`, `${cleaned}/api/api/v1`];
+            };
+            const bases = Array.from(new Set([
+                'https://osonish.uz/api/v1',
+                'https://osonish.uz/api/api/v1',
+                ...(apiBaseEnv ? toBaseCandidates(apiBaseEnv) : [])
+            ]));
+            let res: Response | null = null;
+            for (const base of bases) {
+                res = await fetch(`${base}/fields`, { headers });
+                if (res.status === 404 && hasAuthHeaders) {
+                    res = await fetch(`${base}/fields`, { headers: publicHeaders });
+                }
+                if (res.status !== 404) break;
+            }
+            if (!res || !res.ok) throw new Error(`Fields fetch failed: ${res?.status ?? 0}`);
+            const payload = await res.json();
+            const rawFields = Array.isArray(payload?.data?.fields)
+                ? payload.data.fields
+                : Array.isArray(payload?.data)
+                    ? payload.data
+                    : Array.isArray(payload?.fields)
+                        ? payload.fields
+                        : Array.isArray(payload)
+                            ? payload
+                            : [];
+            const normalized = (rawFields || []).map((field: any) => ({
+                id: field.id ?? field.field_id ?? field.value ?? field.code,
+                title: field.title_uz ?? field.title_ru ?? field.title ?? field.name ?? '',
+                title_uz: field.title_uz ?? null,
+                title_ru: field.title_ru ?? null,
+                vacancies_count: field.vacancies_count ?? field.count ?? field.total ?? null,
+                category_id: field.category_id ?? field.category?.id ?? field.categoryId ?? null,
+                category_title: field.category?.title_uz
+                    ?? field.category?.title_ru
+                    ?? field.category?.title
+                    ?? field.category_title
+                    ?? field.category_name
+                    ?? null
+            })).filter((field: OsonishField) => field.id && String(field.title || '').trim().length > 0);
+
+            this.fieldsCache = { data: normalized, loadedAt: Date.now() };
+            return normalized;
+        } catch (err) {
+            console.warn('[BOT] Failed to load Osonish fields:', err);
+            return this.fieldsCache.data;
+        }
+    }
+
+    private normalizeLoose(text?: string | null): string {
+        if (!text) return '';
+        return String(text)
+            .toLowerCase()
+            .replace(/[\u2018\u2019\u02BC\u02BB`']/g, '')
+            .replace(/[^a-z0-9\u0400-\u04FF\s]/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    private extractMissingColumn(error: any): string | null {
+        if (!error) return null;
+        const message = [error.message, error.details, error.hint].filter(Boolean).join(' ');
+        const lower = String(message).toLowerCase();
+        if (!lower.includes('does not exist')
+            && !lower.includes('not found')
+            && !lower.includes('could not find')
+            && !lower.includes('schema cache')) {
+            return null;
+        }
+        const match =
+            message.match(/column ["']?([a-z0-9_]+)["']? (?:does not exist|not found)/i)
+            || message.match(/Could not find the '([^']+)' column/i)
+            || message.match(/column ([a-z0-9_]+) does not exist/i);
+        if (!match) return null;
+        return match[1] ? String(match[1]) : null;
+    }
+
+    private stripColumnFromSelect(select: string, column: string): string {
+        if (!select) return select;
+        const normalized = column.trim();
+        const parts = select
+            .split(',')
+            .map(part => part.trim())
+            .filter(Boolean)
+            .filter(part => {
+                if (part === normalized) return false;
+                if (part.startsWith(`${normalized} `)) return false;
+                if (part.startsWith(`${normalized},`)) return false;
+                return true;
+            });
+        return parts.join(', ');
+    }
+
+    private shouldEnforceAlphabet(state: BotState): boolean {
+        return [
+            BotState.ENTERING_NAME,
+            BotState.ENTERING_TITLE,
+            BotState.ENTERING_ABOUT,
+            BotState.ADDING_SKILLS,
+            BotState.ENTERING_WORKPLACE,
+            BotState.ENTERING_EDUCATION_PLACE,
+            BotState.POSTING_JOB_TITLE,
+            BotState.POSTING_JOB_ADDRESS,
+            BotState.POSTING_JOB_LANGUAGES,
+            BotState.POSTING_JOB_BENEFITS,
+            BotState.POSTING_JOB_HR_NAME,
+            BotState.POSTING_JOB_DESCRIPTION,
+            BotState.EMPLOYER_PROFILE_COMPANY,
+            BotState.EMPLOYER_PROFILE_DIRECTOR,
+            BotState.EMPLOYER_PROFILE_INDUSTRY,
+            BotState.EMPLOYER_PROFILE_DESCRIPTION
+        ].includes(state);
+    }
+
+    private violatesAlphabet(text: string, lang: BotLang): boolean {
+        if (!text) return false;
+        const trimmed = text.trim();
+        if (!trimmed) return false;
+        const hasCyrillic = /[\u0400-\u04FF]/.test(trimmed);
+        const hasLatin = /[A-Za-z]/.test(trimmed);
+        if (lang === 'uz') {

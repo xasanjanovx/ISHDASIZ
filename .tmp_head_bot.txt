@@ -1,0 +1,420 @@
+/**
+ * Telegram Bot - Complete Resume Creation Flow
+ * Handles all incoming updates and state transitions
+ */
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { sendMessage, editMessage, answerCallbackQuery, isUserSubscribed, sendLocation, deleteMessage } from './telegram-api';
+import * as keyboards from './keyboards';
+import {
+    botTexts,
+    BotLang,
+    formatJobCard,
+    formatFullJobCard,
+    EXPERIENCE_LABELS
+} from './texts';
+import {
+    getWorkModeLabel,
+    getWorkingDaysLabel,
+    getExperienceLabel,
+    getEducationLabel,
+    getGenderLabel
+} from '../mappings';
+import { mapOsonishCategory } from '../mappers/osonish-mapper';
+import { matchAndSortJobs, MatchedJob, calculateMatchScore } from './job-matcher';
+import { extractVacancyData } from '../ai/deepseek';
+import { rerankJobsForResumeAI, rerankResumesForJobAI } from '../ai/job-recommender';
+import { checkForAbuse } from '../ai/moderation';
+import { REGION_COORDINATES } from '../constants';
+import bcrypt from 'bcryptjs';
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
+// ============================================
+// FSM States
+// ============================================
+export enum BotState {
+    START = 'start',
+    AWAITING_LANG = 'awaiting_lang',
+    AWAITING_PHONE = 'awaiting_phone',
+    AWAITING_OTP = 'awaiting_otp',
+    AWAITING_PASSWORD = 'awaiting_password',
+
+    // Auth & Role
+    SELECTING_ROLE = 'selecting_role',
+
+    // Employer Flow
+    EMPLOYER_MAIN_MENU = 'employer_main_menu',
+    EMPLOYER_PROFILE_COMPANY = 'employer_profile_company',
+    EMPLOYER_PROFILE_DIRECTOR = 'employer_profile_director',
+    EMPLOYER_PROFILE_INDUSTRY = 'employer_profile_industry',
+    EMPLOYER_PROFILE_SIZE = 'employer_profile_size',
+    EMPLOYER_PROFILE_REGION = 'employer_profile_region',
+    EMPLOYER_PROFILE_DISTRICT = 'employer_profile_district',
+    EMPLOYER_PROFILE_ADDRESS = 'employer_profile_address',
+    EMPLOYER_PROFILE_DESCRIPTION = 'employer_profile_description',
+    POSTING_JOB_TITLE = 'posting_job_title',
+    POSTING_JOB_CATEGORY = 'posting_job_category',
+    POSTING_JOB_SALARY = 'posting_job_salary',
+    POSTING_JOB_SALARY_MAX = 'posting_job_salary_max',
+    POSTING_JOB_REGION = 'posting_job_region',
+    POSTING_JOB_DISTRICT = 'posting_job_district',
+    POSTING_JOB_ADDRESS = 'posting_job_address',
+    POSTING_JOB_WORK_MODE = 'posting_job_work_mode',
+    POSTING_JOB_EMPLOYMENT = 'posting_job_employment',
+    POSTING_JOB_WORK_DAYS = 'posting_job_work_days',
+    POSTING_JOB_WORK_HOURS = 'posting_job_work_hours',
+    POSTING_JOB_EXPERIENCE = 'posting_job_experience',
+    POSTING_JOB_EDUCATION = 'posting_job_education',
+    POSTING_JOB_GENDER = 'posting_job_gender',
+    POSTING_JOB_AGE = 'posting_job_age',
+    POSTING_JOB_LANGUAGES = 'posting_job_languages',
+    POSTING_JOB_BENEFITS = 'posting_job_benefits',
+    POSTING_JOB_HR_NAME = 'posting_job_hr_name',
+    POSTING_JOB_CONTACT_PHONE = 'posting_job_contact_phone',
+    POSTING_JOB_DESCRIPTION = 'posting_job_description',
+    POSTING_JOB_CONFIRM = 'posting_job_confirm',
+    ENTERING_COMPANY_NAME = 'entering_company_name',
+
+    // Resume Creation Flow
+    REQUESTING_LOCATION = 'requesting_location',
+    SELECTING_REGION = 'selecting_region',
+    SELECTING_DISTRICT = 'selecting_district',
+    SELECTING_FIELD = 'selecting_field',
+    SELECTING_CATEGORY = 'selecting_category',
+    SELECTING_EXPERIENCE = 'selecting_experience',
+    SELECTING_EDUCATION = 'selecting_education',
+    SELECTING_GENDER = 'selecting_gender',
+    ENTERING_BIRTH_DATE = 'entering_birth_date',
+    SELECTING_SPECIAL = 'selecting_special',
+    SELECTING_SALARY = 'selecting_salary',
+    SELECTING_SALARY_MAX = 'selecting_salary_max',
+    SELECTING_EMPLOYMENT = 'selecting_employment',
+    SELECTING_WORK_MODE = 'selecting_work_mode',
+    SELECTING_WORKING_DAYS = 'selecting_working_days',
+    SELECTING_SUBSCRIPTION_FREQUENCY = 'selecting_subscription_frequency',
+    ENTERING_TITLE = 'entering_title',
+    ENTERING_NAME = 'entering_name',
+    ENTERING_ABOUT = 'entering_about',
+    ADDING_SKILLS = 'adding_skills',
+    ENTERING_WORKPLACE = 'entering_workplace',
+    ENTERING_WORKPLACE_YEARS = 'entering_workplace_years',
+    ENTERING_WORKPLACE_END_YEAR = 'entering_workplace_end_year',
+    ENTERING_EDUCATION_PLACE = 'entering_education_place',
+    ENTERING_EDUCATION_START_YEAR = 'entering_education_start_year',
+    ENTERING_EDUCATION_END_YEAR = 'entering_education_end_year',
+    RESUME_COMPLETE = 'resume_complete',
+    AI_JOB_INPUT = 'ai_job_input',
+    AI_RESUME_INPUT = 'ai_resume_input',
+
+    // Main App
+    MAIN_MENU = 'main_menu',
+    BROWSING_JOBS = 'browsing_jobs',
+    VIEWING_PROFILE = 'viewing_profile',
+    EDITING_PROFILE = 'editing_profile',
+    VIEWING_RESUME = 'viewing_resume',
+    SETTINGS = 'settings'
+}
+
+// ============================================
+// Types
+// ============================================
+export interface TelegramSession {
+    id: string;
+    telegram_user_id: number;
+    user_id: string | null;
+    state: BotState;
+    data: Record<string, any>;
+    phone: string | null;
+    otp_code: string | null;
+    otp_expires_at: string | null;
+    lang: BotLang;
+    active_role?: 'job_seeker' | 'employer';
+}
+
+export interface TelegramMessage {
+    message_id: number;
+    chat: { id: number };
+    from: { id: number; first_name?: string };
+    text?: string;
+    contact?: { phone_number: string };
+    location?: { latitude: number; longitude: number };
+}
+
+export interface TelegramCallbackQuery {
+    id: string;
+    from: { id: number };
+    message?: { chat: { id: number }; message_id: number };
+    data?: string;
+}
+
+interface RegionRef {
+    id: number;
+    name_uz: string;
+    name_ru: string;
+    slug?: string | null;
+}
+
+interface CategoryRef {
+    id: string;
+    name_uz: string;
+    name_ru: string;
+    icon?: string;
+    sort_order?: number | null;
+}
+
+interface OsonishField {
+    id: number;
+    title: string;
+    title_uz?: string | null;
+    title_ru?: string | null;
+    vacancies_count?: number | null;
+    category_id?: string | number | null;
+    category_title?: string | null;
+}
+
+const DEFAULT_CATEGORIES: CategoryRef[] = [
+    { id: 'a0000001-0001-4000-8000-000000000001', name_uz: 'IT', name_ru: 'IT', icon: '', sort_order: 1 },
+    { id: 'a0000002-0002-4000-8000-000000000002', name_uz: 'Sanoat va ishlab chiqarish', name_ru: 'Производство', icon: '', sort_order: 2 },
+    { id: 'a0000003-0003-4000-8000-000000000003', name_uz: 'Xizmatlar', name_ru: 'Услуги', icon: '', sort_order: 3 },
+    { id: 'a0000004-0004-4000-8000-000000000004', name_uz: "Ta'lim, madaniyat, sport", name_ru: 'Образование', icon: '', sort_order: 4 },
+    { id: 'a0000005-0005-4000-8000-000000000005', name_uz: "Sog'liqni saqlash", name_ru: 'Медицина', icon: '', sort_order: 5 },
+    { id: 'a0000006-0006-4000-8000-000000000006', name_uz: 'Moliya, iqtisod, boshqaruv', name_ru: 'Финансы, экономика, управление', icon: 'Wallet', sort_order: 6 },
+    { id: 'a0000007-0007-4000-8000-000000000007', name_uz: 'Qurilish', name_ru: 'Строительство', icon: '', sort_order: 7 },
+    { id: 'a0000008-0008-4000-8000-000000000008', name_uz: "Qishloq xo'jaligi", name_ru: 'Сельское хоз.', icon: '', sort_order: 8 },
+    { id: 'a0000009-0009-4000-8000-000000000009', name_uz: 'Transport', name_ru: 'Транспорт', icon: '', sort_order: 9 },
+    { id: 'a0000010-0010-4000-8000-000000000010', name_uz: 'Savdo va marketing', name_ru: 'Продажи', icon: '', sort_order: 10 }
+];
+
+// ============================================
+// Bot Class
+// ============================================
+export class TelegramBot {
+    private supabase: SupabaseClient;
+    private regionsCache: { data: RegionRef[]; loadedAt: number } = { data: [], loadedAt: 0 };
+    private categoriesCache: { data: CategoryRef[]; loadedAt: number } = { data: [], loadedAt: 0 };
+    private fieldsCache: { data: OsonishField[]; loadedAt: number } = { data: [], loadedAt: 0 };
+    private readonly referenceTtlMs = 10 * 60 * 1000;
+
+    constructor() {
+        this.supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+    }
+
+    private isCacheFresh(loadedAt: number): boolean {
+        return Date.now() - loadedAt < this.referenceTtlMs;
+    }
+
+    private async getRegions(): Promise<RegionRef[]> {
+        if (this.regionsCache.data.length > 0 && this.isCacheFresh(this.regionsCache.loadedAt)) {
+            return this.regionsCache.data;
+        }
+
+        const { data, error } = await this.supabase
+            .from('regions')
+            .select('id, name_uz, name_ru, slug')
+            .order('name_uz', { ascending: true });
+
+        if (error) {
+            console.error('[BOT] Failed to load regions:', error);
+            return this.regionsCache.data;
+        }
+
+        this.regionsCache = { data: data || [], loadedAt: Date.now() };
+        return this.regionsCache.data;
+    }
+
+    private async getCategories(): Promise<CategoryRef[]> {
+        if (this.categoriesCache.data.length > 0 && this.isCacheFresh(this.categoriesCache.loadedAt)) {
+            const cached = this.categoriesCache.data;
+            const hasFinance = cached.some(cat => cat.id === 'a0000006-0006-4000-8000-000000000006');
+            if (hasFinance) return cached;
+            const ensured = await this.ensureRequiredCategories(cached);
+            this.categoriesCache = { data: ensured, loadedAt: Date.now() };
+            return this.categoriesCache.data;
+        }
+
+        const { data, error } = await this.supabase
+            .from('categories')
+            .select('id, name_uz, name_ru, icon, sort_order')
+            .order('sort_order', { ascending: true });
+
+        if (error) {
+            const fallback = await this.supabase
+                .from('categories')
+                .select('id, name_uz, name_ru, icon')
+                .order('name_uz', { ascending: true });
+
+            if (fallback.error) {
+                console.error('[BOT] Failed to load categories:', error);
+                const ensuredDefault = await this.ensureRequiredCategories(DEFAULT_CATEGORIES);
+                this.categoriesCache = { data: ensuredDefault, loadedAt: Date.now() };
+                return this.categoriesCache.data;
+            }
+
+            const normalizedFallback = (fallback.data || []).map((cat: any) => ({
+                ...cat,
+                icon: typeof cat.icon === 'string' ? cat.icon : undefined
+            })) as CategoryRef[];
+            const filteredFallback = normalizedFallback.filter(cat => {
+                const nameUz = (cat.name_uz || '').toLowerCase();
+                const nameRu = (cat.name_ru || '').toLowerCase();
+                return cat.id !== 'a0000011-0011-4000-8000-000000000011'
+                    && !nameUz.includes('boshqa')
+                    && !nameRu.includes('другое');
+            });
+            const ensuredFallback = await this.ensureRequiredCategories(filteredFallback.length ? filteredFallback : DEFAULT_CATEGORIES);
+            this.categoriesCache = { data: ensuredFallback, loadedAt: Date.now() };
+            return this.categoriesCache.data;
+        }
+
+        const normalized = (data || []).map((cat: any) => ({
+            ...cat,
+            icon: typeof cat.icon === 'string' ? cat.icon : undefined
+        })) as CategoryRef[];
+        const filtered = normalized.filter(cat => {
+            const nameUz = (cat.name_uz || '').toLowerCase();
+            const nameRu = (cat.name_ru || '').toLowerCase();
+            return cat.id !== 'a0000011-0011-4000-8000-000000000011'
+                && !nameUz.includes('boshqa')
+                && !nameRu.includes('другое');
+        });
+        const ensured = await this.ensureRequiredCategories(filtered.length ? filtered : DEFAULT_CATEGORIES);
+        this.categoriesCache = { data: ensured, loadedAt: Date.now() };
+        return this.categoriesCache.data;
+    }
+
+    private async getOsonishFields(): Promise<OsonishField[]> {
+        if (this.fieldsCache.data.length > 0 && this.isCacheFresh(this.fieldsCache.loadedAt)) {
+            return this.fieldsCache.data;
+        }
+        try {
+            const authToken = process.env.OSONISH_BEARER_TOKEN || process.env.OSONISH_API_TOKEN || '';
+            const cookie = process.env.OSONISH_COOKIE;
+            const userId = process.env.OSONISH_USER_ID || process.env.OSONISH_CURRENT_USER_ID;
+            const headers: Record<string, string> = {
+                Accept: 'application/json',
+                Referer: 'https://osonish.uz/vacancies',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'Accept-Language': 'uz,ru;q=0.9,en;q=0.8'
+            };
+            if (authToken) {
+                headers.Authorization = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
+            }
+            if (cookie) headers.Cookie = cookie;
+            if (userId) headers['x-current-user-id'] = userId;
+            const hasAuthHeaders = Boolean(authToken || cookie || userId);
+            const publicHeaders = Object.fromEntries(
+                Object.entries(headers).filter(([key]) => !['Authorization', 'Cookie', 'x-current-user-id'].includes(key))
+            ) as Record<string, string>;
+            const apiBaseEnv = process.env.OSONISH_API_BASE?.trim();
+            const trimBase = (value: string) => value.replace(/\/+$/, '');
+            const toBaseCandidates = (value: string): string[] => {
+                const cleaned = trimBase(value);
+                if (!cleaned) return [];
+                if (cleaned.endsWith('/api/api/v1')) return [cleaned, cleaned.replace('/api/api/v1', '/api/v1')];
+                if (cleaned.endsWith('/api/v1')) return [cleaned, cleaned.replace('/api/v1', '/api/api/v1')];
+                return [`${cleaned}/api/v1`, `${cleaned}/api/api/v1`];
+            };
+            const bases = Array.from(new Set([
+                'https://osonish.uz/api/v1',
+                'https://osonish.uz/api/api/v1',
+                ...(apiBaseEnv ? toBaseCandidates(apiBaseEnv) : [])
+            ]));
+            let res: Response | null = null;
+            for (const base of bases) {
+                res = await fetch(`${base}/fields`, { headers });
+                if (res.status === 404 && hasAuthHeaders) {
+                    res = await fetch(`${base}/fields`, { headers: publicHeaders });
+                }
+                if (res.status !== 404) break;
+            }
+            if (!res || !res.ok) throw new Error(`Fields fetch failed: ${res?.status ?? 0}`);
+            const payload = await res.json();
+            const rawFields = Array.isArray(payload?.data?.fields)
+                ? payload.data.fields
+                : Array.isArray(payload?.data)
+                    ? payload.data
+                    : Array.isArray(payload?.fields)
+                        ? payload.fields
+                        : Array.isArray(payload)
+                            ? payload
+                            : [];
+            const normalized = (rawFields || []).map((field: any) => ({
+                id: field.id ?? field.field_id ?? field.value ?? field.code,
+                title: field.title_uz ?? field.title_ru ?? field.title ?? field.name ?? '',
+                title_uz: field.title_uz ?? null,
+                title_ru: field.title_ru ?? null,
+                vacancies_count: field.vacancies_count ?? field.count ?? field.total ?? null,
+                category_id: field.category_id ?? field.category?.id ?? field.categoryId ?? null,
+                category_title: field.category?.title_uz
+                    ?? field.category?.title_ru
+                    ?? field.category?.title
+                    ?? field.category_title
+                    ?? field.category_name
+                    ?? null
+            })).filter((field: OsonishField) => field.id && String(field.title || '').trim().length > 0);
+
+            this.fieldsCache = { data: normalized, loadedAt: Date.now() };
+            return normalized;
+        } catch (err) {
+            console.warn('[BOT] Failed to load Osonish fields:', err);
+            return this.fieldsCache.data;
+        }
+    }
+
+    private normalizeLoose(text?: string | null): string {
+        if (!text) return '';
+        return String(text)
+            .toLowerCase()
+            .replace(/[\u2018\u2019\u02BC\u02BB`']/g, '')
+            .replace(/[^a-z0-9\u0400-\u04FF\s]/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    private extractMissingColumn(error: any): string | null {
+        if (!error) return null;
+        const message = [error.message, error.details, error.hint].filter(Boolean).join(' ');
+        const lower = String(message).toLowerCase();
+        if (!lower.includes('does not exist')
+            && !lower.includes('not found')
+            && !lower.includes('could not find')
+            && !lower.includes('schema cache')) {
+            return null;
+        }
+        const match =
+            message.match(/column ["']?([a-z0-9_]+)["']? (?:does not exist|not found)/i)
+            || message.match(/Could not find the '([^']+)' column/i)
+            || message.match(/column ([a-z0-9_]+) does not exist/i);
+        if (!match) return null;
+        return match[1] ? String(match[1]) : null;
+    }
+
+    private stripColumnFromSelect(select: string, column: string): string {
+        if (!select) return select;
+        const normalized = column.trim();
+        const parts = select
+            .split(',')
+            .map(part => part.trim())
+            .filter(Boolean)
+            .filter(part => {
+                if (part === normalized) return false;
+                if (part.startsWith(`${normalized} `)) return false;
+                if (part.startsWith(`${normalized},`)) return false;
+                return true;
+            });
+        return parts.join(', ');
+    }
+
+    private shouldEnforceAlphabet(state: BotState): boolean {
+        return [
+            BotState.ENTERING_NAME,
+            BotState.ENTERING_TITLE,
+            BotState.ENTERING_ABOUT,
+            BotState.ADDING_SKILLS,
+            BotState.ENTERING_WORKPLACE,
+            BotState.ENTERING_EDUCATION_PLACE,

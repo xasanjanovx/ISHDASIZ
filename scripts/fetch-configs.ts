@@ -1,5 +1,5 @@
 
-const url = 'https://osonish.uz/api/api/v1/system-configs';
+const url = 'https://osonish.uz/api/v1/system-configs';
 const headers = {
     'Accept': 'application/json',
     'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',

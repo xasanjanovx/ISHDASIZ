@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { LANGUAGES_LIST, EDUCATION_OPTIONS, GENDER_OPTIONS } from '@/lib/constants';
+import { mapOsonishCategory } from '@/lib/mappers/osonish-mapper';
 import { Category, District } from '@/types/database';
 
 interface Experience {
@@ -57,6 +58,16 @@ interface Language {
     level: string;
 }
 
+interface OsonishField {
+    id: string | number;
+    title: string;
+    title_uz?: string | null;
+    title_ru?: string | null;
+    vacancies_count?: number | null;
+    category_id?: string | number | null;
+    category_title?: string | null;
+}
+
 export default function NewResumePage() {
     const { lang } = useLanguage();
     const router = useRouter();
@@ -76,6 +87,10 @@ export default function NewResumePage() {
     const [categories, setCategories] = useState<Category[]>([]);
     // const [districts, setDistricts] = useState<District[]>([]); // handled by LocationSelect
     const [selectedRegion, setSelectedRegion] = useState<string>('');
+    const [fields, setFields] = useState<OsonishField[]>([]);
+    const [fieldQuery, setFieldQuery] = useState('');
+    const [selectedField, setSelectedField] = useState<OsonishField | null>(null);
+    const [fieldCategory, setFieldCategory] = useState<Category | null>(null);
 
     const [form, setForm] = useState({
         title: '',
@@ -104,11 +119,75 @@ export default function NewResumePage() {
     const [educations, setEducations] = useState<Education[]>([]);
     const [languages, setLanguages] = useState<Language[]>([]);
 
+    const normalizeField = (value: string) => value
+        .toLowerCase()
+        .replace(/[\u2018\u2019\u02BC\u02BB`']/g, '')
+        .replace(/[^a-z\u0400-\u04FF0-9\s]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const filteredFields = useMemo(() => {
+        if (!fields.length) return [];
+        const query = normalizeField(fieldQuery);
+        if (query.length < 3) return [];
+        const scored = fields.map(field => {
+            const title = normalizeField(field.title_uz || field.title_ru || field.title || '');
+            let score = 0;
+            if (query && title === query) score += 100;
+            if (query && title.startsWith(query)) score += 60;
+            if (query && title.includes(query)) score += 40;
+            return { field, score };
+        });
+        const filtered = scored.filter(item => item.score > 0);
+        filtered.sort((a, b) => b.score - a.score);
+        return filtered.slice(0, 60).map(item => item.field);
+    }, [fields, fieldQuery]);
+
+    const handleFieldPick = (field: OsonishField) => {
+        setSelectedField(field);
+        const title = field.title_uz || field.title_ru || field.title || '';
+        setFieldQuery(title);
+        const mapped = mapOsonishCategory(field.category_title || title, null, form.title || '');
+        let categoryId = mapped?.categoryId || '';
+        if (!categoryId) {
+            const norm = normalizeField(field.category_title || title);
+            const match = categories.find(cat => {
+                const uz = normalizeField(cat.name_uz || '');
+                const ru = normalizeField(cat.name_ru || '');
+                return (uz && (norm === uz || norm.includes(uz))) || (ru && (norm === ru || norm.includes(ru)));
+            });
+            if (match) categoryId = match.id;
+        }
+        setForm(prev => ({ ...prev, category_id: categoryId }));
+        setFieldCategory(categories.find(cat => cat.id === categoryId) || null);
+    };
+
     useEffect(() => {
         if (searchParams.get('open_ai') === 'true') {
             setShowAIModal(true);
         }
     }, [searchParams]);
+
+    useEffect(() => {
+        const query = fieldQuery.trim();
+        if (query.length < 3) return;
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/osonish/fields?search=${encodeURIComponent(query)}`);
+                const payload = await response.json().catch(() => ({ fields: [] }));
+                if (!cancelled && Array.isArray(payload?.fields)) {
+                    setFields(payload.fields);
+                }
+            } catch {
+                // ignore transient search errors
+            }
+        }, 250);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [fieldQuery]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -388,6 +467,12 @@ export default function NewResumePage() {
     const handleSubmit = async (isDraft: boolean = false) => {
         if (!user?.id) return;
         setSaving(true);
+
+        if (!form.category_id || form.category_id.trim() === '') {
+            toast.error(lang === 'ru' ? 'Выберите близкую профессию' : 'Lavozimga yaqin kasbni tanlang');
+            setSaving(false);
+            return;
+        }
 
         // Required field validation (not for drafts)
         if (!isDraft) {
@@ -683,19 +768,42 @@ export default function NewResumePage() {
                                             )}
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-slate-700 font-medium">{lang === 'ru' ? 'Категория' : 'Kategoriya'}</Label>
-                                            <Select value={form.category_id} onValueChange={(val) => setForm({ ...form, category_id: val })}>
-                                                <SelectTrigger className="h-11">
-                                                    <SelectValue placeholder={lang === 'ru' ? 'Выберите категорию' : 'Kategoriyani tanlang'} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {categories.map(cat => (
-                                                        <SelectItem key={cat.id} value={cat.id}>
-                                                            {lang === 'uz' ? cat.name_uz : cat.name_ru}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <Label className="text-slate-700 font-medium">
+                                                {lang === 'ru' ? '??????? ????????? (??? ??????????? ?????????)' : 'Lavozimga yaqin kasb'} <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                value={fieldQuery}
+                                                onChange={(e) => {
+                                                    setFieldQuery(e.target.value);
+                                                    setSelectedField(null);
+                                                    setFieldCategory(null);
+                                                    setForm(prev => ({ ...prev, category_id: '' }));
+                                                }}
+                                                placeholder={lang === 'ru' ? '??????? ??????? ?????????' : 'Kasb nomini kiriting'}
+                                                className="h-11"
+                                            />
+                                            {filteredFields.length > 0 && (!selectedField || normalizeField(fieldQuery) !== normalizeField(selectedField.title_uz || selectedField.title_ru || selectedField.title)) && (
+                                                <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+                                                    {filteredFields.map(field => {
+                                                        const label = field.title_uz || field.title_ru || field.title;
+                                                        return (
+                                                            <button
+                                                                key={String(field.id)}
+                                                                type="button"
+                                                                onClick={() => handleFieldPick(field)}
+                                                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                            {fieldCategory && (
+                                                <p className="text-xs text-slate-500">
+                                                    {lang === 'ru' ? '?????????:' : 'Soha:'} {lang === 'uz' ? fieldCategory.name_uz : fieldCategory.name_ru}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </CardContent>

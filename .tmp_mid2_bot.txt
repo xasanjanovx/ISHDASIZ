@@ -1,0 +1,420 @@
+                        category_name: lang === 'uz' ? category?.name_uz : category?.name_ru
+                    }
+                }
+            });
+            await this.sendPrompt(chatId, session, botTexts.postJobSalary[lang], {
+                replyMarkup: keyboards.jobSalaryKeyboard(lang)
+            });
+            return;
+        }
+
+        if (this.isSubscriptionFlow(session)) {
+            const draft = { ...(session.data?.subscription_draft || {}) };
+            draft.category_ids = [categoryId];
+            draft.category_id = categoryId;
+            await this.updateSession(session.telegram_user_id, {
+                state: BotState.SELECTING_EMPLOYMENT,
+                data: { ...session.data, subscription_draft: draft }
+            });
+            const options = { replyMarkup: keyboards.employmentTypeKeyboard(lang) };
+            if (messageId) {
+                await editMessage(chatId, messageId, botTexts.askEmploymentType[lang], options);
+            } else {
+                await sendMessage(chatId, botTexts.askEmploymentType[lang], options);
+            }
+            return;
+        }
+
+        const updatedData = {
+            ...session.data,
+            resume: {
+                ...session.data?.resume,
+                category_id: categoryId,
+                category_name: lang === 'uz' ? category?.name_uz : category?.name_ru
+            }
+        };
+        await this.setSession(session, {
+            state: BotState.SELECTING_EXPERIENCE,
+            data: updatedData
+        });
+        const options = { replyMarkup: keyboards.experienceKeyboard(lang) };
+        if (messageId) {
+            await editMessage(chatId, messageId, botTexts.askExperience[lang], options);
+        } else {
+            await sendMessage(chatId, botTexts.askExperience[lang], options);
+        }
+    }
+
+    private async handleFieldSelect(chatId: number, fieldId: string, session: TelegramSession, messageId?: number): Promise<void> {
+        const lang = session.lang;
+        const context = session.data?.field_context || 'resume';
+        const title = context === 'job'
+            ? (session.data?.temp_job?.title || '')
+            : (session.data?.resume?.title || '');
+        const resolved = await this.resolveCategoryFromFieldId(fieldId, title);
+        if (!resolved) {
+            const fields = await this.getOsonishFields();
+            const fallback = session.data?.field_options || fields;
+            await this.setSession(session, {
+                state: BotState.SELECTING_FIELD,
+                data: {
+                    ...session.data,
+                    field_context: context,
+                    field_query: session.data?.field_query || title,
+                    field_options: fallback
+                }
+            });
+            await this.sendPrompt(chatId, session, botTexts.askField[lang], {
+                replyMarkup: keyboards.fieldsKeyboard(lang, fallback.length ? fallback : fields, context === 'job' ? 'job_title' : 'title')
+            });
+            return;
+        }
+
+        const fields = await this.getOsonishFields();
+        const selectedField = fields.find(field => String(field.id) === String(fieldId));
+        const fieldTitle = selectedField?.title_uz || selectedField?.title_ru || selectedField?.title || null;
+
+        if (context === 'job') {
+            const updatedJob = {
+                ...session.data?.temp_job,
+                category_id: resolved.id,
+                category_name: lang === 'uz' ? resolved.name_uz : resolved.name_ru,
+                field_id: fieldId,
+                field_title: fieldTitle
+            };
+            await this.updateSession(session.telegram_user_id, {
+                state: BotState.POSTING_JOB_SALARY,
+                data: { ...session.data, temp_job: updatedJob, field_context: null }
+            });
+            await this.sendPrompt(chatId, session, botTexts.postJobSalary[lang], {
+                replyMarkup: keyboards.jobSalaryKeyboard(lang)
+            });
+            return;
+        }
+
+        const updatedData = {
+            ...session.data,
+            resume: {
+                ...session.data?.resume,
+                category_id: resolved.id,
+                category_ids: [resolved.id],
+                category_name: lang === 'uz' ? resolved.name_uz : resolved.name_ru,
+                field_id: fieldId,
+                field_title: fieldTitle
+            },
+            field_context: null
+        };
+        await this.setSession(session, { state: BotState.SELECTING_REGION, data: updatedData });
+        const regions = await this.getRegions();
+        await this.sendPrompt(chatId, session, botTexts.askRegion[lang], {
+            replyMarkup: keyboards.regionKeyboard(lang, regions, 'title')
+        });
+    }
+
+    private async handleMultiCategory(chatId: number, value: string, session: TelegramSession, messageId?: number): Promise<void> {
+        const lang = session.lang;
+        const fallbackCategories = await this.getCategories();
+        const categories = this.getCategoryOptionsFromSession(session, fallbackCategories);
+        const categoryCounts = session.data?.category_counts || {};
+
+        if (value === 'done') {
+            const selectedCategories = session.data?.selected_categories || [];
+            if (selectedCategories.length === 0) {
+                const options = { replyMarkup: keyboards.multiCategoryKeyboard(lang, [], categories as any, categoryCounts, 'district') };
+                if (messageId) {
+                    await editMessage(chatId, messageId, botTexts.askCategory[lang], options);
+                } else {
+                    await sendMessage(chatId, botTexts.askCategory[lang], options);
+                }
+                return;
+            }
+
+            if (this.isSubscriptionFlow(session)) {
+                const draft = { ...(session.data?.subscription_draft || {}) };
+                draft.category_ids = selectedCategories;
+                draft.category_id = selectedCategories[0] || null;
+                const updatedData = { ...session.data, subscription_draft: draft };
+                await this.setSession(session, {
+                    state: BotState.SELECTING_EMPLOYMENT,
+                    data: updatedData
+                });
+                const options = { replyMarkup: keyboards.employmentTypeKeyboard(lang) };
+                if (messageId) {
+                    await editMessage(chatId, messageId, botTexts.askEmploymentType[lang], options);
+                } else {
+                    await sendMessage(chatId, botTexts.askEmploymentType[lang], options);
+                }
+                return;
+            }
+
+            if (session.data?.edit_mode && session.data?.active_resume_id) {
+                const updatedResume = {
+                    ...session.data?.resume,
+                    category_ids: selectedCategories,
+                    category_id: selectedCategories[0] || null
+                };
+                await this.saveResume(session, updatedResume, session.data.active_resume_id);
+                const updatedData = { ...session.data, edit_mode: false, edit_field: null, resume: updatedResume };
+                await this.setSession(session, { data: updatedData });
+                await this.showResumeById(chatId, session.data.active_resume_id, session);
+                return;
+            }
+
+            // Proceed to next step
+            const updatedData = {
+                ...session.data,
+                resume: {
+                    ...session.data?.resume,
+                    category_ids: selectedCategories,
+                    category_id: selectedCategories[0]
+                }
+            };
+            await this.setSession(session, {
+                state: BotState.SELECTING_EXPERIENCE,
+                data: updatedData
+            });
+            const options = { replyMarkup: keyboards.experienceKeyboard(lang) };
+            if (messageId) {
+                try {
+                    await deleteMessage(chatId, messageId);
+                } catch {
+                    // ignore
+                }
+            }
+            await this.sendPrompt(chatId, session, botTexts.askExperience[lang], options);
+            return;
+        }
+
+        // Toggle category selection
+        let selectedCategories = session.data?.selected_categories || [];
+        if (value === 'all') {
+            const allIds = categories.map(cat => cat.id);
+            const allSelected = selectedCategories.length === allIds.length;
+            selectedCategories = allSelected ? [] : allIds;
+        } else {
+            const index = selectedCategories.indexOf(value);
+            if (index === -1) {
+                selectedCategories.push(value);
+            } else {
+                selectedCategories.splice(index, 1);
+            }
+        }
+
+        const updatedData = { ...session.data, selected_categories: selectedCategories };
+        await this.setSession(session, { data: updatedData });
+
+        const options = { replyMarkup: keyboards.multiCategoryKeyboard(lang, selectedCategories, categories as any, categoryCounts, 'district') };
+        if (messageId) {
+            await editMessage(chatId, messageId, botTexts.categorySelected[lang], options);
+        } else {
+            await sendMessage(chatId, botTexts.categorySelected[lang], options);
+        }
+    }
+
+    private async handleExperienceSelect(chatId: number, value: string, session: TelegramSession, messageId?: number): Promise<void> {
+        const lang = session.lang;
+
+        if (session.state === BotState.POSTING_JOB_EXPERIENCE) {
+            const updatedJob = { ...session.data?.temp_job, experience: value === 'any' ? null : value };
+            await this.setSession(session, {
+                state: BotState.POSTING_JOB_EDUCATION,
+                data: { ...session.data, temp_job: updatedJob }
+            });
+            await this.sendPrompt(chatId, session, botTexts.jobEducationPrompt[lang], {
+                replyMarkup: keyboards.jobEducationKeyboard(lang)
+            });
+            return;
+        }
+
+        if (session.data?.edit_mode && session.data?.active_resume_id) {
+            const updatedResume = { ...session.data?.resume, experience_level: value, experience: value };
+            await this.saveResume(session, updatedResume, session.data.active_resume_id);
+            const updatedData = { ...session.data, edit_mode: false, edit_field: null, resume: updatedResume };
+            await this.setSession(session, { data: updatedData });
+            await this.showResumeById(chatId, session.data.active_resume_id, session);
+            return;
+        }
+
+        if (this.isSubscriptionFlow(session)) {
+            const draft = { ...(session.data?.subscription_draft || {}) };
+            draft.experience = value;
+            const updatedData = { ...session.data, subscription_draft: draft };
+            await this.setSession(session, {
+                state: BotState.SELECTING_EDUCATION,
+                data: updatedData
+            });
+            const options = { replyMarkup: keyboards.educationKeyboard(lang) };
+            if (messageId) {
+                await editMessage(chatId, messageId, botTexts.askEducation[lang], options);
+            } else {
+                await sendMessage(chatId, botTexts.askEducation[lang], options);
+            }
+            return;
+        }
+
+        const updatedData = {
+            ...session.data,
+            resume: { ...session.data?.resume, experience_level: value, experience: value }
+        };
+        if (this.shouldAskWorkplace(updatedData.resume)) {
+            await this.setSession(session, {
+                state: BotState.ENTERING_WORKPLACE,
+                data: { ...updatedData, workplace_stage: 'after_experience' }
+            });
+            await this.setFlowCancelKeyboard(chatId, session, 'back');
+            if (messageId) {
+                try {
+                    await deleteMessage(chatId, messageId);
+                } catch {
+                    // ignore
+                }
+            }
+            await this.sendPrompt(chatId, session, botTexts.askWorkplace[lang], {
+                replyMarkup: keyboards.backKeyboard(lang, 'experience')
+            });
+            return;
+        }
+
+        await this.setSession(session, {
+            state: BotState.SELECTING_EDUCATION,
+            data: updatedData
+        });
+        const options = { replyMarkup: keyboards.educationKeyboard(lang) };
+        if (messageId) {
+            try {
+                await deleteMessage(chatId, messageId);
+            } catch {
+                // ignore
+            }
+        }
+        await this.sendPrompt(chatId, session, botTexts.askEducation[lang], options);
+    }
+
+    private async handleEducationSelect(chatId: number, value: string, session: TelegramSession, messageId?: number): Promise<void> {
+        const lang = session.lang;
+        if (value === 'done') {
+            await this.finishEducationStep(chatId, session);
+            return;
+        }
+
+        if (session.state === BotState.POSTING_JOB_EDUCATION) {
+            const updatedJob = { ...session.data?.temp_job, education_level: value };
+            await this.setSession(session, {
+                state: BotState.POSTING_JOB_GENDER,
+                data: { ...session.data, temp_job: updatedJob }
+            });
+            await this.sendPrompt(chatId, session, botTexts.jobGenderPrompt[lang], {
+                replyMarkup: keyboards.jobGenderKeyboard(lang)
+            });
+            return;
+        }
+
+        if (session.data?.flow === 'geo_requirements') {
+            const resumeId = session.data?.geo_requirements_resume_id || session.data?.active_resume_id;
+            if (resumeId) {
+                await this.saveResumePartial(session, resumeId, { education_level: value });
+            }
+            const nextData = {
+                ...session.data,
+                resume: { ...session.data?.resume, education_level: value },
+                geo_requirements_need_education: false
+            };
+            if ((nextData as any).geo_requirements_need_gender) {
+                await this.setSession(session, {
+                    state: BotState.SELECTING_GENDER,
+                    data: nextData
+                });
+                const options = { replyMarkup: keyboards.genderKeyboard(lang, false) };
+                if (messageId) {
+                    await editMessage(chatId, messageId, botTexts.askGender[lang], options);
+                } else {
+                    await this.sendPrompt(chatId, session, botTexts.askGender[lang], options);
+                }
+                return;
+            }
+
+            await this.setSession(session, {
+                state: BotState.REQUESTING_LOCATION,
+                data: {
+                    ...nextData,
+                    flow: null,
+                    location_intent: 'job_search_geo',
+                    clean_inputs: true
+                }
+            });
+            await this.sendPrompt(chatId, session, botTexts.locationRequest[lang], {
+                replyMarkup: keyboards.locationRequestKeyboard(lang)
+            });
+            return;
+        }
+
+        if (session.data?.flow === 'resume_requirements') {
+            const resumeId = session.data?.resume_requirements_resume_id || session.data?.active_resume_id;
+            if (resumeId) {
+                await this.saveResumePartial(session, resumeId, { education_level: value });
+            }
+            const nextData = {
+                ...session.data,
+                resume: { ...session.data?.resume, education_level: value },
+                resume_requirements_need_education: false
+            };
+            if ((nextData as any).resume_requirements_need_gender) {
+                await this.setSession(session, {
+                    state: BotState.SELECTING_GENDER,
+                    data: nextData
+                });
+                const options = { replyMarkup: keyboards.genderKeyboard(lang, false) };
+                if (messageId) {
+                    await editMessage(chatId, messageId, botTexts.askGender[lang], options);
+                } else {
+                    await this.sendPrompt(chatId, session, botTexts.askGender[lang], options);
+                }
+                return;
+            }
+
+            await this.setSession(session, {
+                state: BotState.BROWSING_JOBS,
+                data: { ...nextData, flow: null, clean_inputs: true }
+            });
+            const refreshed = resumeId
+                ? (await this.supabase.from('resumes').select('*').eq('id', resumeId).maybeSingle()).data
+                : null;
+            if (refreshed) {
+                await this.startJobSearchByResume(chatId, session, refreshed);
+            }
+            return;
+        }
+
+        if (session.data?.edit_mode && session.data?.active_resume_id) {
+            const updatedResume = { ...session.data?.resume, education_level: value };
+            await this.saveResume(session, updatedResume, session.data.active_resume_id);
+            const updatedData = { ...session.data, edit_mode: false, edit_field: null, resume: updatedResume };
+            await this.setSession(session, { data: updatedData });
+            await this.showResumeById(chatId, session.data.active_resume_id, session);
+            return;
+        }
+
+        if (this.isSubscriptionFlow(session)) {
+            const draft = { ...(session.data?.subscription_draft || {}) };
+            draft.education_level = value;
+            await this.updateSession(session.telegram_user_id, {
+                state: BotState.SELECTING_GENDER,
+                data: { ...session.data, subscription_draft: draft }
+            });
+            const options = { replyMarkup: keyboards.genderKeyboard(lang, false) };
+            if (messageId) {
+                await editMessage(chatId, messageId, botTexts.askGender[lang], options);
+            } else {
+                await sendMessage(chatId, botTexts.askGender[lang], options);
+            }
+            return;
+        }
+
+        const updatedData = {
+            ...session.data,
+            resume: { ...session.data?.resume, education_level: value }
+        };
+
+        const shouldAskEducationPlace = ['higher', 'master'].includes(String(value));
+        if (shouldAskEducationPlace) {
+            await this.setFlowCancelKeyboard(chatId, session, 'back');

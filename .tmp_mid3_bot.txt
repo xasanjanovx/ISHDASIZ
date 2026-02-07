@@ -1,0 +1,260 @@
+            await this.sendPrompt(chatId, session, jobSummary, { replyMarkup: keyboards.jobConfirmKeyboard(lang) });
+            return;
+        }
+
+
+        // RESUME
+        if (state === BotState.ENTERING_BIRTH_DATE) {
+            const parsed = this.parseBirthDateInput(text);
+            if (!parsed) {
+                await this.sendPrompt(chatId, session, botTexts.birthDateInvalid[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, 'name')
+                });
+                return;
+            }
+
+            if (session.data?.edit_mode && session.data?.active_resume_id) {
+                await this.saveResume(session, { ...session.data?.resume, birth_date: parsed }, session.data.active_resume_id);
+                const updatedData = { ...session.data, edit_mode: false, edit_field: null };
+                await this.setSession(session, { data: updatedData });
+                await this.showResumeById(chatId, session.data.active_resume_id, session);
+                return;
+            }
+
+            const updatedData = { ...session.data, resume: { ...session.data?.resume, birth_date: parsed } };
+            await this.setSession(session, {
+                state: BotState.SELECTING_GENDER,
+                data: updatedData
+            });
+            await this.sendPrompt(chatId, session, botTexts.askGender[lang], {
+                replyMarkup: keyboards.genderKeyboard(lang, false)
+            });
+            return;
+        }
+
+        if (state === BotState.SELECTING_FIELD) {
+            const query = text.trim();
+            const fields = await this.getOsonishFields();
+            if (!fields.length) {
+                await this.sendPrompt(chatId, session, botTexts.error[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, session.data?.field_context === 'job' ? 'job_title' : 'title')
+                });
+                return;
+            }
+            const matches = this.pickFieldMatches(fields, query);
+            const backAction = session.data?.field_context === 'job' ? 'job_title' : 'title';
+            await this.setSession(session, {
+                data: { ...session.data, field_query: query, field_options: matches }
+            });
+            await this.sendPrompt(chatId, session, botTexts.askField[lang], {
+                replyMarkup: keyboards.fieldsKeyboard(lang, matches.length ? matches : fields, backAction)
+            });
+            return;
+        }
+
+        if (state === BotState.ENTERING_TITLE) {
+            if (session.data?.edit_mode && session.data?.active_resume_id) {
+                await this.saveResume(session, { ...session.data?.resume, title: text }, session.data.active_resume_id);
+                const updatedData = { ...session.data, edit_mode: false, edit_field: null };
+                await this.setSession(session, { data: updatedData });
+                await this.showResumeById(chatId, session.data.active_resume_id, session);
+                return;
+            }
+            const title = text.trim();
+            const updatedData = { ...session.data, resume: { ...session.data?.resume, title } };
+            const fields = await this.getOsonishFields();
+            if (!fields.length) {
+                const resolved = await this.resolveCategoryFromTitleOrField(title);
+                if (resolved) {
+                    const nextData = {
+                        ...updatedData,
+                        resume: {
+                            ...updatedData.resume,
+                            category_id: resolved.id,
+                            category_name: lang === 'uz' ? resolved.name_uz : resolved.name_ru
+                        }
+                    };
+                    await this.setSession(session, {
+                        state: BotState.SELECTING_REGION,
+                        data: nextData
+                    });
+                    const regions = await this.getRegions();
+                    await this.sendPrompt(chatId, session, botTexts.askRegion[lang], {
+                        replyMarkup: keyboards.regionKeyboard(lang, regions, 'title')
+                    });
+                    return;
+                }
+                await this.sendPrompt(chatId, session, botTexts.error[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, 'gender')
+                });
+                return;
+            }
+            const matches = this.pickFieldMatches(fields, title);
+            await this.setSession(session, {
+                state: BotState.SELECTING_FIELD,
+                data: { ...updatedData, field_context: 'resume', field_query: title, field_options: matches }
+            });
+            await this.sendPrompt(chatId, session, botTexts.askField[lang], {
+                replyMarkup: keyboards.fieldsKeyboard(lang, matches.length ? matches : fields, 'title')
+            });
+            return;
+        }
+
+        if (state === BotState.ENTERING_NAME) {
+            if (session.data?.edit_mode && session.data?.active_resume_id) {
+                await this.saveResume(session, { ...session.data?.resume, full_name: text }, session.data.active_resume_id);
+                const updatedData = { ...session.data, edit_mode: false, edit_field: null };
+                await this.setSession(session, { data: updatedData });
+                await this.showResumeById(chatId, session.data.active_resume_id, session);
+                return;
+            }
+            const updatedData = { ...session.data, resume: { ...session.data?.resume, full_name: text } };
+            await this.setSession(session, {
+                state: BotState.ENTERING_BIRTH_DATE,
+                data: updatedData
+            });
+            const options = { replyMarkup: keyboards.backKeyboard(lang, 'name') };
+            await this.sendPrompt(chatId, session, botTexts.askBirthDate[lang], options);
+            return;
+        }
+
+        if (state === BotState.ENTERING_ABOUT) {
+            const lowerText = text.toLowerCase();
+            if (lowerText === "o'tkazib yuborish" || lowerText === 'пропустить') {
+                await this.handleSkip(chatId, session);
+                return;
+            }
+            const aboutText = text;
+            if (session.data?.edit_mode && session.data?.active_resume_id) {
+                await this.saveResume(session, { ...session.data?.resume, about: aboutText }, session.data.active_resume_id);
+                const updatedData = { ...session.data, edit_mode: false, edit_field: null };
+                await this.setSession(session, { data: updatedData });
+                await this.showResumeById(chatId, session.data.active_resume_id, session);
+                return;
+            }
+            const updatedData = { ...session.data, resume: { ...session.data?.resume, about: aboutText } };
+            await this.setSession(session, {
+                state: BotState.ADDING_SKILLS,
+                data: updatedData
+            });
+            const options = { replyMarkup: keyboards.skillsInlineKeyboard(lang, false, 'about') };
+            await this.sendPrompt(chatId, session, botTexts.askSkills[lang], options);
+            return;
+        }
+
+        if (state === BotState.ADDING_SKILLS) {
+            const skipText = text.toLowerCase();
+            const currentSkills = session.data?.resume?.skills || [];
+            if ((skipText === "o'tkazib yuborish" || skipText === 'пропустить') && currentSkills.length === 0) {
+                await this.handleSkip(chatId, session);
+                return;
+            }
+            const lower = text.toLowerCase();
+            if (lower === 'tayyor' || lower === 'готово') {
+                await this.finishSkills(chatId, session);
+                return;
+            }
+            const items = text.split(',').map(item => item.trim()).filter(Boolean);
+            items.forEach(item => {
+                if (!currentSkills.includes(item)) currentSkills.push(item);
+            });
+            const updatedData = { ...session.data, resume: { ...session.data?.resume, skills: currentSkills } };
+            await this.setSession(session, { data: updatedData });
+            const addedItems = items.length > 0 ? items : [text];
+            const addedText = addedItems.join(', ');
+            await this.sendPrompt(chatId, session, `${botTexts.skillAdded[lang]} ${addedText}`, {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.skillsInlineKeyboard(lang, currentSkills.length > 0, 'about')
+            });
+            return;
+        }
+
+        if (state === BotState.ENTERING_WORKPLACE) {
+            const raw = text.trim();
+            if (!raw) {
+                await this.sendPrompt(chatId, session, botTexts.askWorkplace[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, 'experience')
+                });
+                return;
+            }
+            const parts = raw.split(/Ч|Ц|-/).map(p => p.trim()).filter(Boolean);
+            const company = parts[0] || raw;
+            const position = parts.length > 1 ? parts.slice(1).join(' - ') : '';
+            await this.setSession(session, {
+                state: BotState.ENTERING_WORKPLACE_YEARS,
+                data: { ...session.data, workplace_pending: { company, position } }
+            });
+            await this.sendPrompt(chatId, session, botTexts.askWorkStartYear[lang], {
+                replyMarkup: keyboards.backKeyboard(lang, 'workplace')
+            });
+            return;
+        }
+
+        if (state === BotState.ENTERING_WORKPLACE_YEARS) {
+            const startYear = this.parseYearInput(text);
+            if (!startYear) {
+                await this.sendPrompt(chatId, session, botTexts.workStartYearInvalid[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, 'workplace')
+                });
+                return;
+            }
+            const pending = session.data?.workplace_pending || {};
+            await this.setSession(session, {
+                state: BotState.ENTERING_WORKPLACE_END_YEAR,
+                data: { ...session.data, workplace_pending: { ...pending, start_year: startYear } }
+            });
+            await this.sendPrompt(chatId, session, botTexts.askWorkEndYear[lang], {
+                replyMarkup: keyboards.workEndYearKeyboard(lang)
+            });
+            return;
+        }
+
+        if (state === BotState.ENTERING_WORKPLACE_END_YEAR) {
+            const pending = session.data?.workplace_pending || {};
+            const startYear = Number(pending.start_year);
+            const endParsed = this.parseEndYearInput(text);
+            if (!endParsed) {
+                await this.sendPrompt(chatId, session, botTexts.workEndYearInvalid[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, 'workstart')
+                });
+                return;
+            }
+            const endYear = endParsed.end_year ?? null;
+            if (endYear && startYear && endYear < startYear) {
+                await this.sendPrompt(chatId, session, botTexts.workEndYearInvalid[lang], {
+                    replyMarkup: keyboards.backKeyboard(lang, 'workstart')
+                });
+                return;
+            }
+            const company = pending.company || '';
+            const position = pending.position || '';
+            const previous = Array.isArray(session.data?.resume?.experience_details) ? session.data?.resume?.experience_details : [];
+            const experienceEntry = {
+                company,
+                position,
+                start_year: startYear || undefined,
+                end_year: endYear || undefined,
+                is_current: endParsed.is_current || false
+            };
+            const experienceDetails = [...previous, experienceEntry];
+            const updatedData = {
+                ...session.data,
+                resume: { ...session.data?.resume, experience_details: experienceDetails },
+                workplace_stage: session.data?.workplace_stage ?? null,
+                workplace_pending: null
+            };
+            await this.setSession(session, { data: updatedData });
+            if (session.data?.edit_mode && session.data?.active_resume_id) {
+                await this.saveResume(session, { ...session.data?.resume, experience_details: experienceDetails }, session.data.active_resume_id);
+            }
+            const yearsLabel = this.formatWorkYears(experienceEntry);
+            await this.sendPrompt(
+                chatId,
+                session,
+                `${botTexts.skillAdded[lang]} ${company}${position ? ` Ч ${position}` : ''}${yearsLabel ? ` (${yearsLabel})` : ''}\n${botTexts.entryContinueHint[lang]}`,
+                { parseMode: 'HTML', replyMarkup: keyboards.workplaceContinueKeyboard(lang) }
+            );
+            return;
+        }
+
+        if (state === BotState.ENTERING_EDUCATION_PLACE) {

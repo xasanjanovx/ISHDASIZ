@@ -24,7 +24,15 @@ interface RegionCache { id: number; name_uz: string; name_ru: string; slug: stri
 interface DistrictCache { id: number; name_uz: string; name_ru: string; region_id: number; }
 interface CategoryCache { id: string; name_uz: string; name_ru: string; }
 interface OsonishRegion { id: number; name_uz?: string; name_ru?: string; soato?: number; }
-interface OsonishCity { id: number; name_uz?: string; name_ru?: string; region_id?: number; soato_region?: number; }
+interface OsonishCity { id: number; name_uz?: string; name_ru?: string; region_id?: number; soato_region?: number; soato?: number; }
+interface ProfessionAccumulator {
+    id: number;
+    title_uz: string;
+    title_ru: string | null;
+    category_id: string | null;
+    category_title: string | null;
+    vacancies_count: number;
+}
 
 type RegionType = 'city' | 'region' | 'republic' | null;
 type DistrictType = 'city' | 'district' | null;
@@ -52,8 +60,25 @@ let districtsCacheNorm: DistrictCacheNorm[] = [];
 // Runtime maps for OsonIsh -> ISHDASIZ IDs (built by name)
 let runtimeRegionMap: Map<string, number> = new Map();
 let runtimeDistrictMap: Map<string, number> = new Map();
+let importRunActive = false;
+let importRunStartedAt = 0;
 
-const OSONISH_API_BASE = 'https://osonish.uz/api/api/v1';
+const trimOsonishBase = (value: string) => value.replace(/\/+$/, '');
+const buildOsonishBaseCandidates = (value: string): string[] => {
+    const cleaned = trimOsonishBase(value);
+    if (!cleaned) return [];
+    if (cleaned.endsWith('/api/api/v1')) return [cleaned, cleaned.replace('/api/api/v1', '/api/v1')];
+    if (cleaned.endsWith('/api/v1')) return [cleaned, cleaned.replace('/api/v1', '/api/api/v1')];
+    return [`${cleaned}/api/v1`, `${cleaned}/api/api/v1`];
+};
+const OSONISH_API_BASE_ENV = process.env.OSONISH_API_BASE?.trim();
+const OSONISH_API_BASES = Array.from(new Set([
+    'https://osonish.uz/api/v1',
+    'https://osonish.uz/api/api/v1',
+    ...(OSONISH_API_BASE_ENV ? buildOsonishBaseCandidates(OSONISH_API_BASE_ENV) : [])
+]));
+let OSONISH_API_BASE = OSONISH_API_BASES[0] || 'https://osonish.uz/api/v1';
+let OSONISH_API_BASE_RESOLVED = false;
 const OSONISH_HEADERS: Record<string, string> = {
     'Accept': 'application/json',
     'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',
@@ -70,6 +95,73 @@ const OSONISH_HEADERS: Record<string, string> = {
     'Cache-Control': 'no-cache',
     'Pragma': 'no-cache'
 };
+const OSONISH_COOKIE = process.env.OSONISH_COOKIE;
+const OSONISH_TOKEN = process.env.OSONISH_BEARER_TOKEN || process.env.OSONISH_API_TOKEN;
+const OSONISH_USER_ID = process.env.OSONISH_USER_ID || process.env.OSONISH_CURRENT_USER_ID;
+if (OSONISH_COOKIE) OSONISH_HEADERS.Cookie = OSONISH_COOKIE;
+if (OSONISH_TOKEN) OSONISH_HEADERS.Authorization = OSONISH_TOKEN.startsWith('Bearer ') ? OSONISH_TOKEN : `Bearer ${OSONISH_TOKEN}`;
+if (OSONISH_USER_ID) OSONISH_HEADERS['x-current-user-id'] = OSONISH_USER_ID;
+const OSONISH_HAS_AUTH_HEADERS = Boolean(OSONISH_COOKIE || OSONISH_TOKEN || OSONISH_USER_ID);
+const OSONISH_PUBLIC_HEADERS = Object.fromEntries(
+    Object.entries(OSONISH_HEADERS).filter(([key]) => !['Cookie', 'Authorization', 'x-current-user-id'].includes(key))
+) as Record<string, string>;
+
+async function fetchWithHeaderFallback(url: string): Promise<Response> {
+    let response = await fetch(url, { headers: OSONISH_HEADERS });
+    // Some expired auth headers can cause 403/404 on Osonish; retry publicly.
+    if (OSONISH_HAS_AUTH_HEADERS && [401, 403, 404].includes(response.status)) {
+        const publicResponse = await fetch(url, { headers: OSONISH_PUBLIC_HEADERS });
+        if (publicResponse.ok || ![401, 403, 404].includes(publicResponse.status)) {
+            response = publicResponse;
+        }
+    }
+    return response;
+}
+
+async function resolveOsonishBase(): Promise<string> {
+    if (OSONISH_API_BASE_RESOLVED) return OSONISH_API_BASE;
+    const isUsableProbeStatus = (status: number) => {
+        if ([401, 403, 404].includes(status)) return false;
+        return status >= 200 && status < 500;
+    };
+
+    for (const base of OSONISH_API_BASES) {
+        try {
+            // Probe vacancies endpoint as primary signal; regions can be blocked in some contexts.
+            const probe = `${base}/vacancies?page=1&per_page=1&status=2&sort_key=created_at&sort_type=desc`;
+            const res = await fetchWithHeaderFallback(probe);
+            if (isUsableProbeStatus(res.status)) {
+                OSONISH_API_BASE = base;
+                OSONISH_API_BASE_RESOLVED = true;
+                return OSONISH_API_BASE;
+            }
+        } catch {
+            // ignore and try next base
+        }
+    }
+
+    OSONISH_API_BASE = 'https://osonish.uz/api/v1';
+    OSONISH_API_BASE_RESOLVED = true;
+    return OSONISH_API_BASE;
+}
+
+async function fetchOsonish(path: string): Promise<Response> {
+    const base = await resolveOsonishBase();
+    let response = await fetchWithHeaderFallback(`${base}${path}`);
+    if ([401, 403, 404].includes(response.status)) {
+        for (const alt of OSONISH_API_BASES) {
+            if (alt === base) continue;
+            const altResponse = await fetchWithHeaderFallback(`${alt}${path}`);
+            if (![401, 403, 404].includes(altResponse.status)) {
+                OSONISH_API_BASE = alt;
+                OSONISH_API_BASE_RESOLVED = true;
+                response = altResponse;
+                break;
+            }
+        }
+    }
+    return response;
+}
 
 let osonishRegionById: Map<number, OsonishRegion> = new Map();
 let osonishCityById: Map<number, OsonishCity> = new Map();
@@ -80,7 +172,7 @@ async function loadOsonishGeoCache(): Promise<void> {
     if (osonishRegionById.size > 0) return;
 
     try {
-        const res = await fetch(`${OSONISH_API_BASE}/regions`, { headers: OSONISH_HEADERS });
+        const res = await fetchOsonish(`/regions`);
         if (!res.ok) {
             console.warn(`[OSONISH] Failed to fetch regions: ${res.status} ${res.statusText}`);
             return;
@@ -103,8 +195,7 @@ async function loadOsonishGeoCache(): Promise<void> {
         const cityPromises = regions.map(async (region) => {
             const soato = region?.soato;
             if (!soato) return;
-            const url = `${OSONISH_API_BASE}/cities?region_soato=${soato}`;
-            const cityRes = await fetch(url, { headers: OSONISH_HEADERS });
+            const cityRes = await fetchOsonish(`/cities?region_soato=${soato}`);
             if (!cityRes.ok) return;
             const cityJson = await cityRes.json();
             const rawCities = Array.isArray(cityJson?.data)
@@ -163,7 +254,7 @@ function buildRuntimeGeoMaps(): void {
         return;
     }
 
-    for (const region of osonishRegionById.values()) {
+    for (const region of Array.from(osonishRegionById.values())) {
         const name = region?.name_uz || region?.name_ru;
         if (!name) continue;
         const mapped = lookupRegionId(name);
@@ -173,7 +264,7 @@ function buildRuntimeGeoMaps(): void {
         }
     }
 
-    for (const city of osonishCityById.values()) {
+    for (const city of Array.from(osonishCityById.values())) {
         const name = city?.name_uz || city?.name_ru;
         if (!name) continue;
         let mappedRegionId: number | null = null;
@@ -622,6 +713,17 @@ async function upsertBatchWithRetry(chunk: any[], retries = 3): Promise<{ error:
  * All data comes directly from OsonIsh API in structured format
  */
 export async function GET(request: NextRequest) {
+    if (importRunActive) {
+        return NextResponse.json({
+            success: false,
+            source: 'osonish',
+            message: 'Import already running',
+            running_ms: Date.now() - importRunStartedAt
+        }, { status: 409 });
+    }
+
+    importRunActive = true;
+    importRunStartedAt = Date.now();
     try {
         console.log('[OSONISH] Starting OsonIsh-only import (no AI)...');
         const startTime = Date.now();
@@ -673,6 +775,7 @@ export async function GET(request: NextRequest) {
         // ...
 
         const validJobs: any[] = [];
+        const professionsMap = new Map<number, ProfessionAccumulator>();
 
         for (const vacancy of result.vacancies) {
             try {
@@ -886,6 +989,37 @@ export async function GET(request: NextRequest) {
                     }
                 }
 
+                const mmkIdRaw = raw?.mmk_position?.id ?? raw?.mmk_position_id ?? null;
+                const mmkId = Number(mmkIdRaw);
+                const mmkTitle = String(
+                    raw?.mmk_position?.position_name
+                    || raw?.mmk_position?.name
+                    || raw?.field_title
+                    || ''
+                ).trim();
+                if (Number.isFinite(mmkId) && mmkId > 0 && mmkTitle.length > 1) {
+                    const existing = professionsMap.get(mmkId);
+                    const categoryInfo = categoryId
+                        ? categoriesCache.find(c => c.id === categoryId)
+                        : null;
+                    if (existing) {
+                        existing.vacancies_count += 1;
+                        if (!existing.category_id && categoryId) {
+                            existing.category_id = categoryId;
+                            existing.category_title = categoryInfo?.name_uz || mappingResult?.categoryName || null;
+                        }
+                    } else {
+                        professionsMap.set(mmkId, {
+                            id: mmkId,
+                            title_uz: mmkTitle,
+                            title_ru: null,
+                            category_id: categoryId,
+                            category_title: categoryInfo?.name_uz || mappingResult?.categoryName || null,
+                            vacancies_count: 1
+                        });
+                    }
+                }
+
                 const salary = normalizeSalaryRange(
                     vacancy.salary_min ?? raw.min_salary,
                     vacancy.salary_max ?? raw.max_salary
@@ -1031,6 +1165,28 @@ export async function GET(request: NextRequest) {
             console.warn('[OSONISH] Failed to deactivate stale jobs:', deactivateError.message);
         }
 
+        if (professionsMap.size > 0) {
+            const professionRows = Array.from(professionsMap.values());
+            const PROF_BATCH_SIZE = 200;
+            for (let i = 0; i < professionRows.length; i += PROF_BATCH_SIZE) {
+                const chunk = professionRows.slice(i, i + PROF_BATCH_SIZE);
+                const { error } = await upsertProfessionsBatch(chunk);
+                if (error) {
+                    console.warn(`[OSONISH] Profession batch failed (chunk ${Math.floor(i / PROF_BATCH_SIZE)}): ${error.message}`);
+                }
+            }
+
+            const { error: staleProfError } = await supabaseAdmin
+                .from('osonish_professions')
+                .update({ vacancies_count: 0 })
+                .eq('source', 'osonish')
+                .lt('last_seen_at', runStartedAt);
+
+            if (staleProfError) {
+                console.warn('[OSONISH] Failed to reset stale profession counters:', staleProfError.message);
+            }
+        }
+
         // ==================== UPDATE LOG ====================
 
         if (logId) {
@@ -1067,5 +1223,39 @@ export async function GET(request: NextRequest) {
     } catch (error: any) {
         console.error('[OSONISH] Error:', error);
         return NextResponse.json({ error: 'OsonIsh import failed', details: error.message }, { status: 500 });
+    } finally {
+        importRunActive = false;
+        importRunStartedAt = 0;
     }
+}
+
+async function upsertProfessionsBatch(chunk: ProfessionAccumulator[], retries = 3): Promise<{ error: any }> {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const now = new Date().toISOString();
+            const { error } = await supabaseAdmin.from('osonish_professions').upsert(
+                chunk.map(item => ({
+                    id: item.id,
+                    title_uz: item.title_uz,
+                    title_ru: item.title_ru,
+                    category_id: item.category_id,
+                    category_title: item.category_title,
+                    vacancies_count: item.vacancies_count,
+                    last_seen_at: now,
+                    source: 'osonish'
+                })),
+                {
+                    onConflict: 'id',
+                    ignoreDuplicates: false
+                }
+            );
+
+            if (!error) return { error: null };
+            if (i === retries - 1) return { error };
+        } catch (err: any) {
+            if (i === retries - 1) return { error: { message: err.message } };
+        }
+        await new Promise(r => setTimeout(r, 200 * Math.pow(2, i)));
+    }
+    return { error: { message: 'Max retries reached' } };
 }

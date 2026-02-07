@@ -6,7 +6,7 @@
 async function testOsonish() {
     console.log('\n=== Testing OSONISH.UZ ===\n');
 
-    const url = 'https://osonish.uz/api/api/v1/vacancies?page=1&per_page=5&status=2';
+    const url = 'https://osonish.uz/api/v1/vacancies?page=1&per_page=5&status=2';
     console.log('URL:', url);
 
     try {

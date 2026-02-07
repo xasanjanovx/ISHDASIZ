@@ -15,7 +15,19 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const OSONISH_API = 'https://osonish.uz/api/api/v1';
+const OSONISH_API_BASE_ENV = process.env.OSONISH_API_BASE?.trim();
+const trimBase = (value: string) => value.replace(/\/+$/, '');
+const toBaseCandidates = (value: string): string[] => {
+    const cleaned = trimBase(value);
+    if (!cleaned) return [];
+    if (cleaned.endsWith('/api/v1')) return [cleaned];
+    if (cleaned.endsWith('/api/api/v1')) return [cleaned.replace('/api/api/v1', '/api/v1')];
+    return [`${cleaned}/api/v1`];
+};
+const OSONISH_API_BASES = Array.from(new Set([
+    'https://osonish.uz/api/v1',
+    ...(OSONISH_API_BASE_ENV ? toBaseCandidates(OSONISH_API_BASE_ENV) : [])
+]));
 
 interface OsonishRegion {
     id: number;
@@ -36,17 +48,21 @@ interface OsonishDistrict {
 
 async function fetchOsonishRegions(): Promise<OsonishRegion[]> {
     try {
-        const response = await fetch(`${OSONISH_API}/regions`, {
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0',
-                'Referer': 'https://osonish.uz/vacancies'
-            },
-            next: { revalidate: 0 }
-        });
-        if (!response.ok) return [];
-        const json = await response.json();
-        return json.data || [];
+        for (const base of OSONISH_API_BASES) {
+            const response = await fetch(`${base}/regions`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': 'https://osonish.uz/vacancies'
+                },
+                next: { revalidate: 0 }
+            });
+            if (response.status === 404) continue;
+            if (!response.ok) return [];
+            const json = await response.json();
+            return json.data || [];
+        }
+        return [];
     } catch (error) {
         console.error('[SYNC] Failed to fetch regions:', error);
         return [];
@@ -57,20 +73,24 @@ async function fetchOsonishCities(region: OsonishRegion): Promise<OsonishDistric
     try {
         const regionSoato = region.region_soato ?? region.soato;
         const param = regionSoato ? `region_soato=${regionSoato}` : `region_id=${region.id}`;
-        const response = await fetch(`${OSONISH_API}/cities?${param}`, {
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0',
-                'Referer': 'https://osonish.uz/vacancies'
-            },
-            next: { revalidate: 0 }
-        });
-        if (!response.ok) return [];
-        const json = await response.json();
-        return (json.data || []).map((city: any) => ({
-            ...city,
-            region_id: region.id
-        }));
+        for (const base of OSONISH_API_BASES) {
+            const response = await fetch(`${base}/cities?${param}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': 'https://osonish.uz/vacancies'
+                },
+                next: { revalidate: 0 }
+            });
+            if (response.status === 404) continue;
+            if (!response.ok) return [];
+            const json = await response.json();
+            return (json.data || []).map((city: any) => ({
+                ...city,
+                region_id: region.id
+            }));
+        }
+        return [];
     } catch (error) {
         console.error(`[SYNC] Failed to fetch cities for region ${region.id}:`, error);
         return [];
@@ -215,3 +235,4 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+

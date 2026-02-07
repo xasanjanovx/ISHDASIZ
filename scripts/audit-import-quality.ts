@@ -22,7 +22,7 @@ interface ComparisonResult {
 
 async function fetchOsonishVacancy(id: number): Promise<any> {
     try {
-        const res = await fetch(`https://osonish.uz/api/api/v1/vacancies/${id}`, {
+        const res = await fetch(`https://osonish.uz/api/v1/vacancies/${id}`, {
             headers: { 'Accept': 'application/json' }
         });
         const data = await res.json();

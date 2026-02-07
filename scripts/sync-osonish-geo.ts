@@ -11,7 +11,7 @@
 
 import 'dotenv/config';
 
-const API_BASE = 'https://osonish.uz/api/api/v1';
+const API_BASE = 'https://osonish.uz/api/v1';
 const PER_PAGE = 100;
 const MAX_PAGES = 50;
 

@@ -30,7 +30,20 @@ export interface OsonishConfigs {
     benefits: Record<number, string>; // Additional benefits / social packages
 }
 
-const API_URL = 'https://osonish.uz/api/api/v1/system-configs';
+const API_BASE_ENV = process.env.OSONISH_API_BASE?.trim();
+const trimBase = (value: string) => value.replace(/\/+$/, '');
+const toBaseCandidates = (value: string): string[] => {
+    const cleaned = trimBase(value);
+    if (!cleaned) return [];
+    if (cleaned.endsWith('/api/api/v1')) return [cleaned, cleaned.replace('/api/api/v1', '/api/v1')];
+    if (cleaned.endsWith('/api/v1')) return [cleaned, cleaned.replace('/api/v1', '/api/api/v1')];
+    return [`${cleaned}/api/v1`, `${cleaned}/api/api/v1`];
+};
+const API_BASES = Array.from(new Set([
+    'https://osonish.uz/api/v1',
+    'https://osonish.uz/api/api/v1',
+    ...(API_BASE_ENV ? toBaseCandidates(API_BASE_ENV) : [])
+]));
 const DEFAULT_HEADERS: Record<string, string> = {
     'Accept': 'application/json',
     'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8,uz;q=0.7',
@@ -41,11 +54,47 @@ const DEFAULT_HEADERS: Record<string, string> = {
     'sec-ch-ua-platform': '"Windows"'
 };
 
+const buildHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { ...DEFAULT_HEADERS };
+    const cookie = process.env.OSONISH_COOKIE;
+    const token = process.env.OSONISH_BEARER_TOKEN || process.env.OSONISH_API_TOKEN;
+    const userId = process.env.OSONISH_USER_ID || process.env.OSONISH_CURRENT_USER_ID;
+    if (cookie) headers.Cookie = cookie;
+    if (token) headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    if (userId) headers['x-current-user-id'] = userId;
+    return headers;
+};
+
+const buildPublicHeaders = (): Record<string, string> => {
+    const headers = buildHeaders();
+    delete headers.Cookie;
+    delete headers.Authorization;
+    delete headers['x-current-user-id'];
+    return headers;
+};
+
+const hasAuthHeaders = (): boolean => {
+    return Boolean(
+        process.env.OSONISH_COOKIE
+        || process.env.OSONISH_BEARER_TOKEN
+        || process.env.OSONISH_API_TOKEN
+        || process.env.OSONISH_USER_ID
+        || process.env.OSONISH_CURRENT_USER_ID
+    );
+};
+
 export async function fetchOsonishConfigs(): Promise<OsonishConfigs | null> {
     try {
-        const response = await fetch(API_URL, { headers: DEFAULT_HEADERS });
+        let response: Response | null = null;
+        for (const base of API_BASES) {
+            response = await fetch(`${base}/system-configs`, { headers: buildHeaders() });
+            if (response.status === 404 && hasAuthHeaders()) {
+                response = await fetch(`${base}/system-configs`, { headers: buildPublicHeaders() });
+            }
+            if (response.status !== 404) break;
+        }
 
-        if (!response.ok) return null;
+        if (!response || !response.ok) return null;
 
         const json = await response.json();
         const data: ConfigItem[] = json.data;

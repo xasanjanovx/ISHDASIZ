@@ -19,7 +19,19 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const OSONISH_API = 'https://osonish.uz/api/api/v1';
+const OSONISH_API_BASE_ENV = process.env.OSONISH_API_BASE?.trim();
+const trimBase = (value: string) => value.replace(/\/+$/, '');
+const toBaseCandidates = (value: string): string[] => {
+    const cleaned = trimBase(value);
+    if (!cleaned) return [];
+    if (cleaned.endsWith('/api/v1')) return [cleaned];
+    if (cleaned.endsWith('/api/api/v1')) return [cleaned.replace('/api/api/v1', '/api/v1')];
+    return [`${cleaned}/api/v1`];
+};
+const OSONISH_API_BASES = Array.from(new Set([
+    'https://osonish.uz/api/v1',
+    ...(OSONISH_API_BASE_ENV ? toBaseCandidates(OSONISH_API_BASE_ENV) : [])
+]));
 
 interface OsonishRegion {
     id: number;
@@ -101,6 +113,17 @@ async function fetchJson(url: string, retries: number = 3): Promise<{ ok: boolea
     return { ok: false, status: 0, data: null, error: 'Unknown fetch error' };
 }
 
+async function fetchFromAnyBase(path: string): Promise<{ ok: boolean; status: number; data: any | null; error?: string }> {
+    let last: { ok: boolean; status: number; data: any | null; error?: string } = { ok: false, status: 404, data: null, error: 'Not found on all bases' };
+    for (const base of OSONISH_API_BASES) {
+        const res = await fetchJson(`${base}${path}`);
+        last = res;
+        if (res.status === 404) continue;
+        return res;
+    }
+    return last;
+}
+
 function extractDataArray(payload: any): any[] {
     if (!payload) return [];
     if (Array.isArray(payload.data)) return payload.data;
@@ -112,7 +135,7 @@ function extractDataArray(payload: any): any[] {
 // ==================== FETCH FUNCTIONS ====================
 
 async function fetchOsonishRegions(): Promise<OsonishRegion[]> {
-    const res = await fetchJson(`${OSONISH_API}/regions`);
+    const res = await fetchFromAnyBase('/regions');
     if (!res.ok) {
         console.error('[SYNC-STRICT] Regions fetch failed:', res.status, res.error || '');
         return [];
@@ -128,7 +151,7 @@ async function fetchOsonishDistricts(
     for (const region of regions) {
         const regionSoato = region.region_soato ?? region.soato ?? region.soato_code;
         const param = regionSoato ? `region_soato=${encodeURIComponent(String(regionSoato))}` : `region_id=${region.id}`;
-        const res = await fetchJson(`${OSONISH_API}/cities?${param}`);
+        const res = await fetchFromAnyBase(`/cities?${param}`);
         if (!res.ok) {
             failed.push({ region_id: region.id, region_soato: regionSoato, status: res.status, error: res.error });
         } else {
@@ -144,14 +167,14 @@ async function fetchOsonishDistricts(
 
 async function fetchOsonishCategories(): Promise<OsonishCategory[]> {
     const endpoints = [
-        `${OSONISH_API}/categories`,
-        `${OSONISH_API}/vacancy-categories`,
-        `${OSONISH_API}/mmk_group_fields`,
-        `${OSONISH_API}/mmk-group-fields`
+        '/categories',
+        '/vacancy-categories',
+        '/mmk_group_fields',
+        '/mmk-group-fields'
     ];
 
-    for (const url of endpoints) {
-        const res = await fetchJson(url);
+    for (const endpoint of endpoints) {
+        const res = await fetchFromAnyBase(endpoint);
         if (!res.ok) {
             continue;
         }
@@ -459,3 +482,4 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+
