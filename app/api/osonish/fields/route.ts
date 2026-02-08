@@ -100,7 +100,8 @@ function scoreProfession(row: ProfessionRow, query: string): number {
                 .map((token) => diceSimilarity(token, query))
         );
         const best = Math.max(fullSim, tokenSim);
-        if (best >= 0.62) {
+        const minSimilarity = query.length <= 5 ? 0.78 : 0.72;
+        if (best >= minSimilarity) {
             score = Math.round(best * 100);
         }
     }
@@ -135,16 +136,6 @@ async function fetchFromProfessionTable(search: string): Promise<ProfessionRow[]
         .or(`title_uz.ilike.%${cleaned}%,title_ru.ilike.%${cleaned}%`)
         .limit(120);
 
-    if (error) return [];
-    return data || [];
-}
-
-async function fetchProfessionCatalog(limit: number = 1600): Promise<ProfessionRow[]> {
-    const { data, error } = await supabaseAdmin
-        .from('osonish_professions')
-        .select('id, title_uz, title_ru, vacancies_count, category_id, category_title')
-        .order('vacancies_count', { ascending: false })
-        .limit(limit);
     if (error) return [];
     return data || [];
 }
@@ -280,10 +271,6 @@ export async function GET(request: Request) {
         if (rows.length === 0) {
             rows = await fetchFromOsonishRemote(normalizedSearch);
         }
-        if (rows.length === 0) {
-            rows = await fetchProfessionCatalog();
-        }
-
         const normalizedRows = normalizeRows(rows)
             .map((row: any) => ({ ...row, _score: scoreProfession(row, normalizedSearch) }))
             .filter((row: any) => row._score > 0)
