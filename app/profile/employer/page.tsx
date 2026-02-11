@@ -144,15 +144,38 @@ export default function EmployerProfilePage() {
                     }
                 }
 
-                // Load stats if we have employer profile
-                const { data: jobsData, error: jobsError } = await supabase
-                    .from('jobs')
-                    .select('id, views_count, employer_id')
-                    .eq('employer_id', profileData.id);
+                // Load stats with ownership fallbacks for legacy schemas.
+                const jobsById = new Map<string, any>();
+                const mergeJobs = (rows: any[] | null | undefined) => {
+                    for (const row of rows || []) {
+                        if (!row?.id) continue;
+                        jobsById.set(String(row.id), row);
+                    }
+                };
+                const queryJobsByEq = async (column: string, value: string) => {
+                    const { data, error } = await supabase
+                        .from('jobs')
+                        .select('id, views_count, created_at')
+                        .eq(column, value);
+                    if (error) {
+                        const msg = String(error.message || '').toLowerCase();
+                        if (!(msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'))) {
+                            console.error(`Employer stats jobs query error (${column}):`, error);
+                        }
+                        return;
+                    }
+                    mergeJobs(data || []);
+                };
 
-                console.log('Jobs by employer_id:', jobsData, 'Error:', jobsError);
+                if (profileData.id) await queryJobsByEq('employer_id', String(profileData.id));
+                if (user?.id) {
+                    await queryJobsByEq('created_by', String(user.id));
+                    await queryJobsByEq('user_id', String(user.id));
+                }
 
-                if (jobsData && jobsData.length > 0) {
+                const jobsData = Array.from(jobsById.values());
+
+                if (jobsData.length > 0) {
                     const totalViews = jobsData.reduce((sum, job) => sum + (job.views_count || 0), 0);
 
                     // Count applications
@@ -171,7 +194,7 @@ export default function EmployerProfilePage() {
                         views: totalViews
                     });
                 } else {
-                    // No jobs found by employer_id - show 0
+                    // No jobs found by ownership keys - show 0
                     setStats({ vacancies: 0, applications: 0, views: 0 });
                 }
             } else if (user.phone) {

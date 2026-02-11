@@ -80,7 +80,7 @@ export default function EmployerApplicationsPage() {
                 // Get employer profile
                 const { data: profile } = await supabase
                     .from('employer_profiles')
-                    .select('id')
+                    .select('id, company_name, phone')
                     .eq('user_id', user.id)
                     .single();
 
@@ -89,11 +89,37 @@ export default function EmployerApplicationsPage() {
                     return;
                 }
 
-                // Get all jobs by this employer
-                const { data: jobs } = await supabase
-                    .from('jobs')
-                    .select('id')
-                    .eq('employer_id', profile.id);
+                // Get employer jobs with fallback ownership keys
+                const jobsById = new Map<string, any>();
+                const mergeJobs = (rows: any[] | null | undefined) => {
+                    for (const row of rows || []) {
+                        if (!row?.id) continue;
+                        jobsById.set(String(row.id), row);
+                    }
+                };
+
+                const queryJobsByEq = async (column: string, value: string) => {
+                    const { data, error } = await supabase
+                        .from('jobs')
+                        .select('id')
+                        .eq(column, value);
+                    if (error) {
+                        const msg = String(error.message || '').toLowerCase();
+                        if (!(msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'))) {
+                            console.error(`Employer applications jobs query error (${column}):`, error);
+                        }
+                        return;
+                    }
+                    mergeJobs(data || []);
+                };
+
+                if (profile?.id) await queryJobsByEq('employer_id', String(profile.id));
+                if (user?.id) {
+                    await queryJobsByEq('created_by', String(user.id));
+                    await queryJobsByEq('user_id', String(user.id));
+                }
+
+                const jobs = Array.from(jobsById.values());
 
                 if (!jobs || jobs.length === 0) {
                     setIsLoading(false);

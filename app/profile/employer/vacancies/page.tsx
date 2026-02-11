@@ -71,7 +71,7 @@ export default function VacanciesPage() {
                 // First get employer_profile id
                 const { data: profile, error: profileError } = await supabase
                     .from('employer_profiles')
-                    .select('id')
+                    .select('id, company_name, phone')
                     .eq('user_id', user.id)
                     .single();
 
@@ -79,43 +79,73 @@ export default function VacanciesPage() {
                     console.error('Profile fetch error:', profileError);
                 }
 
-                if (profile) {
-                    // Fetch vacancies with relations
+                const rowsById = new Map<string, any>();
+                const mergeRows = (rows: any[] | null | undefined) => {
+                    for (const row of rows || []) {
+                        if (!row?.id) continue;
+                        rowsById.set(String(row.id), row);
+                    }
+                };
+
+                const selectClause = `
+                    id, title_uz, title_ru, description_uz, description_ru,
+                    company_name, status, views_count, created_at, is_active,
+                    salary_min, salary_max,
+                    categories(name_uz, name_ru),
+                    districts(name_uz, name_ru),
+                    regions(name_uz, name_ru)
+                `;
+
+                const queryByEq = async (column: string, value: string) => {
                     const { data, error } = await supabase
                         .from('jobs')
-                        .select(`
-                            id, title_uz, title_ru, description_uz, description_ru,
-                            company_name, status, views_count, created_at, is_active,
-                            salary_min, salary_max,
-                            categories(name_uz, name_ru),
-                            districts(name_uz, name_ru),
-                            regions(name_uz, name_ru)
-                        `)
-                        .eq('employer_id', profile.id)
+                        .select(selectClause)
+                        .eq(column, value)
                         .order('created_at', { ascending: false });
-
-                    if (!error && data) {
-                        // Get application counts for each job
-                        const jobIds = data.map(j => j.id);
-                        const { data: appCounts } = await supabase
-                            .from('job_applications')
-                            .select('job_id')
-                            .in('job_id', jobIds);
-
-                        const countMap: Record<string, number> = {};
-                        appCounts?.forEach(app => {
-                            countMap[app.job_id] = (countMap[app.job_id] || 0) + 1;
-                        });
-
-                        setVacancies(data.map(v => ({
-                            ...v,
-                            applications_count: countMap[v.id] || 0,
-                            // Handle Supabase relation arrays (returns arrays, we need first element)
-                            categories: Array.isArray(v.categories) ? v.categories[0] : v.categories,
-                            districts: Array.isArray(v.districts) ? v.districts[0] : v.districts,
-                            regions: Array.isArray(v.regions) ? v.regions[0] : v.regions,
-                        })) as Vacancy[]);
+                    if (error) {
+                        const msg = String(error.message || '').toLowerCase();
+                        if (!(msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'))) {
+                            console.error(`Vacancies query error (${column}):`, error);
+                        }
+                        return;
                     }
+                    mergeRows(data || []);
+                };
+
+                if (profile?.id) {
+                    await queryByEq('employer_id', String(profile.id));
+                }
+                if (user?.id) {
+                    await queryByEq('created_by', String(user.id));
+                    await queryByEq('user_id', String(user.id));
+                }
+
+                const mergedVacancies = Array.from(rowsById.values())
+                    .sort((a, b) => {
+                        const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
+                        const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
+                        return bTime - aTime;
+                    });
+
+                if (mergedVacancies.length > 0) {
+                    const jobIds = mergedVacancies.map(j => j.id);
+                    const { data: appCounts } = await supabase
+                        .from('job_applications')
+                        .select('job_id')
+                        .in('job_id', jobIds);
+
+                    const countMap: Record<string, number> = {};
+                    appCounts?.forEach(app => {
+                        countMap[app.job_id] = (countMap[app.job_id] || 0) + 1;
+                    });
+
+                    setVacancies(mergedVacancies.map(v => ({
+                        ...v,
+                        applications_count: countMap[v.id] || 0,
+                        categories: Array.isArray(v.categories) ? v.categories[0] : v.categories,
+                        districts: Array.isArray(v.districts) ? v.districts[0] : v.districts,
+                        regions: Array.isArray(v.regions) ? v.regions[0] : v.regions,
+                    })) as Vacancy[]);
                 }
             } catch (err) {
                 console.error('Error fetching vacancies:', err);
