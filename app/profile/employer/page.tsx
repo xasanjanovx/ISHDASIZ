@@ -23,6 +23,7 @@ import { Region, District } from '@/types/database';
 import { Building2, MapPin, Phone, Edit3, Save, X, BadgeCheck, AlertTriangle, FileText, Users, Eye, Loader2 } from '@/components/ui/icons';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { fetchEmployerOwnedJobs } from '@/lib/employer-jobs';
 
 export default function EmployerProfilePage() {
     const { lang } = useLanguage();
@@ -144,48 +145,22 @@ export default function EmployerProfilePage() {
                     }
                 }
 
-                // Load stats with ownership fallbacks for legacy schemas.
-                const jobsById = new Map<string, any>();
-                const mergeJobs = (rows: any[] | null | undefined) => {
-                    for (const row of rows || []) {
-                        if (!row?.id) continue;
-                        jobsById.set(String(row.id), row);
-                    }
-                };
-                const queryJobsByEq = async (column: string, value: string) => {
-                    const { data, error } = await supabase
-                        .from('jobs')
-                        .select('id, views_count, created_at')
-                        .eq(column, value);
-                    if (error) {
-                        const msg = String(error.message || '').toLowerCase();
-                        if (!(msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'))) {
-                            console.error(`Employer stats jobs query error (${column}):`, error);
-                        }
-                        return;
-                    }
-                    mergeJobs(data || []);
-                };
-
-                if (profileData.id) await queryJobsByEq('employer_id', String(profileData.id));
-                if (user?.id) {
-                    await queryJobsByEq('created_by', String(user.id));
-                    await queryJobsByEq('user_id', String(user.id));
-                }
-
-                const jobsData = Array.from(jobsById.values());
+                const jobsData = await fetchEmployerOwnedJobs(supabase, user.id, {
+                    select: 'id, views_count, created_at, employer_id, created_by, user_id',
+                    limit: 500
+                });
 
                 if (jobsData.length > 0) {
                     const totalViews = jobsData.reduce((sum, job) => sum + (job.views_count || 0), 0);
 
-                    // Count applications
+                    const jobIds = jobsData.map((job: any) => String(job.id)).filter(Boolean);
                     let totalApps = 0;
-                    for (const job of jobsData) {
-                        const { count } = await supabase
+                    if (jobIds.length > 0) {
+                        const { data: appRows } = await supabase
                             .from('job_applications')
-                            .select('id', { count: 'exact', head: true })
-                            .eq('job_id', job.id);
-                        totalApps += count || 0;
+                            .select('job_id')
+                            .in('job_id', jobIds);
+                        totalApps = (appRows || []).length;
                     }
 
                     setStats({
@@ -233,6 +208,10 @@ export default function EmployerProfilePage() {
                 .eq('user_id', user.id)
                 .single();
 
+            const districtIdNumeric = (formData.district_id && /^\d+$/.test(formData.district_id))
+                ? parseInt(formData.district_id, 10)
+                : null;
+
             const profileData: Record<string, any> = {
                 company_name: formData.company_name || null,
                 inn: formData.inn || null,
@@ -240,7 +219,7 @@ export default function EmployerProfilePage() {
                 industry: formData.industry || null,
                 company_size: formData.company_size || null,
                 region_id: (formData.region_id && !isNaN(parseInt(formData.region_id))) ? parseInt(formData.region_id) : null,
-                district_id: (formData.district_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formData.district_id)) ? formData.district_id : null,
+                district_id: districtIdNumeric,
                 city: formData.district_id || null,
                 phone: formData.phone || null,
                 telegram: formData.telegram || null,

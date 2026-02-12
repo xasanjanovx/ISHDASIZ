@@ -148,6 +148,10 @@ export default function JobSeekerProfilePage() {
 
         setIsSaving(true);
         try {
+            const districtIdNumeric = (profile.district_id && /^\d+$/.test(profile.district_id))
+                ? parseInt(profile.district_id, 10)
+                : null;
+
             // Save to database
             const { error } = await supabase
                 .from('job_seeker_profiles')
@@ -158,7 +162,7 @@ export default function JobSeekerProfilePage() {
                     phone: profile.phone,
                     telegram: profile.telegram || null,
                     region_id: (profile.region_id && !isNaN(parseInt(profile.region_id))) ? parseInt(profile.region_id) : null,
-                    district_id: (profile.district_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.district_id)) ? profile.district_id : null,
+                    district_id: districtIdNumeric,
                     city: profile.district_id || null,
                     about: profile.about,
                     updated_at: new Date().toISOString()

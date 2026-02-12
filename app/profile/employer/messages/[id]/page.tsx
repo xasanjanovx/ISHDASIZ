@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Send, Loader2, User } from '@/components/ui/icons';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { fetchEmployerOwnedJobs } from '@/lib/employer-jobs';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Briefcase } from 'lucide-react';
@@ -315,18 +316,27 @@ function OfferVacancyList({ onSelect }: { onSelect: (id: string, title: string) 
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!user?.id) return;
-        console.log('Jobs query employer_id:', user.id);
-        supabase.from('jobs')
-            .select('id, title_uz, title_ru, is_active, status')
-            .eq('created_by', user.id)
-            .or('is_active.eq.true,status.eq.active')
-            .order('created_at', { ascending: false })
-            .then(({ data, error }) => {
-                console.log('Jobs by employer_id:', data, 'Error:', error);
-                setJobs(data || []);
+        const loadJobs = async () => {
+            if (!user?.id) {
+                setJobs([]);
                 setLoading(false);
+                return;
+            }
+            const ownedJobs = await fetchEmployerOwnedJobs(supabase, user.id, {
+                select: 'id, title_uz, title_ru, is_active, status, employer_id, created_by, user_id, created_at',
+                limit: 100
             });
+            const activeJobs = ownedJobs.filter((job: any) => {
+                const status = String(job?.status || '').toLowerCase();
+                const isFilled = status === 'filled' || status === 'closed' || status === 'archived';
+                const isPaused = status === 'inactive' || status === 'paused' || status === 'on_hold' || job?.is_active === false;
+                return !isFilled && !isPaused;
+            });
+            setJobs(activeJobs);
+            setLoading(false);
+        };
+
+        loadJobs();
     }, [user?.id]);
 
     if (loading) return <div className="text-center py-4"><Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500" /></div>;

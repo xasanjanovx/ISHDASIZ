@@ -10,6 +10,7 @@ import {
     BarChart3, Eye, Users, TrendingUp, Briefcase, Loader2
 } from '@/components/ui/icons';
 import { supabase } from '@/lib/supabase';
+import { fetchEmployerOwnedJobs } from '@/lib/employer-jobs';
 
 interface VacancyStats {
     id: string;
@@ -18,6 +19,7 @@ interface VacancyStats {
     views_count: number;
     applications_count: number;
     status: string;
+    is_active?: boolean | null;
     created_at: string;
 }
 
@@ -44,28 +46,10 @@ export default function EmployerStatsPage() {
             }
 
             try {
-                // Get employer profile
-                const { data: profile } = await supabase
-                    .from('employer_profiles')
-                    .select('id')
-                    .eq('user_id', user.id)
-                    .single();
-
-                if (!profile) {
-                    setIsLoading(false);
-                    return;
-                }
-
-                // Get vacancies
-                const { data: jobsData, error } = await supabase
-                    .from('jobs')
-                    .select('id, title_uz, title_ru, views_count, status, created_at')
-                    .eq('employer_id', profile.id)
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                const jobsList = jobsData || [];
+                const jobsList = await fetchEmployerOwnedJobs(supabase, user.id, {
+                    select: 'id, title_uz, title_ru, views_count, status, is_active, created_at, employer_id, created_by, user_id',
+                    limit: 500
+                });
 
                 // Get application counts for all jobs
                 const jobIds = jobsList.map(j => j.id);
@@ -96,7 +80,13 @@ export default function EmployerStatsPage() {
                 const totalVacancies = jobs.length;
                 const totalViews = jobs.reduce((sum, j) => sum + (j.views_count || 0), 0);
                 const totalApplications = jobs.reduce((sum, j) => sum + (j.applications_count || 0), 0);
-                const activeVacancies = jobs.filter(j => j.status === 'active').length;
+                const activeVacancies = jobs.filter(j => {
+                    const status = String(j.status || '').toLowerCase();
+                    if (status === 'filled' || status === 'closed' || status === 'archived') return false;
+                    if (status === 'inactive' || status === 'paused' || status === 'on_hold') return false;
+                    if (typeof j.is_active === 'boolean') return j.is_active;
+                    return status ? status === 'active' : true;
+                }).length;
                 const averageConversion = totalViews > 0 ? (totalApplications / totalViews) * 100 : 0;
 
                 setStats({

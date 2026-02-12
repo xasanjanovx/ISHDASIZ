@@ -25,6 +25,7 @@ import {
     CheckCircle, XCircle, Calendar
 } from '@/components/ui/icons';
 import { supabase } from '@/lib/supabase';
+import { fetchEmployerOwnedJobs } from '@/lib/employer-jobs';
 import { toast } from 'sonner';
 
 interface Application {
@@ -77,51 +78,13 @@ export default function EmployerApplicationsPage() {
             }
 
             try {
-                // Get employer profile
-                const { data: profile } = await supabase
-                    .from('employer_profiles')
-                    .select('id, company_name, phone')
-                    .eq('user_id', user.id)
-                    .single();
-
-                if (!profile) {
-                    setIsLoading(false);
-                    return;
-                }
-
-                // Get employer jobs with fallback ownership keys
-                const jobsById = new Map<string, any>();
-                const mergeJobs = (rows: any[] | null | undefined) => {
-                    for (const row of rows || []) {
-                        if (!row?.id) continue;
-                        jobsById.set(String(row.id), row);
-                    }
-                };
-
-                const queryJobsByEq = async (column: string, value: string) => {
-                    const { data, error } = await supabase
-                        .from('jobs')
-                        .select('id')
-                        .eq(column, value);
-                    if (error) {
-                        const msg = String(error.message || '').toLowerCase();
-                        if (!(msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'))) {
-                            console.error(`Employer applications jobs query error (${column}):`, error);
-                        }
-                        return;
-                    }
-                    mergeJobs(data || []);
-                };
-
-                if (profile?.id) await queryJobsByEq('employer_id', String(profile.id));
-                if (user?.id) {
-                    await queryJobsByEq('created_by', String(user.id));
-                    await queryJobsByEq('user_id', String(user.id));
-                }
-
-                const jobs = Array.from(jobsById.values());
+                const jobs = await fetchEmployerOwnedJobs(supabase, user.id, {
+                    select: 'id, employer_id, created_by, user_id, created_at',
+                    limit: 500
+                });
 
                 if (!jobs || jobs.length === 0) {
+                    setApplications([]);
                     setIsLoading(false);
                     return;
                 }

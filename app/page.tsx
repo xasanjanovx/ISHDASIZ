@@ -8,7 +8,7 @@ export const revalidate = 0;
 async function getHomeData() {
   const [jobsResult, categoriesResult, districtsResult] = await Promise.all([
     supabase
-      .from('jobs_view')
+      .from('jobs')
       .select('*, categories(*), districts(*, regions(*))')
       .eq('is_active', true)
       .order('created_at', { ascending: false })

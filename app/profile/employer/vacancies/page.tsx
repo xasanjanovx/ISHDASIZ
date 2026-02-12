@@ -31,6 +31,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { fetchEmployerOwnedJobs } from '@/lib/employer-jobs';
 import { toast } from 'sonner';
 import { formatSalary, formatDate } from '@/lib/constants';
 
@@ -68,67 +69,23 @@ export default function VacanciesPage() {
             }
 
             try {
-                // First get employer_profile id
-                const { data: profile, error: profileError } = await supabase
-                    .from('employer_profiles')
-                    .select('id, company_name, phone')
-                    .eq('user_id', user.id)
-                    .single();
-
-                if (profileError && profileError.code !== 'PGRST116') {
-                    console.error('Profile fetch error:', profileError);
-                }
-
-                const rowsById = new Map<string, any>();
-                const mergeRows = (rows: any[] | null | undefined) => {
-                    for (const row of rows || []) {
-                        if (!row?.id) continue;
-                        rowsById.set(String(row.id), row);
-                    }
-                };
-
                 const selectClause = `
                     id, title_uz, title_ru, description_uz, description_ru,
                     company_name, status, views_count, created_at, is_active,
                     salary_min, salary_max,
+                    source, employer_id, created_by, user_id,
                     categories(name_uz, name_ru),
                     districts(name_uz, name_ru),
                     regions(name_uz, name_ru)
                 `;
 
-                const queryByEq = async (column: string, value: string) => {
-                    const { data, error } = await supabase
-                        .from('jobs')
-                        .select(selectClause)
-                        .eq(column, value)
-                        .order('created_at', { ascending: false });
-                    if (error) {
-                        const msg = String(error.message || '').toLowerCase();
-                        if (!(msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'))) {
-                            console.error(`Vacancies query error (${column}):`, error);
-                        }
-                        return;
-                    }
-                    mergeRows(data || []);
-                };
-
-                if (profile?.id) {
-                    await queryByEq('employer_id', String(profile.id));
-                }
-                if (user?.id) {
-                    await queryByEq('created_by', String(user.id));
-                    await queryByEq('user_id', String(user.id));
-                }
-
-                const mergedVacancies = Array.from(rowsById.values())
-                    .sort((a, b) => {
-                        const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
-                        const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
-                        return bTime - aTime;
-                    });
+                const mergedVacancies = await fetchEmployerOwnedJobs(supabase, user.id, {
+                    select: selectClause,
+                    limit: 300
+                });
 
                 if (mergedVacancies.length > 0) {
-                    const jobIds = mergedVacancies.map(j => j.id);
+                    const jobIds = mergedVacancies.map((j: any) => j.id);
                     const { data: appCounts } = await supabase
                         .from('job_applications')
                         .select('job_id')
@@ -146,6 +103,8 @@ export default function VacanciesPage() {
                         districts: Array.isArray(v.districts) ? v.districts[0] : v.districts,
                         regions: Array.isArray(v.regions) ? v.regions[0] : v.regions,
                     })) as Vacancy[]);
+                } else {
+                    setVacancies([]);
                 }
             } catch (err) {
                 console.error('Error fetching vacancies:', err);
