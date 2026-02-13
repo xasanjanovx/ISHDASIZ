@@ -191,7 +191,7 @@ export default function JobDetailPage() {
     };
 
     loadUserData();
-  }, [user?.id, user?.phone, id]);
+  }, [user?.id, user?.phone, user?.full_name, id]);
 
   useEffect(() => {
     fetchJob();

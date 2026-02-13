@@ -112,7 +112,7 @@ export default function EmployerConversationPage() {
         };
 
         fetchConversation();
-    }, [user?.id, conversationId]);
+    }, [user?.id, conversationId, lang]);
 
     useEffect(() => {
         scrollToBottom();

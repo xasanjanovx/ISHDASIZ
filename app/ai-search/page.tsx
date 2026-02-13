@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/language-context';
 import { useSession } from '@/lib/contexts/session-context';
@@ -35,20 +35,7 @@ export default function AISearchPage() {
     }
   }, [messages]);
 
-  // Auto-send query from URL params
-  useEffect(() => {
-    const q = searchParams.get('q');
-    if (q && !initialQueryProcessed.current) {
-      initialQueryProcessed.current = true;
-      setInput(q);
-      const userMsg: Message = { role: 'user', content: q };
-      setMessages([userMsg]);
-      performSearch(q, []);
-      setInput('');
-    }
-  }, [searchParams]);
-
-  const performSearch = async (query: string, history: Message[]) => {
+  const performSearch = useCallback(async (query: string, history: Message[]) => {
     setLoading(true);
     try {
       const response = await fetch('/api/chat', {
@@ -83,7 +70,20 @@ export default function AISearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [lang, sessionId, updateProfile, userLocation]);
+
+  // Auto-send query from URL params
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && !initialQueryProcessed.current) {
+      initialQueryProcessed.current = true;
+      setInput(q);
+      const userMsg: Message = { role: 'user', content: q };
+      setMessages([userMsg]);
+      performSearch(q, []);
+      setInput('');
+    }
+  }, [searchParams, performSearch]);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;

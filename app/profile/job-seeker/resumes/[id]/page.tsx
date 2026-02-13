@@ -259,14 +259,14 @@ export default function EditResumePage() {
         };
 
         loadData();
-    }, [user?.id, resumeId]);
+    }, [user?.id, resumeId, router]);
 
     // Auto-add education field when level changes from secondary
     useEffect(() => {
         if (form.education_level !== 'secondary' && educations.length === 0 && !loading) {
             addEducation();
         }
-    }, [form.education_level, loading]);
+    }, [form.education_level, loading, educations.length]);
 
 
     const handleSalaryChange = (value: string, type: 'min' | 'max') => {

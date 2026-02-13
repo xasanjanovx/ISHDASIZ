@@ -56,7 +56,7 @@ export function LocationSelect({
             };
             fetchRegions();
         }
-    }, [initialRegions]); // Only run if initialRegions changes or mount
+    }, [initialRegions, regions.length]); // Only run if initialRegions changes or mount
 
     useEffect(() => {
         const fetchDistricts = async () => {

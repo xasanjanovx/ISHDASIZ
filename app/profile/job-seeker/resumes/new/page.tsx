@@ -277,7 +277,7 @@ export default function NewResumePage() {
         if (form.education_level !== 'secondary' && educations.length === 0) {
             addEducation();
         }
-    }, [form.education_level]);
+    }, [form.education_level, educations.length]);
 
 
     const handleSalaryChange = (value: string, type: 'min' | 'max') => {

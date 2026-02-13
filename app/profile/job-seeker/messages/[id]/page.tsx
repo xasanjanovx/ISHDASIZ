@@ -115,7 +115,7 @@ export default function ConversationPage() {
         };
 
         fetchConversation();
-    }, [user?.id, conversationId]);
+    }, [user?.id, conversationId, lang]);
 
     useEffect(() => {
         scrollToBottom();

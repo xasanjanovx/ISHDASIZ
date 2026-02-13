@@ -68,13 +68,11 @@ export default function SearchResumesPage() {
             ]);
             if (cats.data) setCategories(cats.data);
             if (dists.data) setDistricts(dists.data);
-
-            fetchResumes();
         };
         loadInitialData();
     }, []);
 
-    const fetchResumes = async () => {
+    const fetchResumes = useCallback(async () => {
         setIsLoading(true);
         try {
             let query = supabase
@@ -125,12 +123,12 @@ export default function SearchResumesPage() {
             console.error('Error fetching resumes:', err);
         }
         setIsLoading(false);
-    };
+    }, [salaryMax, salaryMin, searchTerm, selectedDistrict, selectedEducation, selectedExperience, selectedGender]);
 
     // Re-fetch when filters change
     useEffect(() => {
         fetchResumes();
-    }, [selectedDistrict, selectedExperience, selectedEducation, selectedGender, salaryMin, salaryMax]);
+    }, [fetchResumes]);
 
     const clearFilters = () => {
         setSearchTerm('');

@@ -84,7 +84,7 @@ export default function EmployerMessagesPage() {
         };
 
         initChat();
-    }, [user?.id, chatWithUserId, router]);
+    }, [user?.id, chatWithUserId, router, lang]);
 
     useEffect(() => {
         const fetchConversations = async () => {

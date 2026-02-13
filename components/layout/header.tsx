@@ -43,11 +43,6 @@ export default function Header() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadApplications, setUnreadApplications] = useState(0);
 
-  // If in Telegram Mini App, hide this standard header to rely on simplified nav or native feel
-  if (isTelegram) {
-    return null;
-  }
-
   // Check if admin is logged in
   const isAdmin = !!adminUser && !!adminProfile;
 
@@ -501,6 +496,10 @@ export default function Header() {
   };
 
   const isHome = pathname === '/';
+
+  if (isTelegram) {
+    return null;
+  }
 
   return (
     <header className={`absolute top-0 left-0 right-0 z-50 w-full transition-colors duration-300 ${isHome ? 'bg-transparent shadow-none' : 'bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-md'}`}>

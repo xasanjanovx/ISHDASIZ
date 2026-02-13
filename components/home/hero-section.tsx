@@ -145,8 +145,8 @@ export function HeroSection() {
           >
             {lang === 'uz' ? (
               <>
-                Eng so'nggi vakansiyalar va malakali mutaxassislar bazasi. <br className="hidden md:block" />
-                O'z karyerangizni bugun boshlang.
+                Eng so&apos;nggi vakansiyalar va malakali mutaxassislar bazasi. <br className="hidden md:block" />
+                O&apos;z karyerangizni bugun boshlang.
               </>
             ) : (
               'База новейших вакансий и квалифицированных специалистов. Начните свою карьеру сегодня.'

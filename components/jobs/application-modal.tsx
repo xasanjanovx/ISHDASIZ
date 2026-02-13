@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { Button } from '@/components/ui/button';
@@ -41,14 +41,7 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingResumes, setIsLoadingResumes] = useState(true);
 
-    // Load user's resumes
-    useEffect(() => {
-        if (isOpen && user) {
-            loadResumes();
-        }
-    }, [isOpen, user]);
-
-    const loadResumes = async () => {
+    const loadResumes = useCallback(async () => {
         setIsLoadingResumes(true);
         try {
             if (!user?.id) {
@@ -75,7 +68,14 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
             setResumes([]);
         }
         setIsLoadingResumes(false);
-    };
+    }, [user?.id]);
+
+    // Load user's resumes
+    useEffect(() => {
+        if (isOpen && user) {
+            loadResumes();
+        }
+    }, [isOpen, user, loadResumes]);
 
     const handleSubmit = async () => {
         if (!selectedResumeId) {

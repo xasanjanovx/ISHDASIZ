@@ -194,7 +194,7 @@ export default function ResumesPage() {
             setResumes(filtered);
         }
         setLoading(false);
-    }, [selectedCategory, selectedRegion, selectedDistrict, selectedExperience, selectedEducation, selectedGender, salaryRange, searchQuery, categories.length]);
+    }, [selectedCategory, selectedRegion, selectedDistrict, selectedExperience, selectedEducation, selectedGender, salaryRange, searchQuery, categories, districts, regions, lang]);
 
     useEffect(() => {
         fetchData();
