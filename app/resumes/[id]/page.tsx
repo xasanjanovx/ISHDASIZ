@@ -263,6 +263,7 @@ export default function ResumeDetailPage() {
     const languageList = normalizeLanguages(resume.languages);
     const experienceList = normalizeExperience(resume);
     const educationList = normalizeEducation(resume);
+    const isOwner = Boolean(currentUser?.id && currentUser.id === resume.user_id);
 
     return (
         <div className="min-h-screen bg-white">
@@ -308,7 +309,7 @@ export default function ResumeDetailPage() {
                                         <User className="w-4 h-4 text-indigo-300" />
                                         <span>{resume.full_name || (lang === 'ru' ? 'Имя не указано' : "Ism ko'rsatilmagan")}</span>
                                     </div>
-                                    {districtName && (
+                                    {isOwner && districtName && (
                                         <div className="flex items-center gap-2">
                                             <MapPin className="w-4 h-4 text-indigo-300" />
                                             <span>{districtName}</span>
@@ -584,7 +585,7 @@ export default function ResumeDetailPage() {
                                     </div>
                                 )}
 
-                                {districtName && (
+                                {isOwner && districtName && (
                                     <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                                         <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                                             <MapPin className="w-4 h-4" />

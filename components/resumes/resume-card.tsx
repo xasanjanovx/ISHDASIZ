@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Briefcase, Banknote, Clock, ChevronRight, GraduationCap } from '@/components/ui/icons';
+import { Briefcase, Banknote, Clock, ChevronRight, GraduationCap } from '@/components/ui/icons';
 import { formatSalary, EDUCATION_OPTIONS } from '@/lib/constants';
 
 interface ResumeCardProps {
@@ -76,27 +76,8 @@ export function ResumeCard({ resume }: ResumeCardProps) {
                         </div>
                     </div>
 
-                    {/* Location & Salary */}
+                    {/* Salary */}
                     <div className="space-y-2 mb-5">
-                        {(resume.districts || resume.city) && (
-                            <div className="flex items-center gap-2 text-slate-500">
-                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-xs font-medium">
-                                    {resume.districts
-                                        ? (() => {
-                                            const district = Array.isArray(resume.districts) ? resume.districts[0] : resume.districts;
-                                            const region = district?.regions;
-                                            const regionName = lang === 'uz' ? region?.name_uz : region?.name_ru;
-                                            const districtName = lang === 'uz' ? district?.name_uz : district?.name_ru;
-                                            return regionName ? `${regionName}, ${districtName}` : districtName;
-                                        })()
-                                        : (resume.district_name_uz || resume.district_name_ru
-                                            ? (lang === 'uz' ? resume.district_name_uz : resume.district_name_ru)
-                                            : (lang === 'uz' ? "Joylashuv ko'rsatilmagan" : 'Локация не указана'))
-                                    }
-                                </span>
-                            </div>
-                        )}
                         <div className="flex items-center gap-2 text-indigo-600">
                             <Banknote className="w-3.5 h-3.5" />
                             <span className="text-sm font-bold">

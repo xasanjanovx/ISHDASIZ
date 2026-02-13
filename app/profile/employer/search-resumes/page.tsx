@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    Search, Loader2, User, MapPin, Banknote, Briefcase, Phone, Filter, X
+    Search, Loader2, User, Banknote, Briefcase, Phone, Filter, X
 } from '@/components/ui/icons';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -28,7 +28,6 @@ interface PublicResume {
     id: string;
     title: string;
     full_name: string | null;
-    city: string | null;
     about: string | null;
     skills: string[] | null;
     expected_salary_min: number | null;
@@ -80,7 +79,7 @@ export default function SearchResumesPage() {
         try {
             let query = supabase
                 .from('resumes')
-                .select('id, title, full_name, city, about, skills, expected_salary_min, expected_salary_max, experience_years, experience, education_level, gender, phone, created_at, district_id')
+                .select('id, title, full_name, about, skills, expected_salary_min, expected_salary_max, experience_years, experience, education_level, gender, phone, created_at, district_id')
                 .eq('is_public', true)
                 .eq('status', 'active')
                 .order('created_at', { ascending: false });
@@ -337,12 +336,6 @@ export default function SearchResumesPage() {
                                                 </p>
 
                                                 <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
-                                                    {resume.city && (
-                                                        <span className="flex items-center gap-1 text-slate-500">
-                                                            <MapPin className="w-4 h-4" />
-                                                            {resume.city}
-                                                        </span>
-                                                    )}
                                                     {(resume.expected_salary_min || resume.expected_salary_max) ? (
                                                         <span className="flex items-center gap-1 text-emerald-600 font-medium">
                                                             <Banknote className="w-4 h-4" />

@@ -199,7 +199,7 @@ export default function JobDetailPage() {
 
   const toggleFavorite = async () => {
     if (!user?.id || !id) {
-      toast.error(lang === 'uz' ? 'Avval tizimga kiring' : 'Сначала войдите в систему');
+      toast.error(lang === 'uz' ? 'Avval tizimga kiring' : 'РЎРЅР°С‡Р°Р»Р° РІРѕР№РґРёС‚Рµ РІ СЃРёСЃС‚РµРјСѓ');
       return;
     }
 
@@ -213,17 +213,17 @@ export default function JobDetailPage() {
           .eq('user_id', user.id)
           .eq('job_id', id);
         setIsFavorite(false);
-        toast.success(lang === 'uz' ? 'Sevimlilardan o\'chirildi' : 'Удалено из избранного');
+        toast.success(lang === 'uz' ? 'Sevimlilardan o\'chirildi' : 'РЈРґР°Р»РµРЅРѕ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ');
       } else {
         await supabase
           .from('favorites')
           .insert({ user_id: user.id, job_id: id });
         setIsFavorite(true);
-        toast.success(lang === 'uz' ? 'Sevimlilarga qo\'shildi' : 'Добавлено в избранное');
+        toast.success(lang === 'uz' ? 'Sevimlilarga qo\'shildi' : 'Р”РѕР±Р°РІР»РµРЅРѕ РІ РёР·Р±СЂР°РЅРЅРѕРµ');
       }
     } catch (err) {
       console.error(err);
-      toast.error(lang === 'uz' ? 'Xatolik' : 'Ошибка');
+      toast.error(lang === 'uz' ? 'Xatolik' : 'РћС€РёР±РєР°');
     }
 
     setFavoriteLoading(false);
@@ -286,7 +286,7 @@ export default function JobDetailPage() {
             if (createError) {
               console.error('Error creating conversation:', createError);
               if (createError.code === '42703') {
-                toast.error(lang === 'uz' ? 'Chat tizimi hali tayyor emas (DB sync error)' : 'Система чата еще не готова (ошибка БД)');
+                toast.error(lang === 'uz' ? 'Chat tizimi hali tayyor emas (DB sync error)' : 'РЎРёСЃС‚РµРјР° С‡Р°С‚Р° РµС‰Рµ РЅРµ РіРѕС‚РѕРІР° (РѕС€РёР±РєР° Р‘Р”)');
               }
             }
           }
@@ -301,13 +301,13 @@ export default function JobDetailPage() {
     if (error) {
       console.error('Application save error:', error);
       if (error.code === '23503') {
-        toast.error(lang === 'uz' ? 'Sessiya xatosi. Iltimos, qayta kiring.' : 'Ошибка сессии. Пожалуйста, войдите снова.');
+        toast.error(lang === 'uz' ? 'Sessiya xatosi. Iltimos, qayta kiring.' : 'РћС€РёР±РєР° СЃРµСЃСЃРёРё. РџРѕР¶Р°Р»СѓР№СЃС‚Р°, РІРѕР№РґРёС‚Рµ СЃРЅРѕРІР°.');
         setTimeout(() => logout(), 2000); // Logout after 2 seconds
       } else if (error.code === '23505' || error.message?.includes('409') || error.code === '409') {
         setHasApplied(true);
-        toast.error(lang === 'uz' ? 'Siz allaqachon ariza topshirgansiz' : 'Вы уже подали заявку');
+        toast.error(lang === 'uz' ? 'Siz allaqachon ariza topshirgansiz' : 'Р’С‹ СѓР¶Рµ РїРѕРґР°Р»Рё Р·Р°СЏРІРєСѓ');
       } else {
-        toast.error(lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка');
+        toast.error(lang === 'uz' ? 'Xatolik yuz berdi' : 'РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР°');
       }
       return;
     }
@@ -331,7 +331,7 @@ export default function JobDetailPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-slate-500 mb-4">
-            {lang === 'uz' ? 'Vakansiya topilmadi' : 'Вакансия не найдена'}
+            {lang === 'uz' ? 'Vakansiya topilmadi' : 'Р’Р°РєР°РЅСЃРёСЏ РЅРµ РЅР°Р№РґРµРЅР°'}
           </p>
           <Button onClick={() => router.push('/jobs')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -344,7 +344,7 @@ export default function JobDetailPage() {
 
   const title = lang === 'uz' ? job.title_uz : job.title_ru;
 
-  // Helper: очистка текста от мусора и пустых заглушек
+  // Helper: РѕС‡РёСЃС‚РєР° С‚РµРєСЃС‚Р° РѕС‚ РјСѓСЃРѕСЂР° Рё РїСѓСЃС‚С‹С… Р·Р°РіР»СѓС€РµРє
   const cleanText = (text: string | null | undefined): string | null => {
     if (!text) return null;
     let cleaned = text
@@ -355,12 +355,12 @@ export default function JobDetailPage() {
     // Remove placeholder lines like "Vazifalar: - -"
     // Use regex that matches "Label: [whitespace/dashes/empty]"
     const placeholders = [
-      /Vazifalar\s*:\s*[-–—\s]*$/m,
-      /Talablar\s*:\s*[-–—\s]*$/m,
-      /Imkoniyatlar\s*:\s*[-–—\s]*$/m,
-      /Обязанности\s*:\s*[-–—\s]*$/m,
-      /Требования\s*:\s*[-–—\s]*$/m,
-      /Условия\s*:\s*[-–—\s]*$/m,
+      /Vazifalar\s*:\s*[-вЂ“вЂ”\s]*$/m,
+      /Talablar\s*:\s*[-вЂ“вЂ”\s]*$/m,
+      /Imkoniyatlar\s*:\s*[-вЂ“вЂ”\s]*$/m,
+      /РћР±СЏР·Р°РЅРЅРѕСЃС‚Рё\s*:\s*[-вЂ“вЂ”\s]*$/m,
+      /РўСЂРµР±РѕРІР°РЅРёСЏ\s*:\s*[-вЂ“вЂ”\s]*$/m,
+      /РЈСЃР»РѕРІРёСЏ\s*:\s*[-вЂ“вЂ”\s]*$/m,
     ];
 
     // If the whole text is just a concatenation of headings and dashes, return null
@@ -369,22 +369,22 @@ export default function JobDetailPage() {
       .replace(/Vazifalar/gi, '')
       .replace(/Talablar/gi, '')
       .replace(/Imkoniyatlar/gi, '')
-      .replace(/Обязанности/gi, '')
-      .replace(/Требования/gi, '')
-      .replace(/Условия/gi, '')
-      .replace(/[:\-–—\s\.]/g, ''); // Remove punctuation and spaces . included
+      .replace(/РћР±СЏР·Р°РЅРЅРѕСЃС‚Рё/gi, '')
+      .replace(/РўСЂРµР±РѕРІР°РЅРёСЏ/gi, '')
+      .replace(/РЈСЃР»РѕРІРёСЏ/gi, '')
+      .replace(/[:\-вЂ“вЂ”\s\.]/g, ''); // Remove punctuation and spaces . included
 
     if (contentCheck.length < 5) return null; // If almost nothing left, it's empty
 
     // Remove specific "Vazifalar: - -" lines from the final output too
     // Remove specific "Vazifalar: - -" lines from the final output too
     cleaned = cleaned
-      .replace(/Vazifalar\s*:\s*[-–—\s]*$/gm, '')
-      .replace(/Talablar\s*:\s*[-–—\s]*$/gm, '')
-      // .replace(/Imkoniyatlar\s*:\s*[-–—\s]*$/gm, '') // Don't strip Imkoniyatlar completely, might be useful
-      // .replace(/Обязанности\s*:\s*[-–—\s]*$/gm, '') 
-      // .replace(/Требования\s*:\s*[-–—\s]*$/gm, '')
-      .replace(/Условия\s*:\s*[-–—\s]*$/gm, '')
+      .replace(/Vazifalar\s*:\s*[-вЂ“вЂ”\s]*$/gm, '')
+      .replace(/Talablar\s*:\s*[-вЂ“вЂ”\s]*$/gm, '')
+      // .replace(/Imkoniyatlar\s*:\s*[-вЂ“вЂ”\s]*$/gm, '') // Don't strip Imkoniyatlar completely, might be useful
+      // .replace(/РћР±СЏР·Р°РЅРЅРѕСЃС‚Рё\s*:\s*[-вЂ“вЂ”\s]*$/gm, '') 
+      // .replace(/РўСЂРµР±РѕРІР°РЅРёСЏ\s*:\s*[-вЂ“вЂ”\s]*$/gm, '')
+      .replace(/РЈСЃР»РѕРІРёСЏ\s*:\s*[-вЂ“вЂ”\s]*$/gm, '')
       .trim();
 
     return cleaned;
@@ -436,7 +436,7 @@ export default function JobDetailPage() {
 
     if (TASHKENT_DISTRICTS.includes(normDist)) {
       if (!regionName || normReg === normDist || !normReg.includes('toshkent')) {
-        regionName = lang === 'uz' ? 'Toshkent shahri' : 'г. Ташкент';
+        regionName = lang === 'uz' ? 'Toshkent shahri' : 'Рі. РўР°С€РєРµРЅС‚';
       }
     }
   }
@@ -458,7 +458,59 @@ export default function JobDetailPage() {
   // Also get structured lists for requirements and duties if available
   const talablarList: string[] = Array.isArray(unifiedSections.talablar) ? unifiedSections.talablar : [];
   const dutiesList: string[] = Array.isArray(unifiedSections.ish_vazifalari) ? unifiedSections.ish_vazifalari : [];
-  const combinedDuties = [...dutiesList, ...talablarList];
+  const normalizeList = (items: any[]): string[] => {
+    return Array.from(
+      new Set(
+        (items || [])
+          .map((item) => String(item || '').trim().replace(/\s+/g, ' '))
+          .filter(Boolean)
+      )
+    );
+  };
+  const combinedDuties = normalizeList([...dutiesList, ...talablarList]);
+  const requirementsIsDuplicate =
+    Boolean(requirements)
+    && Boolean(description)
+    && String(requirements).trim() === String(description).trim();
+  const benefitsList = (() => {
+    const fromSections = normalizeList(qulayliklarList);
+    if (fromSections.length > 0) return fromSections;
+    if (!benefits) return [] as string[];
+    try {
+      const parsed = JSON.parse(benefits);
+      if (Array.isArray(parsed)) return normalizeList(parsed);
+      if (parsed && typeof parsed === 'object') {
+        const langItems = Array.isArray(parsed[lang]) ? parsed[lang] : (Array.isArray(parsed.uz) ? parsed.uz : []);
+        return normalizeList(langItems);
+      }
+    } catch {
+      // fallback to plain text parsing
+    }
+    return normalizeList(
+      benefits
+        .split(/\r?\n|,/g)
+        .map(item => item.trim())
+        .filter(Boolean)
+    );
+  })();
+  const workingDaysLabel = getWorkingDaysLabel(job, lang);
+  const workingHoursValue = (job as any).working_hours || (job as any).raw_source_json?.working_hours || null;
+  const formatTime = (value: string) => value.replace(/(\d{2}:\d{2})(:\d{2})/g, '$1');
+  const workingHoursLabel = typeof workingHoursValue === 'string' ? formatTime(workingHoursValue) : null;
+  const scheduleLabel = (() => {
+    if (workingDaysLabel && workingHoursLabel) return `${workingDaysLabel} (${workingHoursLabel})`;
+    if (workingDaysLabel) return workingDaysLabel;
+    if (workingHoursLabel) return workingHoursLabel;
+    if ((job as any).working_schedule) return String((job as any).working_schedule);
+    if ((job as any).raw_source_json?.working_days_id || (job as any).raw_source_json?.working_time_from) {
+      const mappedDays = getMappedValue('working_days', (job as any).raw_source_json?.working_days_id, lang);
+      if ((job as any).raw_source_json?.working_time_from && (job as any).raw_source_json?.working_time_to) {
+        return `${mappedDays} (${String((job as any).raw_source_json.working_time_from).slice(0, 5)} - ${String((job as any).raw_source_json.working_time_to).slice(0, 5)})`;
+      }
+      return mappedDays;
+    }
+    return (lang === 'ru' ? 'РќРµ СѓРєР°Р·Р°РЅРѕ' : 'Belgilanmagan');
+  })();
 
 
 
@@ -492,15 +544,15 @@ export default function JobDetailPage() {
                 )}
                 {job.employment_type && (
                   <Badge className="bg-indigo-500/20 text-indigo-100 border-indigo-500/30 backdrop-blur-sm px-3 py-1 font-medium capitalize">
-                    {(job.employment_type as string) === 'full_time' ? (lang === 'uz' ? 'To\'liq stavka' : 'Полная занятость') :
-                      (job.employment_type as string) === 'part_time' ? (lang === 'uz' ? 'Yarim stavka' : 'Частичная занятость') :
-                        (job.employment_type as string) === 'contract' ? (lang === 'uz' ? 'Shartnoma' : 'Контракт') :
+                    {(job.employment_type as string) === 'full_time' ? (lang === 'uz' ? 'To\'liq stavka' : 'РџРѕР»РЅР°СЏ Р·Р°РЅСЏС‚РѕСЃС‚СЊ') :
+                      (job.employment_type as string) === 'part_time' ? (lang === 'uz' ? 'Yarim stavka' : 'Р§Р°СЃС‚РёС‡РЅР°СЏ Р·Р°РЅСЏС‚РѕСЃС‚СЊ') :
+                        (job.employment_type as string) === 'contract' ? (lang === 'uz' ? 'Shartnoma' : 'РљРѕРЅС‚СЂР°РєС‚') :
                           (job.employment_type as string) === 'freelance' ? 'Freelance' : job.employment_type}
                   </Badge>
                 )}
                 {((job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count) && (
                   <Badge className="bg-emerald-500/20 text-emerald-100 border-emerald-500/30 backdrop-blur-sm px-3 py-1 font-medium">
-                    {(job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count} {lang === 'ru' ? 'мест' : "o'rin"}
+                    {(job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count} {lang === 'ru' ? 'РјРµСЃС‚' : "o'rin"}
                   </Badge>
                 )}
               </div>
@@ -522,7 +574,7 @@ export default function JobDetailPage() {
                 )}
                 <div className="flex items-center gap-2">
                   <Eye className="w-5 h-5 text-indigo-300" />
-                  <span>{job.views_count} {lang === 'uz' ? 'marta ko\'rildi' : 'просмотров'}</span>
+                  <span>{job.views_count} {lang === 'uz' ? 'marta ko\'rildi' : 'РїСЂРѕСЃРјРѕС‚СЂРѕРІ'}</span>
                 </div>
               </div>
             </div>
@@ -552,11 +604,11 @@ export default function JobDetailPage() {
                       : 'bg-white text-indigo-900 hover:bg-indigo-50 shadow-indigo-950/20'
                       }`}
                   >
-                    {hasApplied ? (lang === 'uz' ? 'Ariza yuborilgan' : 'Заявка отправлена') : t.job.apply}
+                    {hasApplied ? (lang === 'uz' ? 'Ariza yuborilgan' : 'Р—Р°СЏРІРєР° РѕС‚РїСЂР°РІР»РµРЅР°') : t.job.apply}
                   </Button>
                   {job.is_imported && (
                     <span className="text-[10px] text-slate-400 mt-1">
-                      {lang === 'uz' ? "Boshqa manbadan olindi" : "Из другого источника"}
+                      {lang === 'uz' ? "Boshqa manbadan olindi" : "РР· РґСЂСѓРіРѕРіРѕ РёСЃС‚РѕС‡РЅРёРєР°"}
                     </span>
                   )}
                 </div>
@@ -573,26 +625,26 @@ export default function JobDetailPage() {
             {/* Job Details Table (Osonish Style) */}
             <Card className="border-slate-200 shadow-sm overflow-hidden text-sm">
               <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
-                <CardTitle className="text-lg text-slate-900">{lang === 'ru' ? 'Детали вакансии' : "Vakansiya ma'lumotlari"}</CardTitle>
+                <CardTitle className="text-lg text-slate-900">{lang === 'ru' ? 'Р”РµС‚Р°Р»Рё РІР°РєР°РЅСЃРёРё' : "Vakansiya ma'lumotlari"}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-slate-100">
                   {/* Company */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Компания' : 'Tashkilot'}:</span>
+                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РљРѕРјРїР°РЅРёСЏ' : 'Tashkilot'}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{job.company_name}</span>
                   </div>
 
                   {/* Position */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Должность' : 'Lavozim'}:</span>
+                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Р”РѕР»Р¶РЅРѕСЃС‚СЊ' : 'Lavozim'}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{(job as any).raw_source_json?.position_name || title}</span>
                   </div>
 
                   {/* Vacancy Count */}
                   {((job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Количество мест' : 'Vakansiyalar soni'}:</span>
+                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РљРѕР»РёС‡РµСЃС‚РІРѕ РјРµСЃС‚' : 'Vakansiyalar soni'}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
                         {(job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count}
                       </span>
@@ -601,14 +653,14 @@ export default function JobDetailPage() {
 
                   {/* Experience */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}:</span>
+                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РћРїС‹С‚ СЂР°Р±РѕС‚С‹' : 'Ish tajribasi'}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getExperienceLabel(job, lang)}</span>
                   </div>
 
                   {/* Payment Type */}
                   {(getPaymentTypeLabel(job, lang)) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Форма оплаты' : "To'lov shakli"}:</span>
+                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Р¤РѕСЂРјР° РѕРїР»Р°С‚С‹' : "To'lov shakli"}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
                         {getPaymentTypeLabel(job, lang)}
                       </span>
@@ -617,13 +669,13 @@ export default function JobDetailPage() {
 
                   {/* Employment Type */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Тип занятости' : 'Bandlik turi'}:</span>
+                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РўРёРї Р·Р°РЅСЏС‚РѕСЃС‚Рё' : 'Bandlik turi'}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0 capitalize">
                       {(() => {
                         const type = job.employment_type as string;
-                        if (type === 'full_time') return lang === 'uz' ? 'To\'liq stavka (shtat asosida)' : 'Полная занятость';
-                        if (type === 'part_time') return lang === 'uz' ? 'Yarim stavka' : 'Частичная занятость';
-                        if (type === 'contract') return lang === 'uz' ? 'Shartnoma asosida' : 'По контракту';
+                        if (type === 'full_time') return lang === 'uz' ? 'To\'liq stavka (shtat asosida)' : 'РџРѕР»РЅР°СЏ Р·Р°РЅСЏС‚РѕСЃС‚СЊ';
+                        if (type === 'part_time') return lang === 'uz' ? 'Yarim stavka' : 'Р§Р°СЃС‚РёС‡РЅР°СЏ Р·Р°РЅСЏС‚РѕСЃС‚СЊ';
+                        if (type === 'contract') return lang === 'uz' ? 'Shartnoma asosida' : 'РџРѕ РєРѕРЅС‚СЂР°РєС‚Сѓ';
                         if (type === 'freelance') return 'Freelance';
                         return type;
                       })()}
@@ -633,7 +685,7 @@ export default function JobDetailPage() {
                   {/* Work Mode */}
                   {(getWorkModeLabel(job, lang)) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Режим работы' : 'Ish usuli (rejimi)'}:</span>
+                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Р РµР¶РёРј СЂР°Р±РѕС‚С‹' : 'Ish usuli (rejimi)'}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
                         {getWorkModeLabel(job, lang)}
                       </span>
@@ -642,29 +694,16 @@ export default function JobDetailPage() {
 
                   {/* Working Days - REMOVED (duplicate with Ish kunlari va vaqti below) */}
 
-                  {/* Schedule (Ish kunlari va vaqti) - Always show */}
+                                    {/* Schedule (Ish kunlari va vaqti) - Always show */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                     <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'График работы' : 'Ish kunlari va vaqti'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
-                      {(job as any).working_schedule ? (job as any).working_schedule : (
-                        ((job as any).raw_source_json?.working_days_id || (job as any).raw_source_json?.working_time_from) ? (
-                          <>
-                            {getMappedValue('working_days', (job as any).raw_source_json?.working_days_id, lang)}
-                            {(job as any).raw_source_json?.working_time_from && (job as any).raw_source_json?.working_time_to && (
-                              <span className="ml-1">
-                                ({(job as any).raw_source_json.working_time_from.slice(0, 5)} - {(job as any).raw_source_json.working_time_to.slice(0, 5)})
-                              </span>
-                            )}
-                          </>
-                        ) : (lang === 'ru' ? 'Не указано' : 'Belgilanmagan')
-                      )}
-                    </span>
+                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{scheduleLabel}</span>
                   </div>
 
                   {/* Probation Period (Sinov muddati) */}
                   {((job as any).raw_source_json?.test_period_id || (job as any).raw_source_json?.test_period) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Испытательный срок' : "Sinov muddati"}:</span>
+                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РСЃРїС‹С‚Р°С‚РµР»СЊРЅС‹Р№ СЃСЂРѕРє' : "Sinov muddati"}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
                         {getMappedValue('test_period', (job as any).raw_source_json?.test_period_id, lang) || (job as any).raw_source_json?.test_period}
                       </span>
@@ -673,7 +712,7 @@ export default function JobDetailPage() {
 
                   {/* Education */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Образование' : "Ma'lumot darajasi"}:</span>
+                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РћР±СЂР°Р·РѕРІР°РЅРёРµ' : "Ma'lumot darajasi"}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getEducationLabel(job, lang)}</span>
                   </div>
 
@@ -683,37 +722,37 @@ export default function JobDetailPage() {
 
                   {/* Gender - Always show with correct label */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Пол' : 'Jinsi'}:</span>
+                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'РџРѕР»' : 'Jinsi'}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getGenderLabel((job as any).gender, lang)}</span>
                   </div>
 
                   {/* Age - Only show if age is specified */}
                   {(job.age_min || job.age_max) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Возраст' : 'Yoshi'}:</span>
+                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Р’РѕР·СЂР°СЃС‚' : 'Yoshi'}:</span>
                       <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
-                        {job.age_min && job.age_max ? `${job.age_min}-${job.age_max} ${lang === 'ru' ? 'лет' : 'yosh'}` :
-                          job.age_min ? `${job.age_min}+ ${lang === 'ru' ? 'лет' : 'yosh'}` :
-                            `${lang === 'ru' ? 'до' : ''} ${job.age_max} ${lang === 'ru' ? 'лет' : 'yosh'}`}
+                        {job.age_min && job.age_max ? `${job.age_min}-${job.age_max} ${lang === 'ru' ? 'Р»РµС‚' : 'yosh'}` :
+                          job.age_min ? `${job.age_min}+ ${lang === 'ru' ? 'Р»РµС‚' : 'yosh'}` :
+                            `${lang === 'ru' ? 'РґРѕ' : ''} ${job.age_max} ${lang === 'ru' ? 'Р»РµС‚' : 'yosh'}`}
                       </span>
                     </div>
                   )}
 
                   {/* Social Packages - REMOVED (duplicate with Qulayliklar below) */}
 
-                  {/* Alohida toifalar uchun (Special categories: for students, disabled, graduates, women) */}
+                  {/* Alohida toifalar (mos kelishi mumkin bo'lgan nomzodlar) */}
                   {((job as any).is_for_students || (job as any).is_for_graduates || (job as any).is_for_disabled) && (
                     <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors border-t border-slate-100">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Для особых категорий' : 'Alohida toifalar uchun'}:</span>
+                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Для кого может подойти' : "Kimlar uchun mos kelishi mumkin"}:</span>
                       <div className="flex flex-wrap gap-2 mt-1 sm:mt-0">
                         {(job as any).is_for_students && (
-                          <Badge className="bg-purple-50 text-purple-700 border-purple-200">{lang === 'ru' ? 'Студентам' : 'Talabalar uchun'}</Badge>
+                          <Badge className="bg-purple-50 text-purple-700 border-purple-200">{lang === 'ru' ? 'Могут подойти студенты' : 'Talabalar ham mos kelishi mumkin'}</Badge>
                         )}
                         {(job as any).is_for_graduates && (
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">{lang === 'ru' ? 'Выпускникам' : 'Bitiruvchilar uchun'}</Badge>
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">{lang === 'ru' ? 'Могут подойти выпускники' : 'Bitiruvchilar ham mos kelishi mumkin'}</Badge>
                         )}
                         {(job as any).is_for_disabled && (
-                          <Badge className="bg-teal-50 text-teal-700 border-teal-200">{lang === 'ru' ? 'Людям с инвалидностью' : 'Nogironligi bo\'lgan shaxslar uchun'}</Badge>
+                          <Badge className="bg-teal-50 text-teal-700 border-teal-200">{lang === 'ru' ? 'Могут подойти люди с инвалидностью' : "Nogironligi bo'lgan shaxslar ham mos kelishi mumkin"}</Badge>
                         )}
                       </div>
                     </div>
@@ -735,14 +774,14 @@ export default function JobDetailPage() {
                     <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
                       <Briefcase className="w-5 h-5 text-indigo-600" />
                     </div>
-                    {lang === 'ru' ? 'Обязанности и Требования' : 'Vazifalar va talablar'}
+                    {lang === 'ru' ? 'РћР±СЏР·Р°РЅРЅРѕСЃС‚Рё Рё РўСЂРµР±РѕРІР°РЅРёСЏ' : 'Vazifalar va talablar'}
                   </h2>
 
                   {combinedDuties.length > 0 ? (
                     <ul className="space-y-2 list-none">
                       {combinedDuties.map((item, idx) => (
                         <li key={idx} className="flex gap-3 text-slate-700">
-                          <span className="text-indigo-500 font-bold text-lg leading-6">•</span>
+                          <span className="text-indigo-500 font-bold text-lg leading-6">вЂў</span>
                           <span className="leading-relaxed">{item}</span>
                         </li>
                       ))}
@@ -755,9 +794,9 @@ export default function JobDetailPage() {
                       </div>
 
                       {/* Requirements Fallback (if separate from description) */}
-                      {(requirements || (job as any).raw_source_json?.html_requirements) && (
+                      {!requirementsIsDuplicate && (requirements || (job as any).raw_source_json?.html_requirements) && (
                         <div className="bg-white p-4 md:p-5 rounded-2xl border border-indigo-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
-                          <h3 className="font-semibold mb-2">{lang === 'ru' ? 'Требования:' : 'Talablar:'}</h3>
+                          <h3 className="font-semibold mb-2">{lang === 'ru' ? 'РўСЂРµР±РѕРІР°РЅРёСЏ:' : 'Talablar:'}</h3>
                           {((requirements || (job as any).raw_source_json?.html_requirements || '').replace(/\\n/g, '\n'))}
                         </div>
                       )}
@@ -768,7 +807,7 @@ export default function JobDetailPage() {
             )}
 
             {/* ISH SHAROITLARI -> QULAYLIKLAR (Conditions/Benefits) */}
-            {(benefits || (job as any).raw_source_json?.html_conditions || qulayliklarList.length > 0) && (
+            {(benefitsList.length > 0 || (job as any).raw_source_json?.html_conditions) && (
               <Card className="border-slate-200 shadow-lg overflow-hidden bg-gradient-to-br from-white to-emerald-50/30">
                 <CardContent className="p-5 md:p-6">
                   <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
@@ -776,51 +815,24 @@ export default function JobDetailPage() {
                       <CheckCircle className="w-5 h-5 text-emerald-600" />
                     </div>
                     {/* User requested "Qulayliklar" for imported jobs specifically, but generally good for both */}
-                    {lang === 'ru' ? 'Преимущества' : 'Qulayliklar'}
+                    {lang === 'ru' ? 'РџСЂРµРёРјСѓС‰РµСЃС‚РІР°' : 'Qulayliklar'}
                   </h2>
 
-                  {/* If we have structured tags/list (from AI or imports), show badges */}
-                  {qulayliklarList.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {qulayliklarList.map((item, idx) => (
-                        <Badge key={idx} className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1.5 text-sm font-normal">
-                          <span className="mr-1.5 text-emerald-500">✓</span>
-                          {item}
-                        </Badge>
+                  {benefitsList.length > 0 && (
+                    <ul className="space-y-2">
+                      {benefitsList.map((item, idx) => (
+                        <li key={`benefit-${idx}`} className="text-slate-700 leading-relaxed">
+                          - {item}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
 
-                  {/* Safely render benefits if it's a JSON string or text */}
-                  {(!qulayliklarList.length && benefits) && (() => {
-                    let parsedBenefits: string[] = [];
-                    try {
-                      // Try parsing as JSON object {"uz": [...], "ru": [...]}
-                      if (benefits.trim().startsWith('{')) {
-                        const json = JSON.parse(benefits);
-                        parsedBenefits = Array.isArray(json[lang]) ? json[lang] : (Array.isArray(json['uz']) ? json['uz'] : []);
-                      } else {
-                        // Plain text
-                        parsedBenefits = [benefits];
-                      }
-                    } catch (e) {
-                      parsedBenefits = [benefits];
-                    }
-
-                    if (parsedBenefits.length > 0) {
-                      return (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          {parsedBenefits.map((item, idx) => (
-                            <Badge key={`ben-${idx}`} className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1.5 text-sm font-normal">
-                              <span className="mr-1.5 text-emerald-500">✓</span>
-                              {item}
-                            </Badge>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
+                  {benefitsList.length === 0 && (job as any).raw_source_json?.html_conditions && (
+                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-emerald-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                      {String((job as any).raw_source_json?.html_conditions || '').replace(/\\n/g, '\n')}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -833,7 +845,7 @@ export default function JobDetailPage() {
                     {/* Skills (use skills_details from API) */}
                     {(job as any).raw_source_json?.skills_details?.length > 0 && (
                       <section>
-                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Профессиональные навыки' : "Kasbiy bilim va ko'nikmalar"}</h3>
+                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'РџСЂРѕС„РµСЃСЃРёРѕРЅР°Р»СЊРЅС‹Рµ РЅР°РІС‹РєРё' : "Kasbiy bilim va ko'nikmalar"}</h3>
                         <div className="flex flex-wrap gap-2">
                           {(job as any).raw_source_json.skills_details.map((skill: any, idx: number) => {
                             const skillName = skill.skill_name || skill.name || (typeof skill === 'string' ? skill : null);
@@ -851,7 +863,7 @@ export default function JobDetailPage() {
                     {/* Languages (API uses "language" key, not "id") */}
                     {(job as any).raw_source_json?.languages?.length > 0 && (
                       <section>
-                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Знание языков' : "Tillarni bilishi"}</h3>
+                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? 'Р—РЅР°РЅРёРµ СЏР·С‹РєРѕРІ' : "Tillarni bilishi"}</h3>
                         <div className="flex flex-wrap gap-2">
                           {(job as any).raw_source_json.languages.map((langItem: any, idx: number) => {
                             // OsonIsh API uses "language" key (not "id")
@@ -904,7 +916,7 @@ export default function JobDetailPage() {
             {(job.contact_phone || job.contact_telegram || (job as any).phone || (job as any).email || (job as any).contact_email || (job as any).hr_name || (job as any).raw_source_json?.hr_name) && (
               <Card className="border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900">{lang === 'ru' ? 'Контактная информация' : 'Bog\'lanish uchun'}</h3>
+                  <h3 className="font-bold text-slate-900">{lang === 'ru' ? 'РљРѕРЅС‚Р°РєС‚РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ' : 'Bog\'lanish uchun'}</h3>
                 </div>
                 <CardContent className="p-6 space-y-5">
                   {/* Only show HR name if it was explicitly provided by source API */}
@@ -915,7 +927,7 @@ export default function JobDetailPage() {
                           <User className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? 'Контактное лицо' : "Vakansiya HR menejeri"}</p>
+                          <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? 'РљРѕРЅС‚Р°РєС‚РЅРѕРµ Р»РёС†Рѕ' : "Vakansiya HR menejeri"}</p>
                           <p className="font-bold text-slate-900 text-sm">{(job as any).raw_source_json.hr.fio}</p>
                         </div>
                       </div>
@@ -931,7 +943,7 @@ export default function JobDetailPage() {
                             <Phone className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? 'Телефон' : 'Telefon'}</p>
+                            <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? 'РўРµР»РµС„РѕРЅ' : 'Telefon'}</p>
                             <p className="font-bold text-slate-900">{job.contact_phone || job.phone}</p>
                           </div>
                         </div>
@@ -994,7 +1006,7 @@ export default function JobDetailPage() {
             {(job.latitude && job.longitude) && (
               <Card className="border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900">{lang === 'ru' ? 'Местоположение' : 'Manzil'}</h3>
+                  <h3 className="font-bold text-slate-900">{lang === 'ru' ? 'РњРµСЃС‚РѕРїРѕР»РѕР¶РµРЅРёРµ' : 'Manzil'}</h3>
                 </div>
                 <div className="h-[250px] relative">
                   <JobMap jobs={[job]} selectedJobId={job.id} height="100%" />
@@ -1003,7 +1015,7 @@ export default function JobDetailPage() {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-indigo-600 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-slate-900 text-sm">{lang === 'ru' ? 'Адрес' : 'Aniq manzil'}</p>
+                      <p className="font-semibold text-slate-900 text-sm">{lang === 'ru' ? 'РђРґСЂРµСЃ' : 'Aniq manzil'}</p>
                       <p className="text-slate-600 text-sm">{(job as any).address || (job as any).raw_source_json?.address || locationLabel}</p>
                     </div>
                   </div>
@@ -1014,7 +1026,7 @@ export default function JobDetailPage() {
             {/* Similar Jobs Widget */}
             {similarJobs.length > 0 && (
               <section className="space-y-4">
-                <h3 className="font-bold text-slate-900 px-1">{lang === 'ru' ? 'Похожие вакансии' : 'O\'xshash e\'lonlar'}</h3>
+                <h3 className="font-bold text-slate-900 px-1">{lang === 'ru' ? 'РџРѕС…РѕР¶РёРµ РІР°РєР°РЅСЃРёРё' : 'O\'xshash e\'lonlar'}</h3>
                 <div className="space-y-3">
                   {similarJobs.map((sj) => (
                     <Link
@@ -1044,7 +1056,7 @@ export default function JobDetailPage() {
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-8 text-white">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold">{t.application.title}</DialogTitle>
-              <p className="text-indigo-100 opacity-80 mt-1">{lang === 'ru' ? 'Ваш отклик будет отправлен напрямую работодателю' : 'Sizning arizangiz to\'g\'ridan-to\'g\'ri ish beruvchiga yuboriladi'}</p>
+              <p className="text-indigo-100 opacity-80 mt-1">{lang === 'ru' ? 'Р’Р°С€ РѕС‚РєР»РёРє Р±СѓРґРµС‚ РѕС‚РїСЂР°РІР»РµРЅ РЅР°РїСЂСЏРјСѓСЋ СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЋ' : 'Sizning arizangiz to\'g\'ridan-to\'g\'ri ish beruvchiga yuboriladi'}</p>
             </DialogHeader>
           </div>
 
@@ -1054,10 +1066,10 @@ export default function JobDetailPage() {
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-indigo-600" />
-                    {lang === 'ru' ? 'Выберите резюме' : 'Rezyume tanlang'}
+                    {lang === 'ru' ? 'Р’С‹Р±РµСЂРёС‚Рµ СЂРµР·СЋРјРµ' : 'Rezyume tanlang'}
                   </Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{lang === 'ru' ? 'Без резюме' : 'Rezyumesiz'}</span>
+                    <span className="text-xs text-slate-400">{lang === 'ru' ? 'Р‘РµР· СЂРµР·СЋРјРµ' : 'Rezyumesiz'}</span>
                     <Switch
                       checked={!sendWithoutResume}
                       onCheckedChange={(checked) => setSendWithoutResume(!checked)}
@@ -1072,7 +1084,7 @@ export default function JobDetailPage() {
                     onValueChange={(value) => setApplicationData({ ...applicationData, resume_id: value })}
                   >
                     <SelectTrigger className="h-12 rounded-xl border-slate-200">
-                      <SelectValue placeholder={lang === 'ru' ? 'Выберите из списка' : 'Ro\'yxatdan tanlang'} />
+                      <SelectValue placeholder={lang === 'ru' ? 'Р’С‹Р±РµСЂРёС‚Рµ РёР· СЃРїРёСЃРєР°' : 'Ro\'yxatdan tanlang'} />
                     </SelectTrigger>
                     <SelectContent>
                       {resumes.map((resume) => (
@@ -1117,7 +1129,7 @@ export default function JobDetailPage() {
                 onChange={(e) => setApplicationData({ ...applicationData, message: e.target.value })}
                 rows={4}
                 className="rounded-xl border-slate-200 focus:ring-indigo-500 resize-none"
-                placeholder={lang === 'ru' ? 'Напишите коротко о себе и почему вы подходите на эту роль...' : 'O\'zingiz haqingizda va nima uchun bu vakansiya sizga mosligi haqida qisqacha yozing...'}
+                placeholder={lang === 'ru' ? 'РќР°РїРёС€РёС‚Рµ РєРѕСЂРѕС‚РєРѕ Рѕ СЃРµР±Рµ Рё РїРѕС‡РµРјСѓ РІС‹ РїРѕРґС…РѕРґРёС‚Рµ РЅР° СЌС‚Сѓ СЂРѕР»СЊ...' : 'O\'zingiz haqingizda va nima uchun bu vakansiya sizga mosligi haqida qisqacha yozing...'}
               />
             </div>
 
@@ -1131,3 +1143,4 @@ export default function JobDetailPage() {
     </div>
   );
 }
+
