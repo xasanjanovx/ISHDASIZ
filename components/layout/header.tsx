@@ -315,7 +315,7 @@ export default function Header() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-10 px-3 gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+          className="h-10 px-3 gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white shadow-lg shadow-amber-500/20"
         >
           <Shield className="w-4 h-4" />
           <span className="text-sm font-semibold hidden lg:block">Admin</span>
@@ -502,7 +502,7 @@ export default function Header() {
   }
 
   return (
-    <header className={`absolute top-0 left-0 right-0 z-50 w-full transition-colors duration-300 ${isHome ? 'bg-transparent shadow-none' : 'bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-md'}`}>
+    <header className={`absolute top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isHome ? 'bg-transparent shadow-none' : 'bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-lg shadow-slate-900/5'}`}>
       <div className={`${isHome ? '' : ''}`}>
         <div className="container mx-auto">
           <div className="flex items-center justify-between h-18 py-3 px-4 sm:px-6">
@@ -564,7 +564,7 @@ export default function Header() {
                 <Button
                   onClick={openModal}
                   size="sm"
-                  className="h-9 px-5 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white gap-2 rounded-full font-semibold shadow-lg shadow-sky-500/20 transition-all"
+                  className="h-9 px-5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white gap-2 rounded-full font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:scale-105"
                 >
                   <LogIn className="w-4 h-4" />
                   <span className="text-sm">
@@ -593,7 +593,7 @@ export default function Header() {
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-72 bg-white border-slate-200">
+                <SheetContent side="right" className="w-72 bg-white border-slate-200/80">
                   <nav className="flex flex-col gap-2 mt-8">
                     {/* Admin info (if logged in as admin) */}
                     {isAdmin && (

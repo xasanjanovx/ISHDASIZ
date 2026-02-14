@@ -296,24 +296,28 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="bg-indigo-900 text-white py-10 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl opacity-20"></div>
-          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl opacity-20"></div>
-        </div>
+      <div className="relative text-white py-10 overflow-hidden">
+        {/* Animated mesh gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 animate-mesh" style={{ backgroundSize: '200% 200%' }} />
+        {/* Floating orbs */}
+        <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-blue-500/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
+        <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-teal-500/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
 
         <div className="container mx-auto px-4 relative z-10">
-          <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">{t.nav.jobs}</h1>
+          <p className="text-xs font-medium text-blue-300/80 uppercase tracking-widest mb-2">
+            {lang === 'uz' ? 'Vakansiyalar' : 'Вакансии'}
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">{t.nav.jobs}</h1>
+          <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full mb-6" />
           <div className="flex gap-2 max-w-2xl">
             <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
               <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t.hero.searchPlaceholder}
-                className="pl-12 h-14 bg-white text-slate-900 border-0 rounded-2xl shadow-xl shadow-indigo-900/20 text-lg"
+                className="pl-12 h-14 bg-white/5 backdrop-blur-sm border-white/10 text-white rounded-xl placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:bg-white/10 transition-all text-lg"
               />
             </div>
           </div>

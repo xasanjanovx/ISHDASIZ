@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 import { HeroSection } from '@/components/home/hero-section';
 import { CategoriesSection } from '@/components/home/categories-section';
 import { LatestJobsSection } from '@/components/home/latest-jobs-section';
+import { SpecialCategoriesSection } from '@/components/home/special-categories-section';
+import { TelegramBanner } from '@/components/home/telegram-banner';
 
 export const revalidate = 0;
 
@@ -92,10 +94,6 @@ async function getHomeData() {
   };
 }
 
-import { SpecialCategoriesSection } from '@/components/home/special-categories-section';
-import { StatsCards } from '@/components/home/stats-cards';
-import { TelegramBanner } from '@/components/home/telegram-banner';
-
 export default async function HomePage() {
   const { jobs, categories, jobCounts, specialCounts } = await getHomeData();
 
@@ -103,11 +101,9 @@ export default async function HomePage() {
     <>
       <HeroSection />
       <LatestJobsSection jobs={jobs} />
-      <SpecialCategoriesSection counts={specialCounts} />
       <TelegramBanner />
+      <SpecialCategoriesSection counts={specialCounts} />
       <CategoriesSection categories={categories} jobCounts={jobCounts} />
-
-      {/* <StatsCards /> removed as requested */}
     </>
   );
 }

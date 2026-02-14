@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/language-context';
 import { useAuthModal } from '@/contexts/auth-modal-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -142,9 +142,6 @@ export default function ResumeDetailPage() {
                         .single();
 
                     if (profile?.telegram) {
-                        // We'll attach it to resume object dynamically or use separate state
-                        // Let's use separate state for now to avoid Type issues or extend the type locally
-                        // Actually, let's just extend the type locally or cast
                         (data as any).telegram = profile.telegram;
                         setResume({ ...data, telegram: profile.telegram });
                     }
@@ -213,12 +210,10 @@ export default function ResumeDetailPage() {
         if (!resume) return;
 
         if (!isAuthenticated || !currentUser) {
-            // Not logged in - show auth modal
             openModal();
             return;
         }
 
-        // User is logged in - check if employer
         const { data: employer } = await supabase
             .from('employer_profiles')
             .select('id')
@@ -226,10 +221,8 @@ export default function ResumeDetailPage() {
             .maybeSingle();
 
         if (employer) {
-            // Is employer - redirect to chat
             router.push(`/profile/employer/messages?chat_with=${resume.user_id}`);
         } else {
-            // Not an employer - show error message
             toast.error(lang === 'uz' ? 'Faqat ish beruvchilar yozishi mumkin' : 'Только работодатели могут писать');
         }
     };
@@ -237,7 +230,7 @@ export default function ResumeDetailPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
         );
     }
@@ -266,207 +259,236 @@ export default function ResumeDetailPage() {
     const isOwner = Boolean(currentUser?.id && currentUser.id === resume.user_id);
 
     return (
-        <div className="min-h-screen bg-white">
-            {/* Profile Hero Section - Solid Indigo Gradient (Matches Job Page) */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 py-6 md:py-8 text-white">
-                {/* Background Patterns */}
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
-                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-400 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
-                </div>
+        <div className="min-h-screen bg-slate-50">
+            {/* ===== COMPACT PROFILE HEADER ===== */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 pt-28 pb-8">
+                {/* Background orbs */}
+                <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-blue-500/12 rounded-full blur-[80px] pointer-events-none" />
+                <div className="absolute bottom-0 left-[10%] w-[180px] h-[180px] bg-teal-500/8 rounded-full blur-[60px] pointer-events-none" />
 
-                <div className="container relative mx-auto px-4">
+                <div className="container relative mx-auto px-4 z-10">
                     <Button
                         variant="ghost"
                         onClick={() => router.back()}
-                        className="text-white/70 hover:text-white hover:bg-white/10 mb-6 -ml-2 transition-colors"
+                        className="text-slate-400 hover:text-white hover:bg-white/10 mb-5 -ml-2 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
                         {lang === 'uz' ? 'Orqaga' : 'Назад'}
                     </Button>
 
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                        <div className="flex flex-col md:flex-row gap-6 md:items-center">
-                            {/* Profile Avatar Placeholder - Solid White/Indigo */}
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-3xl md:text-4xl font-bold text-white shadow-xl">
-                                {(resume.full_name || resume.title || 'I').charAt(0)}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                        <div className="flex items-center gap-5">
+                            {/* Avatar */}
+                            <div className="relative flex-shrink-0">
+                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl md:text-3xl font-bold text-white shadow-xl shadow-blue-500/20">
+                                    {(resume.full_name || resume.title || 'I').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-400 rounded-full border-2 border-slate-900" />
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex flex-wrap gap-2">
-                                    <Badge className="bg-white/10 text-white hover:bg-white/20 border-white/20 backdrop-blur-sm px-3 py-1 text-xs font-bold capitalize">
-                                        {getEducationLabel(resume.education_level || '')}
-                                    </Badge>
-                                    <Badge className="bg-indigo-500/20 text-indigo-100 border-indigo-500/30 backdrop-blur-sm px-3 py-1 text-xs font-bold capitalize">
-                                        {getExperienceLabel(resume.experience)}
-                                    </Badge>
-                                </div>
-                                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                            {/* Name + meta */}
+                            <div className="min-w-0">
+                                <h1 className="text-xl md:text-2xl font-bold text-white truncate leading-tight mb-1">
                                     {resume.title || (lang === 'ru' ? 'Специалист' : 'Mutaxassis')}
                                 </h1>
-                                <div className="flex flex-wrap items-center gap-5 text-indigo-100/90 text-sm font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4 text-indigo-300" />
-                                        <span>{resume.full_name || (lang === 'ru' ? 'Имя не указано' : "Ism ko'rsatilmagan")}</span>
-                                    </div>
-                                    {isOwner && districtName && (
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-indigo-300" />
-                                            <span>{districtName}</span>
-                                        </div>
-                                    )}
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
+                                    <span className="flex items-center gap-1.5">
+                                        <User className="w-3.5 h-3.5" />
+                                        {resume.full_name || (lang === 'ru' ? 'Имя не указано' : "Ism ko'rsatilmagan")}
+                                    </span>
                                     {resume.birth_date && (
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-indigo-300" />
-                                            <span>{calculateAge(resume.birth_date)} {lang === 'ru' ? 'лет' : 'yosh'}</span>
-                                        </div>
+                                        <span className="flex items-center gap-1.5">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            {calculateAge(resume.birth_date)} {lang === 'ru' ? 'лет' : 'yosh'}
+                                        </span>
+                                    )}
+                                    {isOwner && districtName && (
+                                        <span className="flex items-center gap-1.5 text-teal-400/80">
+                                            <MapPin className="w-3.5 h-3.5" />
+                                            {districtName}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Badges */}
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    <Badge className="bg-white/8 backdrop-blur text-slate-300 border-white/10 text-[10px] px-2 py-0.5">
+                                        {getEducationLabel(resume.education_level || '')}
+                                    </Badge>
+                                    <Badge className="bg-blue-500/15 text-blue-300 border-blue-400/20 text-[10px] px-2 py-0.5">
+                                        {getExperienceLabel(resume.experience)}
+                                    </Badge>
+                                    {resume.employment_type && (
+                                        <Badge className="bg-teal-500/15 text-teal-300 border-teal-400/20 text-[10px] px-2 py-0.5">
+                                            {resume.employment_type === 'full_time' ? (lang === 'uz' ? 'To\'liq' : 'Полная') :
+                                                resume.employment_type === 'part_time' ? (lang === 'uz' ? 'Yarim' : 'Частичная') :
+                                                    resume.employment_type}
+                                        </Badge>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="w-full md:w-auto">
-                            <Button
-                                onClick={handleContact}
-                                className="w-full md:w-auto h-12 px-8 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 font-bold shadow-xl shadow-indigo-900/20 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Mail className="w-5 h-5" />
-                                {lang === 'ru' ? 'Написать сообщение' : 'Xabar yozish'}
-                            </Button>
-                        </div>
+                        {/* CTA button */}
+                        <Button
+                            onClick={handleContact}
+                            className="w-full md:w-auto h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]"
+                        >
+                            <Mail className="w-4 h-4" />
+                            {lang === 'ru' ? 'Написать' : 'Xabar yozish'}
+                        </Button>
                     </div>
                 </div>
             </div>
 
+            {/* ===== MAIN CONTENT ===== */}
             <div className="container mx-auto px-4 py-6 md:py-8">
                 <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
-                    {/* MAIN CONTENT */}
-                    <div className="lg:col-span-2 space-y-6 md:space-y-8">
-                        {/* About Section */}
+
+                    {/* LEFT COLUMN — Main info */}
+                    <div className="lg:col-span-2 space-y-5">
+
+                        {/* About */}
                         {resume.about && (
-                            <Card className="border-slate-200 shadow-sm overflow-hidden">
-                                <CardContent className="p-4 md:p-5">
-                                    <h2 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
-                                        <div className="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
+                            <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+                                    <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                                        <User className="w-3.5 h-3.5 text-blue-600" />
+                                    </div>
+                                    <h2 className="text-sm font-bold text-slate-900">
                                         {lang === 'ru' ? 'О себе' : 'O\'zim haqimda'}
                                     </h2>
-                                    <div className="text-slate-600 text-base leading-relaxed whitespace-pre-wrap">
+                                </div>
+                                <CardContent className="p-5">
+                                    <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
                                         {resume.about}
                                     </div>
                                 </CardContent>
                             </Card>
                         )}
 
-                        {/* Professional Timeline: Experience */}
+                        {/* Experience */}
                         {experienceList.length > 0 && (
-                            <section className="space-y-6">
-                                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-3 px-1">
-                                    <div className="w-1.5 h-7 bg-indigo-600 rounded-full shadow-[0_0_10px_rgba(79,70,229,0.3)]"></div>
-                                    {lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}
-                                </h2>
-                                <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200">
-                                    {experienceList.map((exp, idx) => {
-                                        const position = exp?.position || exp?.role || exp?.title || '';
-                                        const company = exp?.company || exp?.employer || exp?.organization || '';
-                                        const start = exp?.start_date || exp?.start_year || exp?.start || '';
-                                        const end = exp?.end_date || exp?.end_year || exp?.end || '';
-                                        const timeLabel = start || end ? `${start || ''} - ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
-                                        return (
-                                        <div key={idx} className="relative flex items-start gap-6 group">
-                                            {/* Dot Icon */}
-                                            <div className="flex items-center justify-center w-8 h-8 rounded-xl border-2 border-white bg-indigo-600 text-white shadow-lg shadow-indigo-200 shrink-0 z-10 transition-transform group-hover:scale-110 duration-300">
-                                                <Briefcase className="w-4 h-4" />
-                                            </div>
-                                            {/* Content */}
-                                            <div className="flex-1 p-5 rounded-3xl border border-slate-200/60 bg-white shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300">
-                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-                                                    <div>
-                                                        <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">
-                                                            {position || (lang === 'uz' ? 'Lavozim' : 'Должность')}
-                                                        </div>
-                                                        {company && <div className="text-indigo-600 font-bold text-sm tracking-tight">{company}</div>}
-                                                    </div>
-                                                    {timeLabel && (
-                                                        <time className="font-bold text-[10px] text-white bg-indigo-500/90 px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm self-start">
-                                                            {timeLabel}
-                                                        </time>
-                                                    )}
-                                                </div>
-                                                {exp?.description && (
-                                                    <div className="text-slate-500 text-sm leading-relaxed whitespace-pre-wrap pl-0 border-l-0 border-slate-100">
-                                                        {exp.description}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );})}
+                            <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                        <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                                    </div>
+                                    <h2 className="text-sm font-bold text-slate-900">
+                                        {lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}
+                                    </h2>
                                 </div>
-                            </section>
+                                <CardContent className="p-5">
+                                    <div className="space-y-4">
+                                        {experienceList.map((exp, idx) => {
+                                            const position = exp?.position || exp?.role || exp?.title || '';
+                                            const company = exp?.company || exp?.employer || exp?.organization || '';
+                                            const start = exp?.start_date || exp?.start_year || exp?.start || '';
+                                            const end = exp?.end_date || exp?.end_year || exp?.end || '';
+                                            const timeLabel = start || end ? `${start || ''} — ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
+                                            return (
+                                                <div key={idx} className={`flex gap-4 ${idx > 0 ? 'pt-4 border-t border-slate-100' : ''}`}>
+                                                    <div className="flex-shrink-0 pt-0.5">
+                                                        <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-1 mb-1">
+                                                            <div>
+                                                                <div className="font-semibold text-slate-900 text-sm">
+                                                                    {position || (lang === 'uz' ? 'Lavozim' : 'Должность')}
+                                                                </div>
+                                                                {company && <div className="text-blue-600 text-xs font-medium">{company}</div>}
+                                                            </div>
+                                                            {timeLabel && (
+                                                                <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-medium whitespace-nowrap self-start">
+                                                                    {timeLabel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {exp?.description && (
+                                                            <p className="text-slate-500 text-xs leading-relaxed mt-1 whitespace-pre-wrap">{exp.description}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
 
-                        {/* Professional Timeline: Education */}
+                        {/* Education */}
                         {educationList.length > 0 && (
-                            <section className="space-y-6">
-                                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-3 px-1">
-                                    <div className="w-1.5 h-7 bg-indigo-600 rounded-full shadow-[0_0_10px_rgba(79,70,229,0.3)]"></div>
-                                    {lang === 'ru' ? 'Образование' : "Ma'lumot"}
-                                </h2>
-                                <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200">
-                                    {educationList.map((edu, idx) => {
-                                        const institution = edu?.institution || edu?.school || edu?.university || '';
-                                        const field = edu?.field || edu?.specialty || edu?.faculty || '';
-                                        const start = edu?.start_year || edu?.start_date || edu?.start || '';
-                                        const end = edu?.end_year || edu?.end_date || edu?.end || '';
-                                        const timeLabel = start || end ? `${start || ''} - ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
-                                        return (
-                                        <div key={idx} className="relative flex items-start gap-6 group">
-                                            {/* Dot Icon */}
-                                            <div className="flex items-center justify-center w-8 h-8 rounded-xl border-2 border-white bg-indigo-600 text-white shadow-lg shadow-indigo-200 shrink-0 z-10 transition-transform group-hover:scale-110 duration-300">
-                                                <GraduationCap className="w-4 h-4" />
-                                            </div>
-                                            {/* Content */}
-                                            <div className="flex-1 p-5 rounded-3xl border border-slate-200/60 bg-white shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300">
-                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
-                                                    <div>
-                                                        <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">
-                                                            {institution || (lang === 'uz' ? "O'quv muassasa" : 'Учебное заведение')}
-                                                        </div>
-                                                        {field && <div className="text-indigo-600 font-bold text-sm tracking-tight">{field}</div>}
-                                                    </div>
-                                                    {timeLabel && (
-                                                        <time className="font-bold text-[10px] text-white bg-indigo-500/90 px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm self-start">
-                                                            {timeLabel}
-                                                        </time>
-                                                    )}
-                                                </div>
-                                                {edu?.degree && (
-                                                    <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-slate-50 rounded-lg text-slate-500 text-[10px] font-bold border border-slate-100 uppercase tracking-wider">
-                                                        {edu.degree}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );})}
+                            <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+                                    <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
+                                        <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
+                                    </div>
+                                    <h2 className="text-sm font-bold text-slate-900">
+                                        {lang === 'ru' ? 'Образование' : "Ma'lumot"}
+                                    </h2>
                                 </div>
-                            </section>
+                                <CardContent className="p-5">
+                                    <div className="space-y-4">
+                                        {educationList.map((edu, idx) => {
+                                            const institution = edu?.institution || edu?.school || edu?.university || '';
+                                            const field = edu?.field || edu?.specialty || edu?.faculty || '';
+                                            const start = edu?.start_year || edu?.start_date || edu?.start || '';
+                                            const end = edu?.end_year || edu?.end_date || edu?.end || '';
+                                            const timeLabel = start || end ? `${start || ''} — ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
+                                            return (
+                                                <div key={idx} className={`flex gap-4 ${idx > 0 ? 'pt-4 border-t border-slate-100' : ''}`}>
+                                                    <div className="flex-shrink-0 pt-0.5">
+                                                        <div className="w-2 h-2 rounded-full bg-teal-500 mt-1.5" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-1 mb-1">
+                                                            <div>
+                                                                <div className="font-semibold text-slate-900 text-sm">
+                                                                    {institution || (lang === 'uz' ? "O'quv muassasa" : 'Учебное заведение')}
+                                                                </div>
+                                                                {field && <div className="text-teal-600 text-xs font-medium">{field}</div>}
+                                                            </div>
+                                                            {timeLabel && (
+                                                                <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-medium whitespace-nowrap self-start">
+                                                                    {timeLabel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {edu?.degree && (
+                                                            <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-medium rounded border border-slate-200">
+                                                                {edu.degree}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
 
                         {/* Skills & Languages */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {skillsList.length > 0 && (
-                                <Card className="border-slate-200/60 shadow-sm overflow-hidden rounded-3xl">
-                                    <div className="bg-slate-50 px-5 py-4 border-b border-slate-100">
-                                        <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                                            <CheckCircle className="w-4 h-4 text-indigo-600" />
-                                            {lang === 'ru' ? 'Профессиональные навыки' : "Ko'nikmalar"}
+                                <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                                    <div className="flex items-center gap-2.5 px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                                        <div className="w-6 h-6 rounded-md bg-violet-100 flex items-center justify-center">
+                                            <CheckCircle className="w-3 h-3 text-violet-600" />
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-xs">
+                                            {lang === 'ru' ? 'Навыки' : "Ko'nikmalar"}
                                         </h3>
                                     </div>
-                                    <CardContent className="p-5">
-                                        <div className="flex flex-wrap gap-2">
+                                    <CardContent className="p-4">
+                                        <div className="flex flex-wrap gap-1.5">
                                             {skillsList.map((skill, idx) => (
-                                                <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-indigo-50/50 text-indigo-700 border-indigo-100/50 text-[11px] font-bold rounded-xl transition-all hover:bg-indigo-100">
+                                                <span
+                                                    key={idx}
+                                                    className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium rounded-lg transition-all hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                                                >
                                                     {skill}
-                                                </Badge>
+                                                </span>
                                             ))}
                                         </div>
                                     </CardContent>
@@ -474,27 +496,29 @@ export default function ResumeDetailPage() {
                             )}
 
                             {languageList.length > 0 && (
-                                <Card className="border-slate-200/60 shadow-sm overflow-hidden rounded-3xl">
-                                    <div className="bg-slate-50 px-5 py-4 border-b border-slate-100">
-                                        <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                                            <LanguagesIcon className="w-4 h-4 text-indigo-600" />
-                                            {lang === 'ru' ? 'Владение языками' : 'Til bilish'}
+                                <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                                    <div className="flex items-center gap-2.5 px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                                        <div className="w-6 h-6 rounded-md bg-cyan-100 flex items-center justify-center">
+                                            <LanguagesIcon className="w-3 h-3 text-cyan-600" />
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-xs">
+                                            {lang === 'ru' ? 'Языки' : 'Tillar'}
                                         </h3>
                                     </div>
-                                    <CardContent className="p-5">
-                                        <div className="flex flex-col gap-3">
+                                    <CardContent className="p-4">
+                                        <div className="space-y-2">
                                             {languageList.map((langItem, idx) => {
                                                 const name = langItem?.name;
                                                 const level = langItem?.level;
                                                 if (!name) return null;
 
                                                 return (
-                                                    <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:border-indigo-100 hover:bg-white group">
-                                                        <span className="font-extrabold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors">
+                                                    <div key={idx} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-slate-200 transition-all">
+                                                        <span className="font-semibold text-slate-800 text-xs">
                                                             {getLanguageLabel(name)}
                                                         </span>
                                                         {level && (
-                                                            <Badge variant="outline" className="text-white border-none bg-indigo-600 shadow-md text-[10px] font-black py-0 h-6 px-3 rounded-lg flex items-center">
+                                                            <Badge variant="outline" className="text-white border-none bg-slate-700 text-[9px] font-medium py-0 h-5 px-2 rounded">
                                                                 {level}
                                                             </Badge>
                                                         )}
@@ -508,29 +532,28 @@ export default function ResumeDetailPage() {
                         </div>
                     </div>
 
-                    {/* SIDEBAR */}
-                    <div className="space-y-6">
-                        {/* Salary Widget */}
+                    {/* RIGHT COLUMN — Sidebar */}
+                    <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+
+                        {/* Salary Card */}
                         {(resume.expected_salary_min || resume.expected_salary_max) && (
-                            <Card className="border border-slate-200 shadow-xl shadow-indigo-100/30 bg-white overflow-hidden">
-                                <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
-                                    <Banknote className="w-20 h-20 rotate-12 text-indigo-900" />
-                                </div>
-                                <CardContent className="p-5 md:p-6 relative">
+                            <Card className="border-slate-200 shadow-sm bg-white rounded-xl relative overflow-hidden">
+                                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600" />
+                                <CardContent className="p-5">
                                     <p className="text-slate-500 font-medium text-[10px] mb-1 uppercase tracking-wider">{lang === 'ru' ? 'Ожидаемая зарплата' : 'Kutilayotgan maosh'}</p>
-                                    <h3 className="text-xl md:text-2xl font-extrabold mb-1 text-slate-900">
+                                    <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-0.5">
                                         {formatSalary(resume.expected_salary_min, resume.expected_salary_max, lang)}
                                     </h3>
-                                    <p className="text-slate-400 text-xs mb-6">{lang === 'ru' ? 'в месяц' : 'oyiga'}</p>
+                                    <p className="text-slate-400 text-xs mb-4">{lang === 'ru' ? 'в месяц' : 'oyiga'}</p>
 
                                     <Button
                                         onClick={handleContact}
-                                        className="w-full h-11 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-bold transition-all shadow-md text-sm"
+                                        className="w-full h-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all text-sm shadow-md shadow-blue-500/15 hover:shadow-blue-500/25"
                                     >
                                         <Mail className="w-4 h-4 mr-2" />
                                         {lang === 'ru' ? 'Предложить работу' : 'Ish taklif qilish'}
                                     </Button>
-                                    <p className="text-center text-[10px] text-slate-400 mt-4">
+                                    <p className="text-center text-[10px] text-slate-400 mt-3">
                                         {lang === 'ru' ? 'Размещено' : 'Joylangan'}: {formatDate(resume.created_at, lang)}
                                     </p>
                                 </CardContent>
@@ -538,60 +561,60 @@ export default function ResumeDetailPage() {
                         )}
 
                         {/* Contact Card */}
-                        <Card className="border-slate-200 shadow-sm overflow-hidden">
-                            <div className="bg-slate-50 px-5 py-3 border-b border-slate-100">
-                                <h3 className="font-bold text-slate-900 text-sm">{lang === 'ru' ? 'Контактная информация' : 'Aloqa ma\'lumotlari'}</h3>
+                        <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                            <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="font-bold text-slate-900 text-xs">{lang === 'ru' ? 'Контакты' : 'Aloqa'}</h3>
                             </div>
-                            <CardContent className="p-4 md:p-5 space-y-4">
+                            <CardContent className="p-4 space-y-3">
                                 {resume.phone && (
                                     <div className="flex items-center justify-between group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                                                <Phone className="w-4 h-4" />
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
+                                                <Phone className="w-3.5 h-3.5" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-medium">{lang === 'ru' ? 'Телефон' : 'Telefon'}</p>
-                                                <p className="font-bold text-slate-900 text-sm">{resume.phone}</p>
+                                                <p className="text-[9px] text-slate-400 font-medium uppercase">{lang === 'ru' ? 'Телефон' : 'Telefon'}</p>
+                                                <p className="font-bold text-slate-900 text-xs">{resume.phone}</p>
                                             </div>
                                         </div>
                                         <a
                                             href={`tel:${resume.phone}`}
-                                            className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all"
+                                            className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
                                         >
-                                            <Phone className="w-4 h-4" />
+                                            <Phone className="w-3.5 h-3.5" />
                                         </a>
                                     </div>
                                 )}
 
                                 {(resume as any).telegram && (
                                     <div className="flex items-center justify-between group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-                                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.48-.94-2.4-1.55-1.07-.7-.37-1.09.24-1.72.14-.15 2.54-2.32 2.59-2.52.01-.03.01-.15-.06-.21-.07-.06-.18-.04-.26-.02-.11.02-1.91 1.2-5.4 3.56-.51.35-.96.52-1.37.51-.45-.01-1.32-.26-1.96-.46-.79-.25-1.42-.38-1.36-.8.03-.21.32-.42.88-.63 3.44-1.5 5.75-2.49 6.92-2.97 3.29-1.35 3.98-1.58 4.43-1.58.1 0 .32.02.46.12.12.08.15.2.16.28 0 .09.01.27 0 .44z"></path></svg>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
+                                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.48-.94-2.4-1.55-1.07-.7-.37-1.09.24-1.72.14-.15 2.54-2.32 2.59-2.52.01-.03.01-.15-.06-.21-.07-.06-.18-.04-.26-.02-.11.02-1.91 1.2-5.4 3.56-.51.35-.96.52-1.37.51-.45-.01-1.32-.26-1.96-.46-.79-.25-1.42-.38-1.36-.8.03-.21.32-.42.88-.63 3.44-1.5 5.75-2.49 6.92-2.97 3.29-1.35 3.98-1.58 4.43-1.58.1 0 .32.02.46.12.12.08.15.2.16.28 0 .09.01.27 0 .44z"></path></svg>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-medium">Telegram</p>
-                                                <p className="font-bold text-slate-900 text-sm">@{(resume as any).telegram.replace('@', '')}</p>
+                                                <p className="text-[9px] text-slate-400 font-medium uppercase">Telegram</p>
+                                                <p className="font-bold text-slate-900 text-xs">@{(resume as any).telegram.replace('@', '')}</p>
                                             </div>
                                         </div>
                                         <a
                                             href={`https://t.me/${(resume as any).telegram.replace('@', '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-sky-500 hover:text-white transition-all"
+                                            className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
                                         >
-                                            <ArrowLeft className="w-4 h-4 -rotate-180" />
+                                            <ArrowLeft className="w-3.5 h-3.5 -rotate-180" />
                                         </a>
                                     </div>
                                 )}
 
                                 {isOwner && districtName && (
-                                    <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                                            <MapPin className="w-4 h-4" />
+                                    <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                                            <MapPin className="w-3.5 h-3.5" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-500 font-medium">{lang === 'ru' ? 'Местоположение' : 'Manzil'}</p>
+                                            <p className="text-[9px] text-slate-400 font-medium uppercase">{lang === 'ru' ? 'Местоположение' : 'Manzil'}</p>
                                             <p className="font-bold text-slate-900 text-xs leading-tight">{districtName}</p>
                                         </div>
                                     </div>
@@ -599,21 +622,21 @@ export default function ResumeDetailPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Quick Actions Card */}
-                        <Card className="p-5 bg-gradient-to-br from-indigo-50 to-indigo-50 border-indigo-100 shadow-sm">
-                            <h4 className="font-bold text-indigo-900 text-sm mb-3">{lang === 'ru' ? 'Для работодателя' : 'Ish beruvchi uchun'}</h4>
-                            <div className="space-y-2.5">
-                                <div className="flex items-start gap-2.5">
-                                    <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center shrink-0 mt-0.5">
-                                        <CheckCircle className="w-3.5 h-3.5 text-indigo-700" />
+                        {/* Trust Card */}
+                        <Card className="p-4 bg-slate-50 border-slate-200 shadow-sm rounded-xl">
+                            <h4 className="font-bold text-slate-900 text-xs mb-3">{lang === 'ru' ? 'Для работодателя' : 'Ish beruvchi uchun'}</h4>
+                            <div className="space-y-2">
+                                <div className="flex items-start gap-2">
+                                    <div className="w-4 h-4 rounded bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                                        <CheckCircle className="w-2.5 h-2.5 text-blue-600" />
                                     </div>
-                                    <p className="text-xs text-indigo-800">{lang === 'ru' ? 'Кандидат прошел проверку номера' : 'Nomzod raqami tasdiqlangan'}</p>
+                                    <p className="text-[11px] text-slate-600">{lang === 'ru' ? 'Кандидат прошел проверку номера' : 'Nomzod raqami tasdiqlangan'}</p>
                                 </div>
-                                <div className="flex items-start gap-2.5">
-                                    <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center shrink-0 mt-0.5">
-                                        <CheckCircle className="w-3.5 h-3.5 text-indigo-700" />
+                                <div className="flex items-start gap-2">
+                                    <div className="w-4 h-4 rounded bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                                        <CheckCircle className="w-2.5 h-2.5 text-blue-600" />
                                     </div>
-                                    <p className="text-xs text-indigo-800">{lang === 'ru' ? 'Профиль заполнен на 85%' : 'Profil 85% to\'ldirilgan'}</p>
+                                    <p className="text-[11px] text-slate-600">{lang === 'ru' ? 'Профиль заполнен на 85%' : 'Profil 85% to\'ldirilgan'}</p>
                                 </div>
                             </div>
                         </Card>
@@ -623,4 +646,3 @@ export default function ResumeDetailPage() {
         </div>
     );
 }
-

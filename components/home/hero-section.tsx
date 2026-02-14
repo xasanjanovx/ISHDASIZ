@@ -35,7 +35,6 @@ export function HeroSection() {
 
   useEffect(() => {
     setIsMounted(true);
-    // Fetch regions
     supabase.from('regions').select('*').order('name_uz').then(({ data }) => {
       if (data) setRegions(data);
     });
@@ -43,13 +42,10 @@ export function HeroSection() {
 
   const trackVisitor = useCallback(async () => {
     if (typeof window === 'undefined') return;
-
     const sessionId = sessionStorage.getItem('visitor_session_id') || crypto.randomUUID();
     sessionStorage.setItem('visitor_session_id', sessionId);
-
     const lastVisit = localStorage.getItem('last_visit');
     const now = new Date().getTime();
-
     if (!lastVisit || now - parseInt(lastVisit) > 30 * 60 * 1000) {
       await supabase.from('site_visitors').insert({
         session_id: sessionId,
@@ -65,11 +61,10 @@ export function HeroSection() {
       supabase.from('resumes').select('id', { count: 'exact', head: true }),
       supabase.from('users').select('id', { count: 'exact', head: true }),
     ]);
-
     setStats({
       totalJobs: jobsResult.count || 0,
       totalResumes: resumesResult.count || 0,
-      totalUsers: (usersResult.count || 0) * 2, // Account for multiple profiles per user as requested
+      totalUsers: (usersResult.count || 0) * 2,
     });
   }, []);
 
@@ -85,63 +80,66 @@ export function HeroSection() {
     const params = new URLSearchParams();
     if (searchQuery.trim()) params.set('q', searchQuery);
     if (selectedRegion && selectedRegion !== 'all') params.set('region', selectedRegion);
-
     router.push(`/jobs?${params.toString()}`);
   };
 
   return (
-    <section className="relative min-h-[450px] lg:min-h-[600px] overflow-hidden flex items-center justify-center pt-28 lg:pt-36 pb-12 -mt-16">
-      {/* 1. Background Photo - Absolute to Hero Only (Scrolls away) */}
+    <section className="relative min-h-[450px] lg:min-h-[540px] overflow-hidden flex items-center justify-center pt-28 lg:pt-32 pb-14 -mt-16">
+      {/* === ANIMATED MESH GRADIENT BACKGROUND === */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[url('/hero-office.png')] bg-cover bg-center bg-no-repeat" />
-        {/* 2. Dark Overlay (Blue-ish dark) */}
-        <div className="absolute inset-0 bg-slate-900/80 bg-gradient-to-t from-slate-900 via-slate-900/70 to-slate-900/60" />
-
-        {/* 3. Blue Glow Effects (No Purple) */}
-        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-600/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 animate-mesh" style={{ backgroundSize: '200% 200%' }} />
       </div>
 
-      {/* Smooth Fade REMOVED as requested */}
+      {/* === FLOATING GLOWING ORBS === */}
+      <div className="absolute top-10 right-[10%] w-[300px] h-[300px] bg-blue-500/15 rounded-full blur-[100px] animate-float-slow pointer-events-none" />
+      <div className="absolute bottom-5 left-[5%] w-[350px] h-[350px] bg-teal-500/10 rounded-full blur-[120px] animate-float-medium pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] bg-indigo-500/8 rounded-full blur-[80px] animate-float-fast pointer-events-none" />
 
-      <div className="container mx-auto px-4 relative z-10 w-full mb-8">
+      {/* === SUBTLE GRID OVERLAY === */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+
+      <div className="container mx-auto px-4 relative z-10 w-full">
         <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
 
-          {/* Badge - Restored Old "Rasmiy Portal" Style */}
+          {/* === BADGE === */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0, y: 15, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-400/30 bg-blue-500/10 text-blue-200 text-sm font-medium mb-5 backdrop-blur-sm">
+            <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full glass-card text-blue-200 text-sm font-medium mb-6 animate-glow-pulse">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400"></span>
               </span>
               {lang === 'uz' ? 'Rasmiy portal' : 'Официальный портал'}
             </span>
           </motion.div>
 
-          {/* Main Title - Blue Gradient */}
+          {/* === MAIN TITLE === */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-7xl font-bold mb-5 tracking-tight text-white"
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="text-3xl md:text-5xl lg:text-6xl font-bold mb-5 tracking-tight text-white leading-[1.15]"
           >
             <span className="block mb-1">
               {lang === 'uz' ? 'Kelajak kasbini' : 'Найдите профессию'}
             </span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-300 to-indigo-300 drop-shadow-sm">
-              {lang === 'uz' ? 'biz bilan toping' : 'будущего вместе с нами'}
+            <span className="gradient-text-blue drop-shadow-sm">
+              {lang === 'uz' ? 'biz bilan toping' : 'будущего с нами'}
             </span>
           </motion.h1>
 
+          {/* === SUBTITLE === */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg md:text-xl text-blue-100/90 mb-8 max-w-2xl font-light leading-relaxed"
+            className="text-base md:text-lg text-slate-300/90 mb-10 max-w-2xl font-light leading-relaxed"
           >
             {lang === 'uz' ? (
               <>
@@ -153,38 +151,36 @@ export function HeroSection() {
             )}
           </motion.p>
 
-          {/* Search Box */}
+          {/* === SEARCH BOX === */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-full max-w-4xl bg-white/10 backdrop-blur-xl p-2 rounded-2xl md:rounded-full shadow-2xl shadow-blue-900/20 border border-white/20 mb-8 group hover:border-white/30 transition-all duration-300"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-4xl glass-card p-2.5 rounded-2xl md:rounded-full shadow-2xl shadow-blue-500/10 mb-10 group hover:shadow-blue-500/20 transition-all duration-500"
           >
             <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center gap-2">
-              {/* Keyword Input */}
               <div className="relative flex-1 w-full">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-300 transition-colors" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
                 <Input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.hero.searchPlaceholder}
-                  className="pl-14 h-14 md:h-14 w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-300 text-white text-base"
+                  className="pl-13 h-12 md:h-14 w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-400 text-white text-base"
                 />
               </div>
 
-              <div className="hidden md:block w-px h-8 bg-white/10" />
+              <div className="hidden md:block w-px h-7 bg-white/10" />
 
-              {/* Region Select */}
-              <div className="relative w-full md:w-[280px]">
-                <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                  <MapPin className="w-5 h-5 text-slate-300" />
+              <div className="relative w-full md:w-[260px]">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                  <MapPin className="w-5 h-5 text-slate-400" />
                 </div>
                 <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger className="pl-14 h-14 md:h-14 border-0 bg-transparent focus:ring-0 text-left text-base text-slate-200 font-medium hover:bg-white/5 transition-colors">
+                  <SelectTrigger className="pl-13 h-12 md:h-14 border-0 bg-transparent focus:ring-0 text-left text-base text-slate-300 font-medium hover:bg-white/5 transition-colors">
                     <SelectValue placeholder={lang === 'uz' ? 'Viloyatni tanlang' : 'Выберите регион'} />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
+                  <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/10 text-slate-200">
                     <SelectItem value="all">{lang === 'uz' ? 'Barcha viloyatlar' : 'Все регионы'}</SelectItem>
                     {regions.map((r) => (
                       <SelectItem key={r.id} value={r.id.toString()}>
@@ -195,11 +191,10 @@ export function HeroSection() {
                 </Select>
               </div>
 
-              {/* Search Button - Light White/Blue Button (Requested "Light buttons") */}
               <Button
                 type="submit"
                 size="lg"
-                className="w-full md:w-auto h-12 md:h-14 px-8 rounded-xl md:rounded-full bg-white hover:bg-blue-50 text-blue-600 font-bold text-base shadow-lg hover:shadow-white/20 transition-all duration-300"
+                className="w-full md:w-auto h-12 md:h-14 px-8 rounded-xl md:rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-bold text-base shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.02]"
               >
                 {lang === 'uz' ? 'Qidirish' : 'Поиск'}
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -207,67 +202,61 @@ export function HeroSection() {
             </form>
           </motion.div>
 
-          {/* Quick Actions - Lighter/Ghost */}
+          {/* === QUICK ACTIONS === */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35 }}
-            className="flex flex-wrap items-center justify-center gap-4 mb-16"
+            className="flex flex-wrap items-center justify-center gap-3 mb-10"
           >
+            {/* Telegram bot — with YANGI corner badge */}
             <Link href="https://t.me/ishdasiz_bot" target="_blank" rel="noopener noreferrer" className="group relative">
-              {/* Small gold badge with pulse animation */}
-              <span className="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-[9px] font-bold text-amber-900 shadow-md whitespace-nowrap animate-pulse">
-                {lang === 'uz' ? 'Tez va qulay' : 'Быстро'}
-              </span>
-              <Button className="h-10 px-6 rounded-full bg-blue-600/80 hover:bg-blue-500 border border-blue-400/60 text-white font-medium transition-all duration-300 shadow-lg backdrop-blur-sm group-hover:scale-105">
-                <MessageCircle className="w-4 h-4 mr-2 text-white" />
+              <Button className="h-10 px-5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/20 text-white font-medium transition-all duration-300 shadow-lg shadow-blue-600/20 group-hover:shadow-blue-500/30 group-hover:scale-105">
+                <MessageCircle className="w-4 h-4 mr-2" />
                 {lang === 'uz' ? 'Telegram bot' : 'Telegram бот'}
               </Button>
+              {/* Superscript "YANGI" badge */}
+              <span className="absolute -top-2.5 -right-3 px-1.5 py-0.5 text-[8px] font-bold uppercase bg-emerald-400 text-emerald-950 rounded-md animate-bounce leading-none shadow-lg shadow-emerald-400/30 z-10">
+                Yangi
+              </span>
             </Link>
 
+            {/* Map search — green */}
             <Link href="/map">
-              <Button className="h-10 px-6 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-100 font-medium transition-all shadow-lg backdrop-blur-sm">
-                <MapPin className="w-4 h-4 mr-2 text-emerald-200" />
+              <Button className="h-10 px-5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-400/20 text-white font-medium transition-all duration-300 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 hover:scale-105">
+                <MapPin className="w-4 h-4 mr-2" />
                 {lang === 'uz' ? 'Xaritada izlash' : 'Поиск на карте'}
               </Button>
             </Link>
           </motion.div>
 
-          {/* Stats - Blue Accents & "Foydalanuvchilar" Correction */}
+          {/* === STATS — white text, no borders, clean === */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 w-full max-w-3xl border-t border-white/10 pt-6"
+            className="grid grid-cols-3 gap-6 md:gap-10 w-full max-w-2xl"
           >
-            {/* Vakansiyalar */}
-            <div className="flex flex-col items-center">
-              <span className="text-3xl lg:text-4xl font-bold text-white mb-1 flex items-center justify-center">
-                <FlipCounter value={stats.totalJobs} suffix="+" />
-              </span>
-              <span className="text-blue-200/60 text-xs uppercase tracking-wider font-medium">
-                {lang === 'uz' ? 'Vakansiyalar' : 'Вакансии'}
-              </span>
-            </div>
-
-            {/* Rezyumelar */}
-            <div className="flex flex-col items-center">
-              <span className="text-3xl lg:text-4xl font-bold text-white mb-1 flex items-center justify-center">
-                <FlipCounter value={stats.totalResumes} suffix="+" />
-              </span>
-              <span className="text-blue-200/60 text-xs uppercase tracking-wider font-medium">
-                {lang === 'uz' ? 'Rezyumelar' : 'Резюме'}
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <span className="text-3xl lg:text-4xl font-bold text-white mb-1 flex items-center justify-center">
-                <FlipCounter value={stats.totalUsers} suffix="+" />
-              </span>
-              <span className="text-blue-200/60 text-xs uppercase tracking-wider font-medium">
-                {lang === 'uz' ? 'Foydalanuvchilar' : 'Пользователи'}
-              </span>
-            </div>
+            {[
+              { value: stats.totalJobs, label: lang === 'uz' ? 'Vakansiyalar' : 'Вакансии' },
+              { value: stats.totalResumes, label: lang === 'uz' ? 'Rezyumelar' : 'Резюме' },
+              { value: stats.totalUsers, label: lang === 'uz' ? 'Foydalanuvchilar' : 'Пользователи' },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 + i * 0.08 }}
+                className="text-center"
+              >
+                <span className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 flex items-center justify-center">
+                  <FlipCounter value={stat.value} suffix="+" />
+                </span>
+                <span className="text-white/50 text-[10px] md:text-xs uppercase tracking-widest font-medium">
+                  {stat.label}
+                </span>
+              </motion.div>
+            ))}
           </motion.div>
 
         </div>

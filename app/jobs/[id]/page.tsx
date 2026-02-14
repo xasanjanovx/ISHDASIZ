@@ -517,14 +517,14 @@ export default function JobDetailPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 py-5 md:py-6 text-white">
-        {/* Background Patterns */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-400 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
-        </div>
+      <div className="relative overflow-hidden py-5 md:py-6 text-white">
+        {/* Animated mesh gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 animate-mesh" style={{ backgroundSize: '200% 200%' }} />
+        {/* Floating orbs */}
+        <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-blue-500/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
+        <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-teal-500/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
 
-        <div className="container relative mx-auto px-4">
+        <div className="container relative mx-auto px-4 z-10">
           <Button
             variant="ghost"
             onClick={() => router.push('/jobs')}
@@ -601,7 +601,7 @@ export default function JobDetailPage() {
                     disabled={hasApplied || job.is_imported}
                     className={`h-11 px-6 rounded-xl font-bold shadow-xl transition-all text-sm ${job.is_imported
                       ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                      : 'bg-white text-indigo-900 hover:bg-indigo-50 shadow-indigo-950/20'
+                      : 'bg-gradient-to-r from-blue-500 to-teal-400 text-white hover:from-blue-400 hover:to-teal-300 shadow-blue-500/25'
                       }`}
                   >
                     {hasApplied ? (lang === 'uz' ? 'Ariza yuborilgan' : 'Р—Р°СЏРІРєР° РѕС‚РїСЂР°РІР»РµРЅР°') : t.job.apply}
@@ -694,7 +694,7 @@ export default function JobDetailPage() {
 
                   {/* Working Days - REMOVED (duplicate with Ish kunlari va vaqti below) */}
 
-                                    {/* Schedule (Ish kunlari va vaqti) - Always show */}
+                  {/* Schedule (Ish kunlari va vaqti) - Always show */}
                   <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
                     <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'График работы' : 'Ish kunlari va vaqti'}:</span>
                     <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{scheduleLabel}</span>

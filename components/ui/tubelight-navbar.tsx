@@ -64,12 +64,7 @@ export function NavBar({ items, className, activeTab, onTabChange }: NavBarProps
                   stiffness: 380,
                   damping: 30,
                 }}
-              >
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-primary/0 via-primary to-primary/0 rounded-full">
-                  <div className="absolute w-12 h-4 bg-primary/10 rounded-full blur-md -top-2 -left-2" />
-                  <div className="absolute w-8 h-4 bg-primary/15 rounded-full blur-sm -top-1" />
-                </div>
-              </motion.div>
+              />
             )}
           </Link>
         )

@@ -11,11 +11,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocationSelect } from '@/components/ui/location-select';
 import { Category, Region } from '@/types/database';
-import { EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, GENDER_OPTIONS, LANGUAGES_LIST } from '@/lib/constants';
-import { Filter, X } from '@/components/ui/icons';
+import { EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, GENDER_OPTIONS } from '@/lib/constants';
+import { X } from '@/components/ui/icons';
 
 interface ResumeFiltersProps {
     categories: Category[];
@@ -69,32 +68,14 @@ export function ResumeFilters({
         salaryRange[1] < 20000000;
 
     return (
-        <Card className="sticky top-24">
-            <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Filter className="w-5 h-5 text-sky-600" />
-                        {t.filters.title}
-                    </CardTitle>
-                    {hasActiveFilters && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onClear}
-                            className="text-slate-500 hover:text-slate-700 -mr-2"
-                        >
-                            <X className="w-4 h-4 mr-1" />
-                            {t.filters.clear}
-                        </Button>
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-                {/* 1. Category */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">{t.filters.category}</Label>
+        <div className="space-y-4">
+            {/* Top row: main filters */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {/* Category */}
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.filters.category}</Label>
                     <Select value={selectedCategory} onValueChange={onCategoryChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
                             <SelectValue placeholder={t.filters.allCategories} />
                         </SelectTrigger>
                         <SelectContent>
@@ -108,59 +89,32 @@ export function ResumeFilters({
                     </Select>
                 </div>
 
-                {/* Location Select */}
-                <LocationSelect
-                    selectedRegion={selectedRegion}
-                    selectedDistrict={selectedDistrict}
-                    onRegionChange={onRegionChange}
-                    onDistrictChange={onDistrictChange}
-                    regions={regions}
-                    showAllOption={true}
-                    className="grid-cols-1 gap-2"
-                    showLabels={true}
-                />
-
-                {/* 3. Salary Expectation */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">{lang === 'uz' ? 'Kutilayotgan maosh' : 'Ожидаемая зарплата'}</Label>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <Input
-                            type="number"
-                            placeholder={lang === 'uz' ? 'Dan' : 'От'}
-                            value={salaryRange[0] === 0 ? '' : salaryRange[0]}
-                            onChange={(e) => {
-                                const val = e.target.value ? parseInt(e.target.value) : 0;
-                                onSalaryRangeChange([val, salaryRange[1]]);
-                            }}
-                            className="h-10"
-                        />
-                        <Input
-                            type="number"
-                            placeholder={lang === 'uz' ? 'Gacha' : 'До'}
-                            value={salaryRange[1] >= 20000000 ? '' : salaryRange[1]}
-                            onChange={(e) => {
-                                const val = e.target.value ? parseInt(e.target.value) : 20000000;
-                                onSalaryRangeChange([salaryRange[0], val]);
-                            }}
-                            className="h-10"
-                        />
-                    </div>
+                {/* Location */}
+                <div className="col-span-2 sm:col-span-2">
+                    <LocationSelect
+                        selectedRegion={selectedRegion}
+                        selectedDistrict={selectedDistrict}
+                        onRegionChange={onRegionChange}
+                        onDistrictChange={onDistrictChange}
+                        regions={regions}
+                        showAllOption={true}
+                        className="grid-cols-2 gap-3"
+                        showLabels={true}
+                    />
                 </div>
 
-                {/* 4. Experience */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                        {lang === 'uz' ? 'Tajriba' : 'Опыт работы'}
+                {/* Experience */}
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {lang === 'uz' ? 'Tajriba' : 'Опыт'}
                     </Label>
                     <Select value={selectedExperience} onValueChange={onExperienceChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">
-                                {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой опыт'}
+                                {lang === 'uz' ? 'Ahamiyatsiz' : 'Любой'}
                             </SelectItem>
                             {EXPERIENCE_OPTIONS.map((level) => (
                                 <SelectItem key={level.value} value={level.value}>
@@ -171,13 +125,13 @@ export function ResumeFilters({
                     </Select>
                 </div>
 
-                {/* 5. Education */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                        {lang === 'uz' ? "Ta'lim" : 'Образование'}
+                {/* Education */}
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {lang === 'uz' ? "Ta'lim" : 'Образ.'}
                     </Label>
                     <Select value={selectedEducation} onValueChange={onEducationChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -193,13 +147,13 @@ export function ResumeFilters({
                     </Select>
                 </div>
 
-                {/* 6. Gender */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">
+                {/* Gender */}
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         {lang === 'uz' ? 'Jins' : 'Пол'}
                     </Label>
                     <Select value={selectedGender} onValueChange={onGenderChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -214,7 +168,53 @@ export function ResumeFilters({
                         </SelectContent>
                     </Select>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+
+            {/* Salary row + Clear */}
+            <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {lang === 'uz' ? 'Maosh (dan)' : 'Зарплата (от)'}
+                    </Label>
+                    <Input
+                        type="number"
+                        placeholder={lang === 'uz' ? 'Dan' : 'От'}
+                        value={salaryRange[0] === 0 ? '' : salaryRange[0]}
+                        onChange={(e) => {
+                            const val = e.target.value ? parseInt(e.target.value) : 0;
+                            onSalaryRangeChange([val, salaryRange[1]]);
+                        }}
+                        className="h-10 w-36 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {lang === 'uz' ? 'Maosh (gacha)' : 'Зарплата (до)'}
+                    </Label>
+                    <Input
+                        type="number"
+                        placeholder={lang === 'uz' ? 'Gacha' : 'До'}
+                        value={salaryRange[1] >= 20000000 ? '' : salaryRange[1]}
+                        onChange={(e) => {
+                            const val = e.target.value ? parseInt(e.target.value) : 20000000;
+                            onSalaryRangeChange([salaryRange[0], val]);
+                        }}
+                        className="h-10 w-36 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors"
+                    />
+                </div>
+
+                {hasActiveFilters && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClear}
+                        className="h-10 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                        <X className="w-4 h-4 mr-1.5" />
+                        {t.filters.clear}
+                    </Button>
+                )}
+            </div>
+        </div>
     );
 }

@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Briefcase, Banknote, Clock, ChevronRight, GraduationCap } from '@/components/ui/icons';
-import { formatSalary, EDUCATION_OPTIONS } from '@/lib/constants';
+import { MapPin, Wallet, Clock, ArrowRight } from '@/components/ui/icons';
+import { formatSalary } from '@/lib/constants';
+import { normalizeLocation } from '@/lib/text';
 
 interface ResumeCardProps {
     resume: any;
@@ -13,110 +13,98 @@ interface ResumeCardProps {
 
 export function ResumeCard({ resume }: ResumeCardProps) {
     const { lang } = useLanguage();
+    const title = lang === 'uz' ? (resume.desired_position || 'Rezyume') : (resume.desired_position || 'Резюме');
+    const fullName = resume.full_name || '';
+    const initial = fullName ? fullName[0]?.toUpperCase() : '?';
 
-    const getEducationLabel = (value: string) => {
-        const opt = EDUCATION_OPTIONS.find(o => o.value === value);
-        return opt ? (lang === 'uz' ? opt.label_uz : opt.label_ru) : value;
-    };
+    let regionName = '';
+    let districtName = '';
+    if (resume.districts?.regions) {
+        regionName = lang === 'uz' ? resume.districts.regions.name_uz : resume.districts.regions.name_ru;
+    }
+    if (resume.districts) {
+        districtName = lang === 'uz' ? resume.districts.name_uz : resume.districts.name_ru;
+    }
+    const cleanRegion = normalizeLocation(regionName);
+    const cleanDistrict = normalizeLocation(districtName);
+    let locationLabel = [cleanRegion, cleanDistrict].filter(Boolean).join(', ');
+
+    const experienceLabel = resume.experience_years
+        ? `${resume.experience_years} ${lang === 'uz' ? 'yil' : 'лет'}`
+        : (lang === 'uz' ? 'Tajribasiz' : 'Без опыта');
 
     return (
-        <Link href={`/resumes/${resume.id}`} className="group block h-full">
-            <Card className="relative hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-slate-200 hover:border-blue-300 bg-white h-full flex flex-col">
-                {/* Decorative left accent - Matches JobCard */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 to-indigo-700" />
+        <Card className="group relative hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-slate-200/80 hover:border-blue-300/50 bg-white rounded-xl h-full">
+            {/* Gradient left accent */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-teal-400 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity" />
 
-                <CardContent className="p-4 flex flex-col h-full relative z-10">
-                    {/* Top Row: Date & Status */}
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                            <Clock className="w-3 h-3" />
-                            {new Date(resume.created_at).toLocaleDateString()}
+            <Link href={`/resumes/${resume.id}`} className="absolute inset-0 z-0" aria-label={title} />
+
+            <CardContent className="p-4 md:p-5 h-full flex flex-col">
+                {/* Header */}
+                <div className="flex items-start gap-3 mb-3">
+                    {/* Avatar with gradient ring */}
+                    <div className="relative flex-shrink-0">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
+                            {initial}
                         </div>
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     </div>
-
-                    {/* Main Info */}
-                    <div className="mb-4">
-                        <h3 className="font-extrabold text-lg text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors mb-1 duration-300">
-                            {resume.title}
+                    <div className="flex-1 min-w-0 pt-0.5">
+                        <h3 className="font-bold text-[15px] text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-tight mb-1">
+                            {title}
                         </h3>
-                        <p className="text-slate-500 font-semibold text-sm">
-                            {resume.full_name || (lang === 'ru' ? 'Имя не указано' : 'Ism ko\'rsatilmagan')}
-                        </p>
+                        <p className="text-sm text-slate-500 line-clamp-1">{fullName}</p>
                     </div>
+                </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                        {/* Experience */}
-                        <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100/50">
-                            <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center text-indigo-600">
-                                <Briefcase className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{lang === 'uz' ? 'Tajriba' : 'Опыт'}</p>
-                                <p className="text-xs font-bold text-slate-700 truncate">
-                                    {resume.experience_years === 0
-                                        ? (lang === 'uz' ? 'Tajribasiz' : 'Без опыта')
-                                        : `${resume.experience_years} ${lang === 'uz' ? 'yil' : 'лет'}`}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Education */}
-                        <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100/50">
-                            <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center text-indigo-600">
-                                <GraduationCap className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{lang === 'uz' ? 'Ma\'lumot' : 'Образование'}</p>
-                                <p className="text-xs font-bold text-slate-700 truncate">
-                                    {getEducationLabel(resume.education_level)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Salary */}
-                    <div className="space-y-2 mb-5">
-                        <div className="flex items-center gap-2 text-indigo-600">
-                            <Banknote className="w-3.5 h-3.5" />
-                            <span className="text-sm font-bold">
-                                {(resume.expected_salary_min || resume.expected_salary_max)
-                                    ? formatSalary(resume.expected_salary_min, resume.expected_salary_max, lang)
-                                    : (lang === 'ru' ? 'Договорная' : 'Kelishiladi')
-                                }
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Skills Tags */}
-                    {resume.skills && resume.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-auto pt-4 border-t border-slate-100/80">
-                            {resume.skills.slice(0, 3).map((skill: string, i: number) => (
-                                <span
-                                    key={i}
-                                    className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100/50"
-                                >
-                                    {skill}
-                                </span>
-                            ))}
-                            {resume.skills.length > 3 && (
-                                <span className="text-[10px] font-black text-slate-400 px-1.5 py-0.5">
-                                    +{resume.skills.length - 3}
-                                </span>
-                            )}
+                {/* Metadata pills */}
+                <div className="flex flex-wrap items-center gap-1.5 mb-3 text-xs font-medium">
+                    {locationLabel && (
+                        <div className="flex items-center gap-1 bg-teal-50/60 text-teal-700 px-2 py-1 rounded-md border border-teal-200/50">
+                            <MapPin className="w-3 h-3 text-teal-500" />
+                            <span className="line-clamp-1">{locationLabel}</span>
                         </div>
                     )}
-
-                    {/* Action Hint */}
-                    <div className="absolute bottom-4 right-4 translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
-                            <ChevronRight className="w-4 h-4" />
-                        </div>
+                    <div className="flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-1 rounded-md border border-slate-200/60">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        {experienceLabel}
                     </div>
-                </CardContent>
-            </Card>
-        </Link>
+                </div>
+
+                {/* Salary */}
+                <div className="mb-3">
+                    <span className="text-sm font-bold text-amber-700 bg-gradient-to-br from-amber-50 to-amber-100/50 px-2.5 py-1 rounded-md border border-amber-200/60 shadow-sm">
+                        {formatSalary(resume.desired_salary_min, resume.desired_salary_max, lang)}
+                    </span>
+                </div>
+
+                {/* Skills */}
+                {resume.skills && resume.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-auto pt-3 border-t border-slate-100/80">
+                        {resume.skills.slice(0, 4).map((skill: string, i: number) => (
+                            <span
+                                key={i}
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 border border-slate-200/60 group-hover:border-blue-200/40 group-hover:text-blue-700 transition-colors"
+                            >
+                                {skill}
+                            </span>
+                        ))}
+                        {resume.skills.length > 4 && (
+                            <span className="text-[10px] text-slate-400 px-1 py-0.5 font-medium">
+                                +{resume.skills.length - 4}
+                            </span>
+                        )}
+                    </div>
+                )}
+
+                {/* Footer */}
+                <div className="flex items-center justify-end mt-3 pt-2">
+                    <div className="flex items-center gap-1 text-blue-600 text-xs font-bold group-hover:gap-2 transition-all duration-300">
+                        {lang === 'uz' ? 'Batafsil' : 'Подробнее'}
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 }
-

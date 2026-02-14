@@ -9,7 +9,7 @@ import { ResumeCard } from '@/components/resumes/resume-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Category, District, Region } from '@/types/database';
-import { Search, Loader2 } from '@/components/ui/icons';
+import { Search, Loader2, Filter as SlidersHorizontal, X } from '@/components/ui/icons';
 
 export default function ResumesPage() {
     const { lang, t } = useLanguage();
@@ -21,8 +21,9 @@ export default function ResumesPage() {
     const [regions, setRegions] = useState<Region[]>([]);
     const [districts, setDistricts] = useState<District[]>([]);
     const [loading, setLoading] = useState(true);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null); // Для отображения ошибок RLS
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+    const [showFilters, setShowFilters] = useState(false);
 
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
     const [selectedRegion, setSelectedRegion] = useState(searchParams.get('region') || 'all');
@@ -39,7 +40,6 @@ export default function ResumesPage() {
     const fetchData = useCallback(async () => {
         setLoading(true);
 
-        // Fetch options only once if empty
         let currentCategories = categories;
         let currentRegions = regions;
         let currentDistricts = districts;
@@ -50,37 +50,22 @@ export default function ResumesPage() {
                 supabase.from('regions').select('*').order('name_uz'),
                 supabase.from('districts').select('*').order('name_uz'),
             ]);
-            if (cats.data) {
-                setCategories(cats.data);
-                currentCategories = cats.data;
-            }
-            if (regs.data) {
-                setRegions(regs.data);
-                currentRegions = regs.data;
-            }
-            if (dists.data) {
-                setDistricts(dists.data);
-                currentDistricts = dists.data;
-            }
+            if (cats.data) { setCategories(cats.data); currentCategories = cats.data; }
+            if (regs.data) { setRegions(regs.data); currentRegions = regs.data; }
+            if (dists.data) { setDistricts(dists.data); currentDistricts = dists.data; }
         }
 
-        // Build Query - simplified select, enrichResumes handles districts/regions join
-        // REMOVED is_public and status filters to show all resumes (user request)
         let query = supabase
             .from('resumes')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(100);
 
-        // Category filter
         if (selectedCategory !== 'all') query = query.eq('category_id', selectedCategory);
 
         if (selectedDistrict !== 'all') {
-            // Filter directly by district_id
             query = query.eq('district_id', selectedDistrict);
         } else if (selectedRegion !== 'all') {
-            // If only region is selected, we need to get all districts in that region first
-            // Then filter resumes by those district IDs
             const { data: regionDistricts } = await supabase
                 .from('districts')
                 .select('id')
@@ -93,41 +78,24 @@ export default function ResumesPage() {
         }
 
         if (selectedExperience !== 'all') {
-            // Experience options: 'no_experience', '1_year', etc.
-            // Resume table likely stores 'experience_years' (number) or string code?
-            // search-resumes page used logic: exp=0, 1..3, 3..6.
-            // Let's match typical resume schema. 'experience_years' is a number usually.
-            // And 'experience' field might be a code string.
-            // Let's guess schema uses 'experience' string code like jobs, OR 'experience_years'.
-            // search-resumes.tsx uses 'experience_years'.
-            // creation form uses 'experience' string code?
-            // Let's filter by 'experience' column if it exists, matching codes.
             query = query.eq('experience', selectedExperience);
         }
 
         if (selectedEducation !== 'all') query = query.eq('education_level', selectedEducation);
         if (selectedGender !== 'all') query = query.eq('gender', selectedGender);
 
-        // Salary filter (Expected salary)
-        // Resume has 'expected_salary_min', 'expected_salary_max'.
-        // Logic: Intersect ranges? Or Min >= Filter Min?
         if (salaryRange[0] > 0) {
-            // expected_salary_min >= filter OR expected_salary_min IS NULL (negotiable)
             query = query.or(`expected_salary_min.gte.${salaryRange[0]},expected_salary_min.is.null`);
         }
 
         const { data, error } = await query;
 
-        // Функция обогащения резюме данными о location
         const enrichResumes = (resumeList: any[]) => {
             return resumeList.map(resume => {
                 if (resume.district_id) {
                     const district = currentDistricts.find(d => d.id === resume.district_id);
                     const region = currentRegions.find(r => r.id === district?.region_id);
-                    return {
-                        ...resume,
-                        districts: district ? { ...district, regions: region } : null
-                    };
+                    return { ...resume, districts: district ? { ...district, regions: region } : null };
                 }
                 return resume;
             });
@@ -135,7 +103,6 @@ export default function ResumesPage() {
 
         if (error) {
             console.error('Error fetching resumes:', error);
-            // Показываем понятную ошибку пользователю (возможно RLS)
             if (error.code === 'PGRST301' || error.message?.includes('permission')) {
                 setErrorMessage(lang === 'uz'
                     ? "Ruxsat cheklangan (xavfsizlik siyosati). Admin bilan bog'laning."
@@ -147,7 +114,6 @@ export default function ResumesPage() {
             }
             setResumes([]);
         } else if (!data || data.length === 0) {
-            // Fallback: попробуем без status filter
             console.debug('[RESUMES] Основной запрос вернул 0, пробуем fallback без status');
             const fallbackQuery = supabase
                 .from('resumes')
@@ -159,12 +125,9 @@ export default function ResumesPage() {
 
             if (fallbackError) {
                 console.error('Fallback query error:', fallbackError);
-                setErrorMessage(lang === 'uz'
-                    ? "Rezyumelar topilmadi"
-                    : 'Резюме не найдены');
+                setErrorMessage(lang === 'uz' ? "Rezyumelar topilmadi" : 'Резюме не найдены');
                 setResumes([]);
             } else {
-                // Используем fallbackData!
                 setErrorMessage(null);
                 const enrichedData = enrichResumes(fallbackData || []);
                 let filtered = enrichedData;
@@ -179,7 +142,6 @@ export default function ResumesPage() {
                 setResumes(filtered);
             }
         } else {
-            // Основной запрос вернул данные
             setErrorMessage(null);
             const enrichedData = enrichResumes(data);
             let filtered = enrichedData;
@@ -220,6 +182,15 @@ export default function ResumesPage() {
         return () => clearTimeout(timeout);
     }, [updateURL]);
 
+    const hasActiveFilters =
+        selectedCategory !== 'all' ||
+        selectedRegion !== 'all' ||
+        selectedDistrict !== 'all' ||
+        selectedExperience !== 'all' ||
+        selectedEducation !== 'all' ||
+        selectedGender !== 'all' ||
+        salaryRange[0] > 0 ||
+        salaryRange[1] < 20000000;
 
     const clearFilters = () => {
         setSelectedCategory('all');
@@ -234,33 +205,59 @@ export default function ResumesPage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            <div className="bg-indigo-900 text-white py-10 relative overflow-hidden">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl opacity-20"></div>
-                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl opacity-20"></div>
-                </div>
+            {/* Header — Midnight Luxury */}
+            <div className="relative text-white py-10 overflow-hidden">
+                {/* Animated mesh gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 animate-mesh" style={{ backgroundSize: '200% 200%' }} />
+                {/* Floating orbs */}
+                <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-blue-500/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
+                <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-teal-500/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
 
                 <div className="container mx-auto px-4 relative z-10">
-                    <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">{lang === 'uz' ? 'Rezyumelar' : 'Резюме'}</h1>
-                    <div className="flex gap-2 max-w-2xl">
+                    <p className="text-xs font-medium text-blue-300/80 uppercase tracking-widest mb-2">
+                        {lang === 'uz' ? 'Nomzodlar' : 'Кандидаты'}
+                    </p>
+                    <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">{lang === 'uz' ? 'Rezyumelar' : 'Резюме'}</h1>
+                    <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full mb-6" />
+
+                    {/* Search + Filter Toggle — glassmorphism */}
+                    <div className="flex gap-3 max-w-3xl">
                         <div className="relative flex-1 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
                             <Input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder={lang === 'uz' ? 'Kasb yoki ko\'nikma bo\'yicha qidirish...' : 'Поиск по профессии или навыкам...'}
-                                className="pl-12 h-14 bg-white text-slate-900 border-0 rounded-2xl shadow-xl shadow-indigo-900/20 text-lg"
+                                className="pl-12 h-12 bg-white/5 backdrop-blur-sm border-white/10 text-white rounded-xl placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:bg-white/10 transition-all"
                             />
                         </div>
+                        <Button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`h-12 px-4 rounded-xl font-medium transition-all ${showFilters
+                                ? 'bg-white text-slate-900 hover:bg-slate-100 shadow-lg'
+                                : 'bg-white/5 backdrop-blur-sm text-slate-300 hover:bg-white/10 border border-white/10 hover:border-white/20'
+                                }`}
+                        >
+                            {showFilters ? <X className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
+                            <span className="ml-2 hidden sm:inline">
+                                {showFilters
+                                    ? (lang === 'uz' ? 'Yopish' : 'Закрыть')
+                                    : (lang === 'uz' ? 'Filtrlar' : 'Фильтры')
+                                }
+                            </span>
+                            {hasActiveFilters && (
+                                <span className="ml-1.5 w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                            )}
+                        </Button>
                     </div>
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex flex-col lg:flex-row gap-6">
-                    <aside className="lg:w-72 flex-shrink-0">
+            {/* Collapsible Filters */}
+            {showFilters && (
+                <div className="bg-white border-b border-slate-200 shadow-sm animate-slide-up">
+                    <div className="container mx-auto px-4 py-5">
                         <ResumeFilters
                             categories={categories}
                             regions={regions}
@@ -283,53 +280,53 @@ export default function ResumesPage() {
                             onGenderChange={setSelectedGender}
                             onClear={clearFilters}
                         />
-                    </aside>
-
-                    <main className="flex-1">
-                        {loading ? (
-                            <div className="flex items-center justify-center py-20">
-                                <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
-                            </div>
-                        ) : errorMessage ? (
-                            /* Показываем ошибку RLS/доступа */
-                            <div className="text-center py-16 bg-red-50 rounded-xl shadow-sm border border-red-200">
-                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-lg font-semibold text-red-700">
-                                    {lang === 'uz' ? 'Xatolik' : 'Ошибка'}
-                                </h3>
-                                <p className="text-red-600 mt-2 mb-6">{errorMessage}</p>
-                                <Button variant="outline" onClick={clearFilters}>
-                                    {lang === 'uz' ? 'Qayta urinish' : 'Попробовать снова'}
-                                </Button>
-                            </div>
-                        ) : resumes.length === 0 ? (
-                            <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-slate-200">
-                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Search className="w-8 h-8 text-slate-400" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    {lang === 'uz' ? 'Rezyumelar topilmadi' : 'Резюме не найдены'}
-                                </h3>
-                                <p className="text-slate-500 mt-2 mb-6">
-                                    {lang === 'uz' ? 'Boshqa filtrlar bilan urinib ko\'ring' : 'Попробуйте изменить параметры поиска'}
-                                </p>
-                                <Button variant="outline" onClick={clearFilters}>
-                                    {lang === 'uz' ? 'Filtrlarni tozalash' : 'Сбросить фильтры'}
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {resumes.map(resume => (
-                                    <ResumeCard key={resume.id} resume={resume} />
-                                ))}
-                            </div>
-                        )}
-                    </main>
+                    </div>
                 </div>
+            )}
+
+            {/* Main Content */}
+            <div className="container mx-auto px-4 py-8">
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    </div>
+                ) : errorMessage ? (
+                    <div className="text-center py-16 bg-red-50 rounded-xl shadow-sm border border-red-200">
+                        <div className="w-14 h-14 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-semibold text-red-700">
+                            {lang === 'uz' ? 'Xatolik' : 'Ошибка'}
+                        </h3>
+                        <p className="text-red-600 mt-2 mb-6">{errorMessage}</p>
+                        <Button variant="outline" onClick={clearFilters}>
+                            {lang === 'uz' ? 'Qayta urinish' : 'Попробовать снова'}
+                        </Button>
+                    </div>
+                ) : resumes.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div className="w-14 h-14 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <Search className="w-7 h-7 text-slate-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            {lang === 'uz' ? 'Rezyumelar topilmadi' : 'Резюме не найдены'}
+                        </h3>
+                        <p className="text-slate-500 mt-2 mb-6">
+                            {lang === 'uz' ? 'Boshqa filtrlar bilan urinib ko\'ring' : 'Попробуйте изменить параметры поиска'}
+                        </p>
+                        <Button variant="outline" onClick={clearFilters}>
+                            {lang === 'uz' ? 'Filtrlarni tozalash' : 'Сбросить фильтры'}
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {resumes.map(resume => (
+                            <ResumeCard key={resume.id} resume={resume} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
