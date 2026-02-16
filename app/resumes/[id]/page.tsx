@@ -13,7 +13,6 @@ import {
     ArrowLeft, User, Briefcase, GraduationCap, Languages as LanguagesIcon,
     MapPin, Phone, Calendar, Loader2, Mail, CheckCircle, Banknote
 } from '@/components/ui/icons';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import { formatSalary, formatDate, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, LANGUAGES_LIST, GENDER_OPTIONS } from '@/lib/constants';
 
@@ -45,7 +44,7 @@ interface Resume {
 
 export default function ResumeDetailPage() {
     const { lang } = useLanguage();
-    const { user: currentUser, isAuthenticated } = useUserAuth();
+    const { user: currentUser, isAuthenticated, switchRole } = useUserAuth();
     const params = useParams();
     const router = useRouter();
     const { openModal } = useAuthModal();
@@ -206,6 +205,30 @@ export default function ResumeDetailPage() {
         return age;
     };
 
+    const handleRequireEmployerAccess = () => {
+        if (!isAuthenticated || !currentUser) {
+            toast.info(lang === 'uz'
+                ? 'Rezyumeni ko‘rish uchun ish beruvchi sifatida kiring.'
+                : 'Для просмотра резюме войдите как работодатель.');
+            openModal();
+            return;
+        }
+
+        if (currentUser.active_role === 'job_seeker') {
+            if (currentUser.has_employer_profile) {
+                toast.info(lang === 'uz'
+                    ? 'Ish beruvchi roliga o‘tkazilmoqda...'
+                    : 'Переключаем на роль работодателя...');
+                switchRole('employer');
+            } else {
+                toast.error(lang === 'uz'
+                    ? 'Sizda ish beruvchi profili yo‘q. Avval ish beruvchi profilini oching.'
+                    : 'У вас нет профиля работодателя. Сначала создайте профиль работодателя.');
+                openModal();
+            }
+        }
+    };
+
     const handleContact = async () => {
         if (!resume) return;
 
@@ -257,6 +280,35 @@ export default function ResumeDetailPage() {
     const experienceList = normalizeExperience(resume);
     const educationList = normalizeEducation(resume);
     const isOwner = Boolean(currentUser?.id && currentUser.id === resume.user_id);
+    const isEmployerViewer = Boolean(isAuthenticated && currentUser?.active_role === 'employer');
+    const canViewResume = isOwner || isEmployerViewer;
+
+    if (!canViewResume) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4">
+                <div className="max-w-xl w-full bg-white border border-slate-200 rounded-xl shadow-sm p-6 text-center">
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">
+                        {lang === 'uz'
+                            ? 'Rezyume faqat ish beruvchilar uchun ochiq'
+                            : 'Резюме доступно только работодателям'}
+                    </h2>
+                    <p className="text-slate-500 mb-6">
+                        {lang === 'uz'
+                            ? 'Davom etish uchun ish beruvchi sifatida tizimga kiring.'
+                            : 'Чтобы продолжить, войдите в систему как работодатель.'}
+                    </p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-3">
+                        <Button onClick={handleRequireEmployerAccess}>
+                            {lang === 'uz' ? 'Ish beruvchi sifatida kirish' : 'Войти как работодатель'}
+                        </Button>
+                        <Button variant="outline" onClick={() => router.push('/resumes')}>
+                            {lang === 'uz' ? 'Orqaga qaytish' : 'Вернуться назад'}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -329,13 +381,15 @@ export default function ResumeDetailPage() {
                         </div>
 
                         {/* CTA button */}
-                        <Button
-                            onClick={handleContact}
-                            className="w-full md:w-auto h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]"
-                        >
-                            <Mail className="w-4 h-4" />
-                            {lang === 'ru' ? 'Написать' : 'Xabar yozish'}
-                        </Button>
+                        {isEmployerViewer && (
+                            <Button
+                                onClick={handleContact}
+                                className="w-full md:w-auto h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]"
+                            >
+                                <Mail className="w-4 h-4" />
+                                {lang === 'ru' ? 'Написать' : 'Xabar yozish'}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -546,13 +600,15 @@ export default function ResumeDetailPage() {
                                     </h3>
                                     <p className="text-slate-400 text-xs mb-4">{lang === 'ru' ? 'в месяц' : 'oyiga'}</p>
 
-                                    <Button
-                                        onClick={handleContact}
-                                        className="w-full h-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all text-sm shadow-md shadow-blue-500/15 hover:shadow-blue-500/25"
-                                    >
-                                        <Mail className="w-4 h-4 mr-2" />
-                                        {lang === 'ru' ? 'Предложить работу' : 'Ish taklif qilish'}
-                                    </Button>
+                                    {isEmployerViewer && (
+                                        <Button
+                                            onClick={handleContact}
+                                            className="w-full h-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all text-sm shadow-md shadow-blue-500/15 hover:shadow-blue-500/25"
+                                        >
+                                            <Mail className="w-4 h-4 mr-2" />
+                                            {lang === 'ru' ? 'Предложить работу' : 'Ish taklif qilish'}
+                                        </Button>
+                                    )}
                                     <p className="text-center text-[10px] text-slate-400 mt-3">
                                         {lang === 'ru' ? 'Размещено' : 'Joylangan'}: {formatDate(resume.created_at, lang)}
                                     </p>
@@ -566,7 +622,7 @@ export default function ResumeDetailPage() {
                                 <h3 className="font-bold text-slate-900 text-xs">{lang === 'ru' ? 'Контакты' : 'Aloqa'}</h3>
                             </div>
                             <CardContent className="p-4 space-y-3">
-                                {resume.phone && (
+                                {resume.phone && (isEmployerViewer || isOwner) && (
                                     <div className="flex items-center justify-between group">
                                         <div className="flex items-center gap-2.5">
                                             <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">

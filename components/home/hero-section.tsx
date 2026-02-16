@@ -84,10 +84,23 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-[450px] lg:min-h-[540px] overflow-hidden flex items-center justify-center pt-28 lg:pt-32 pb-14 -mt-16">
-      {/* === ANIMATED MESH GRADIENT BACKGROUND === */}
+    <section className="relative min-h-[560px] lg:min-h-[700px] overflow-hidden flex items-center justify-center pt-32 lg:pt-36 pb-16 -mt-16">
+      {/* === PHOTO BACKGROUND === */}
+      <div
+        className="absolute inset-0 z-0 bg-center bg-cover bg-no-repeat"
+        style={{
+          backgroundImage: "url('/hero-office.png')",
+          filter: 'brightness(0.34) saturate(0.78) contrast(1.12)',
+        }}
+      />
+
+      {/* === DARK BLUE OVERLAY === */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 animate-mesh" style={{ backgroundSize: '200% 200%' }} />
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-[#07153f]/95 via-[#0c2a64]/91 to-[#14408a]/87 animate-mesh"
+          style={{ backgroundSize: '200% 200%' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060f2f]/82 via-[#0a2460]/56 to-[#1a4b9d]/36" />
       </div>
 
       {/* === FLOATING GLOWING ORBS === */}
@@ -156,7 +169,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-4xl glass-card p-2.5 rounded-2xl md:rounded-full shadow-2xl shadow-blue-500/10 mb-10 group hover:shadow-blue-500/20 transition-all duration-500"
+            className="w-full max-w-4xl glass-card p-2.5 rounded-2xl md:rounded-full shadow-2xl shadow-blue-500/20 mb-10 group hover:shadow-blue-500/30 transition-all duration-500"
           >
             <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center gap-2">
               <div className="relative flex-1 w-full">
@@ -166,7 +179,7 @@ export function HeroSection() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.hero.searchPlaceholder}
-                  className="pl-13 h-12 md:h-14 w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-400 text-white text-base"
+                  className="pl-14 h-12 md:h-14 w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-400 text-white text-base"
                 />
               </div>
 
@@ -177,7 +190,7 @@ export function HeroSection() {
                   <MapPin className="w-5 h-5 text-slate-400" />
                 </div>
                 <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger className="pl-13 h-12 md:h-14 border-0 bg-transparent focus:ring-0 text-left text-base text-slate-300 font-medium hover:bg-white/5 transition-colors">
+                  <SelectTrigger className="pl-14 pr-10 h-12 md:h-14 border-0 bg-transparent focus:ring-0 text-left text-base text-slate-300 font-medium hover:bg-white/5 transition-colors">
                     <SelectValue placeholder={lang === 'uz' ? 'Viloyatni tanlang' : 'Выберите регион'} />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/10 text-slate-200">
@@ -216,8 +229,8 @@ export function HeroSection() {
                 {lang === 'uz' ? 'Telegram bot' : 'Telegram бот'}
               </Button>
               {/* Superscript "YANGI" badge */}
-              <span className="absolute -top-2.5 -right-3 px-1.5 py-0.5 text-[8px] font-bold uppercase bg-emerald-400 text-emerald-950 rounded-md animate-bounce leading-none shadow-lg shadow-emerald-400/30 z-10">
-                Yangi
+              <span className="absolute -top-1.5 -right-1.5 px-2 py-0.5 text-[9px] font-extrabold uppercase text-white rounded-md animate-badge-sweep leading-none shadow-lg shadow-blue-600/30 z-10 tracking-wide">
+                YANGI
               </span>
             </Link>
 

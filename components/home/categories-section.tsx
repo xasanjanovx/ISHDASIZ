@@ -60,7 +60,7 @@ export function CategoriesSection({ categories, jobCounts }: CategoriesSectionPr
   };
 
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-b from-white to-slate-50/80 relative overflow-hidden">
+    <section className="py-10 md:py-12 bg-gradient-to-b from-white to-slate-50/70 relative overflow-hidden">
       {/* Subtle background decoration */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-blue-50 to-transparent rounded-full blur-[120px] opacity-50 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-teal-50 to-transparent rounded-full blur-[100px] opacity-40 pointer-events-none" />
@@ -70,21 +70,21 @@ export function CategoriesSection({ categories, jobCounts }: CategoriesSectionPr
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex items-end justify-between mb-10"
+          className="flex items-end justify-between mb-6"
         >
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <Briefcase className="w-3.5 h-3.5 text-white" />
               </div>
               <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
                 {lang === 'uz' ? 'Yo\'nalishlar' : 'Направления'}
               </span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
               {lang === 'uz' ? 'Soha bo\'yicha vakansiyalar' : 'Вакансии по отраслям'}
             </h2>
-            <div className="h-1 w-14 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-3" />
+            <div className="h-[3px] w-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2" />
           </div>
 
         </motion.div>
@@ -94,7 +94,7 @@ export function CategoriesSection({ categories, jobCounts }: CategoriesSectionPr
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3"
         >
           {categories.map((category, index) => {
             const IconComponent = iconMap[category.icon] || Briefcase;
@@ -105,29 +105,29 @@ export function CategoriesSection({ categories, jobCounts }: CategoriesSectionPr
               <motion.div key={category.id} variants={item}>
                 <Link
                   href={`/jobs?category=${category.id}`}
-                  className={`group relative flex flex-col p-4 md:p-5 rounded-xl border border-slate-200/80 bg-white transition-all duration-300 hover:shadow-xl ${accent.hover} hover:-translate-y-1`}
+                  className={`group relative flex flex-col p-3 md:p-3.5 rounded-xl border border-slate-200/80 bg-white transition-all duration-300 hover:shadow-xl ${accent.hover} hover:-translate-y-1`}
                 >
                   {/* Gradient background on hover */}
                   <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${accent.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
-                  <div className="relative flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl ${accent.icon} flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg`}>
-                      <IconComponent className="w-5 h-5" />
+                  <div className="relative flex items-center gap-2.5 mb-2">
+                    <div className={`w-8 h-8 rounded-lg ${accent.icon} flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg`}>
+                      <IconComponent className="w-4 h-4" />
                     </div>
-                    <div className={`${accent.count} text-lg font-bold`}>
+                    <div className={`${accent.count} text-base font-bold`}>
                       {count}
-                      <span className="text-slate-400 text-xs ml-0.5 font-medium">{lang === 'uz' ? ' ta' : ' шт'}</span>
+                      <span className="text-slate-400 text-[11px] ml-0.5 font-medium">{lang === 'uz' ? ' ta' : ' шт'}</span>
                     </div>
                   </div>
 
                   <div className="relative flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-slate-800 line-clamp-2 leading-snug group-hover:text-slate-900 transition-colors">
+                    <span className="text-xs md:text-sm font-semibold text-slate-800 line-clamp-2 leading-snug group-hover:text-slate-900 transition-colors">
                       {lang === 'uz' ? category.name_uz : category.name_ru}
                     </span>
                   </div>
 
                   {/* Arrow */}
-                  <div className="relative mt-3 flex items-center">
+                  <div className="relative mt-2 flex items-center">
                     <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-1 transition-all duration-300" />
                   </div>
                 </Link>

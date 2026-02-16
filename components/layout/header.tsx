@@ -502,17 +502,18 @@ export default function Header() {
   }
 
   return (
-    <header className={`absolute top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isHome ? 'bg-transparent shadow-none' : 'bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-lg shadow-slate-900/5'}`}>
+    <header className={`absolute top-0 left-0 right-0 z-50 w-full border-b transition-[background-color,box-shadow,backdrop-filter,border-color] duration-200 ${isHome ? 'bg-transparent border-transparent shadow-none' : 'bg-white/90 backdrop-blur-xl border-slate-200/80 shadow-lg shadow-slate-900/5'}`}>
       <div className={`${isHome ? '' : ''}`}>
         <div className="container mx-auto">
           <div className="flex items-center justify-between h-18 py-3 px-4 sm:px-6">
-            <Link href="/" className="flex items-center group pl-0">
+            <Link href="/" className="flex items-center group pl-0 no-tap-highlight select-none outline-none focus-visible:outline-none focus-visible:ring-0">
               <Image
                 src="/ishda1.webp"
                 alt="ISHDA Logo"
                 width={140}
                 height={48}
-                style={{ width: 'auto', height: '48px', filter: isHome ? 'invert(1) hue-rotate(180deg) brightness(1.2)' : 'none' }}
+                className="select-none pointer-events-none"
+                style={{ width: 'auto', height: '48px', display: 'block', filter: isHome ? 'invert(1) hue-rotate(180deg) brightness(1.2)' : 'none' }}
                 priority
               />
             </Link>

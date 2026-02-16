@@ -135,6 +135,23 @@
   animation: shimmer 3s ease-in-out infinite;
 }
 
+/* Badge Sweep — left to right gradient movement */
+@keyframes badge-sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.animate-badge-sweep {
+  background-image: linear-gradient(90deg, #1e3a8a, #1d4ed8, #2563eb, #0f766e, #1e3a8a);
+  background-size: 200% 100%;
+  animation: badge-sweep 2.8s linear infinite;
+}
+
 /* Floating — for decorative background elements */
 @keyframes float-slow {
 
@@ -469,4 +486,8 @@
 .dot-grid-pattern {
   background-image: radial-gradient(circle, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
 }

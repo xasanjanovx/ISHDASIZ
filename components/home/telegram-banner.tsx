@@ -9,7 +9,7 @@ export function TelegramBanner() {
     const { lang } = useLanguage();
 
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="container mx-auto px-4 py-6 md:py-8">
             <Link
                 href="https://t.me/ishdasiz_bot"
                 target="_blank"
@@ -20,7 +20,7 @@ export function TelegramBanner() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
-                    className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-7 md:p-10 shadow-2xl shadow-indigo-900/10 group animate-mesh"
+                    className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 md:p-6 shadow-2xl shadow-indigo-900/10 group animate-mesh"
                     style={{ backgroundSize: '200% 200%' }}
                 >
                     {/* Shimmer overlay */}
@@ -37,18 +37,18 @@ export function TelegramBanner() {
                     <div className="absolute top-8 right-16 w-1 h-1 bg-indigo-400/30 rounded-full" />
                     <div className="absolute bottom-6 left-20 w-1.5 h-1.5 bg-teal-400/30 rounded-full" />
 
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
                         <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
                             {/* Telegram Icon with pulse ring */}
                             <div className="relative">
-                                <div className="absolute inset-0 rounded-2xl bg-blue-500/30 animate-pulse-ring" />
-                                <div className="w-16 h-16 md:w-18 md:h-18 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl shadow-blue-600/30 relative z-10">
-                                    <Send className="w-8 h-8 text-white" />
+                                <div className="absolute inset-0 rounded-2xl bg-blue-500/25 animate-pulse-ring" />
+                                <div className="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl shadow-blue-600/30 relative z-10">
+                                    <Send className="w-7 h-7 text-white" />
                                 </div>
                             </div>
 
                             <div className="max-w-md">
-                                <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+                                <h3 className="text-lg md:text-xl font-bold text-white mb-2">
                                     {lang === 'uz' ? 'Telegram bot orqali' : 'Через Telegram бот'}
                                 </h3>
                                 <p className="text-slate-400 text-sm md:text-base leading-relaxed">
@@ -61,7 +61,7 @@ export function TelegramBanner() {
 
                         {/* CTA Button with glow */}
                         <div className="flex-shrink-0">
-                            <div className="inline-flex items-center gap-2.5 bg-white text-slate-900 font-bold text-sm md:text-base px-7 py-3.5 rounded-xl shadow-lg shadow-white/10 group-hover:shadow-white/20 transition-all duration-300 group-hover:scale-105">
+                            <div className="inline-flex items-center gap-2.5 bg-white text-slate-900 font-bold text-sm md:text-base px-6 py-3 rounded-xl shadow-lg shadow-white/10 group-hover:shadow-white/20 transition-all duration-300 group-hover:scale-105">
                                 <MessageCircle className="w-5 h-5" />
                                 {lang === 'uz' ? 'Botni ochish' : 'Открыть бота'}
                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />

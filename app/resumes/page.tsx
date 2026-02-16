@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/language-context';
+import { useUserAuth } from '@/contexts/user-auth-context';
+import { useAuthModal } from '@/contexts/auth-modal-context';
 import { supabase } from '@/lib/supabase';
 import { ResumeFilters } from '@/components/resumes/resume-filters';
 import { ResumeCard } from '@/components/resumes/resume-card';
@@ -10,11 +12,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Category, District, Region } from '@/types/database';
 import { Search, Loader2, Filter as SlidersHorizontal, X } from '@/components/ui/icons';
+import { toast } from 'sonner';
 
 export default function ResumesPage() {
-    const { lang, t } = useLanguage();
+    const { lang } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user, isAuthenticated, isLoading: authLoading } = useUserAuth();
+    const { openModal } = useAuthModal();
+    const isEmployer = Boolean(isAuthenticated && user?.active_role === 'employer');
 
     const [resumes, setResumes] = useState<any[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -38,9 +44,10 @@ export default function ResumesPage() {
     const [salaryRange, setSalaryRange] = useState<[number, number]>(initialSalary);
 
     const fetchData = useCallback(async () => {
+        if (authLoading) return;
+
         setLoading(true);
 
-        let currentCategories = categories;
         let currentRegions = regions;
         let currentDistricts = districts;
 
@@ -50,7 +57,7 @@ export default function ResumesPage() {
                 supabase.from('regions').select('*').order('name_uz'),
                 supabase.from('districts').select('*').order('name_uz'),
             ]);
-            if (cats.data) { setCategories(cats.data); currentCategories = cats.data; }
+            if (cats.data) setCategories(cats.data);
             if (regs.data) { setRegions(regs.data); currentRegions = regs.data; }
             if (dists.data) { setDistricts(dists.data); currentDistricts = dists.data; }
         }
@@ -58,8 +65,10 @@ export default function ResumesPage() {
         let query = supabase
             .from('resumes')
             .select('*')
+            .eq('is_public', true)
+            .eq('status', 'active')
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(200);
 
         if (selectedCategory !== 'all') query = query.eq('category_id', selectedCategory);
 
@@ -71,35 +80,29 @@ export default function ResumesPage() {
                 .select('id')
                 .eq('region_id', selectedRegion);
 
-            if (regionDistricts && regionDistricts.length > 0) {
-                const districtIds = regionDistricts.map(d => d.id);
-                query = query.in('district_id', districtIds);
+            if (!regionDistricts || regionDistricts.length === 0) {
+                setResumes([]);
+                setErrorMessage(null);
+                setLoading(false);
+                return;
             }
+
+            const districtIds = regionDistricts.map((d) => d.id);
+            query = query.in('district_id', districtIds);
         }
 
-        if (selectedExperience !== 'all') {
-            query = query.eq('experience', selectedExperience);
-        }
-
+        if (selectedExperience !== 'all') query = query.eq('experience', selectedExperience);
         if (selectedEducation !== 'all') query = query.eq('education_level', selectedEducation);
         if (selectedGender !== 'all') query = query.eq('gender', selectedGender);
 
-        if (salaryRange[0] > 0) {
-            query = query.or(`expected_salary_min.gte.${salaryRange[0]},expected_salary_min.is.null`);
-        }
-
         const { data, error } = await query;
 
-        const enrichResumes = (resumeList: any[]) => {
-            return resumeList.map(resume => {
-                if (resume.district_id) {
-                    const district = currentDistricts.find(d => d.id === resume.district_id);
-                    const region = currentRegions.find(r => r.id === district?.region_id);
-                    return { ...resume, districts: district ? { ...district, regions: region } : null };
-                }
-                return resume;
-            });
-        };
+        const enrichResumes = (resumeList: any[]) => resumeList.map((resume) => {
+            if (!resume.district_id) return resume;
+            const district = currentDistricts.find((d) => d.id === resume.district_id);
+            const region = currentRegions.find((r) => r.id === district?.region_id);
+            return { ...resume, districts: district ? { ...district, regions: region } : null };
+        });
 
         if (error) {
             console.error('Error fetching resumes:', error);
@@ -113,50 +116,37 @@ export default function ResumesPage() {
                     : 'Ошибка при загрузке данных');
             }
             setResumes([]);
-        } else if (!data || data.length === 0) {
-            console.debug('[RESUMES] Основной запрос вернул 0, пробуем fallback без status');
-            const fallbackQuery = supabase
-                .from('resumes')
-                .select('*, districts(*, regions(*))')
-                .eq('is_public', true)
-                .order('created_at', { ascending: false })
-                .limit(20);
-            const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-
-            if (fallbackError) {
-                console.error('Fallback query error:', fallbackError);
-                setErrorMessage(lang === 'uz' ? "Rezyumelar topilmadi" : 'Резюме не найдены');
-                setResumes([]);
-            } else {
-                setErrorMessage(null);
-                const enrichedData = enrichResumes(fallbackData || []);
-                let filtered = enrichedData;
-                if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    filtered = filtered.filter(r =>
-                        r.title?.toLowerCase().includes(q) ||
-                        r.full_name?.toLowerCase().includes(q) ||
-                        r.about?.toLowerCase().includes(q)
-                    );
-                }
-                setResumes(filtered);
-            }
-        } else {
-            setErrorMessage(null);
-            const enrichedData = enrichResumes(data);
-            let filtered = enrichedData;
-            if (searchQuery) {
-                const q = searchQuery.toLowerCase();
-                filtered = filtered.filter(r =>
-                    r.title?.toLowerCase().includes(q) ||
-                    r.full_name?.toLowerCase().includes(q) ||
-                    r.about?.toLowerCase().includes(q)
-                );
-            }
-            setResumes(filtered);
+            setLoading(false);
+            return;
         }
+
+        setErrorMessage(null);
+        let filtered = enrichResumes(data || []);
+
+        if (salaryRange[0] > 0 || salaryRange[1] < 20000000) {
+            const minLimit = salaryRange[0];
+            const maxLimit = salaryRange[1];
+            filtered = filtered.filter((r) => {
+                const minSalary = r.expected_salary_min ?? 0;
+                const maxSalary = r.expected_salary_max ?? 20000000;
+                return maxSalary >= minLimit && minSalary <= maxLimit;
+            });
+        }
+
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter((r) =>
+                r.title?.toLowerCase().includes(q) ||
+                r.desired_position?.toLowerCase().includes(q) ||
+                r.full_name?.toLowerCase().includes(q) ||
+                r.about?.toLowerCase().includes(q) ||
+                r.skills?.some?.((s: string) => s.toLowerCase().includes(q))
+            );
+        }
+
+        setResumes(filtered);
         setLoading(false);
-    }, [selectedCategory, selectedRegion, selectedDistrict, selectedExperience, selectedEducation, selectedGender, salaryRange, searchQuery, categories, districts, regions, lang]);
+    }, [authLoading, selectedCategory, selectedRegion, selectedDistrict, selectedExperience, selectedEducation, selectedGender, salaryRange, searchQuery, categories, districts, regions, lang]);
 
     useEffect(() => {
         fetchData();
@@ -201,6 +191,13 @@ export default function ResumesPage() {
         setSelectedEducation('all');
         setSelectedGender('all');
         setSearchQuery('');
+    };
+
+    const handleRequireEmployerLogin = () => {
+        toast.info(lang === 'uz'
+            ? 'Batafsil ko‘rish uchun ish beruvchi sifatida kiring.'
+            : 'Чтобы открыть резюме, войдите как работодатель.');
+        openModal();
     };
 
     return (
@@ -286,7 +283,7 @@ export default function ResumesPage() {
 
             {/* Main Content */}
             <div className="container mx-auto px-4 py-8">
-                {loading ? (
+                {authLoading || loading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                     </div>
@@ -323,7 +320,12 @@ export default function ResumesPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {resumes.map(resume => (
-                            <ResumeCard key={resume.id} resume={resume} />
+                            <ResumeCard
+                                key={resume.id}
+                                resume={resume}
+                                canOpenDetails={isEmployer}
+                                onRequireEmployerAccess={handleRequireEmployerLogin}
+                            />
                         ))}
                     </div>
                 )}

@@ -9,9 +9,11 @@ import { normalizeLocation } from '@/lib/text';
 
 interface ResumeCardProps {
     resume: any;
+    canOpenDetails?: boolean;
+    onRequireEmployerAccess?: () => void;
 }
 
-export function ResumeCard({ resume }: ResumeCardProps) {
+export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAccess }: ResumeCardProps) {
     const { lang } = useLanguage();
     const title = lang === 'uz' ? (resume.desired_position || 'Rezyume') : (resume.desired_position || 'Резюме');
     const fullName = resume.full_name || '';
@@ -34,11 +36,18 @@ export function ResumeCard({ resume }: ResumeCardProps) {
         : (lang === 'uz' ? 'Tajribasiz' : 'Без опыта');
 
     return (
-        <Card className="group relative hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-slate-200/80 hover:border-blue-300/50 bg-white rounded-xl h-full">
+        <Card
+            onClick={() => {
+                if (!canOpenDetails) onRequireEmployerAccess?.();
+            }}
+            className="group relative cursor-pointer hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-slate-200/80 hover:border-blue-300/50 bg-white rounded-xl h-full"
+        >
             {/* Gradient left accent */}
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-teal-400 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity" />
 
-            <Link href={`/resumes/${resume.id}`} className="absolute inset-0 z-0" aria-label={title} />
+            {canOpenDetails && (
+                <Link href={`/resumes/${resume.id}`} className="absolute inset-0 z-0" aria-label={title} />
+            )}
 
             <CardContent className="p-4 md:p-5 h-full flex flex-col">
                 {/* Header */}
