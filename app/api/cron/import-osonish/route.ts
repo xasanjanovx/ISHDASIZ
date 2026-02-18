@@ -15,6 +15,8 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const CRON_SECRET = process.env.CRON_SECRET;
+
 // Code version
 const CODE_VERSION = '2026-01-25-osonish-title-mapping-v3';
 
@@ -713,6 +715,15 @@ async function upsertBatchWithRetry(chunk: any[], retries = 3): Promise<{ error:
  * All data comes directly from OsonIsh API in structured format
  */
 export async function GET(request: NextRequest) {
+    const authHeader = request.headers.get('authorization');
+    if (process.env.NODE_ENV === 'production' && CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+        return NextResponse.json({
+            success: false,
+            source: 'osonish',
+            message: 'Unauthorized'
+        }, { status: 401 });
+    }
+
     if (importRunActive) {
         return NextResponse.json({
             success: false,

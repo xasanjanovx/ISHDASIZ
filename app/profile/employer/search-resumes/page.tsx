@@ -23,10 +23,13 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatSalary, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, GENDER_OPTIONS } from '@/lib/constants';
 import { Category, District } from '@/types/database';
+import { expandExperienceFilterValues } from '@/lib/experience-compat';
 
 interface PublicResume {
     id: string;
     title: string;
+    desired_position?: string | null;
+    field_title?: string | null;
     full_name: string | null;
     about: string | null;
     skills: string[] | null;
@@ -77,7 +80,7 @@ export default function SearchResumesPage() {
         try {
             let query = supabase
                 .from('resumes')
-                .select('id, title, full_name, about, skills, expected_salary_min, expected_salary_max, experience_years, experience, education_level, gender, phone, created_at, district_id')
+                .select('id, title, desired_position, field_title, full_name, about, skills, expected_salary_min, expected_salary_max, experience_years, experience, education_level, gender, phone, created_at, district_id')
                 .eq('is_public', true)
                 .eq('status', 'active')
                 .order('created_at', { ascending: false });
@@ -87,7 +90,10 @@ export default function SearchResumesPage() {
                 query = query.eq('district_id', selectedDistrict);
             }
             if (selectedExperience !== 'all') {
-                query = query.eq('experience', selectedExperience);
+                const experienceValues = expandExperienceFilterValues(selectedExperience);
+                query = experienceValues.length > 1
+                    ? query.in('experience', experienceValues)
+                    : query.eq('experience', selectedExperience);
             }
             if (selectedEducation !== 'all') {
                 query = query.eq('education_level', selectedEducation);
@@ -112,9 +118,15 @@ export default function SearchResumesPage() {
                 const q = searchTerm.toLowerCase();
                 filtered = filtered.filter(r =>
                     r.title?.toLowerCase().includes(q) ||
+                    r.desired_position?.toLowerCase().includes(q) ||
+                    r.field_title?.toLowerCase().includes(q) ||
                     r.full_name?.toLowerCase().includes(q) ||
                     r.about?.toLowerCase().includes(q) ||
-                    r.skills?.some((s: string) => s.toLowerCase().includes(q))
+                    (Array.isArray(r.skills)
+                        ? r.skills.some((s: string) => String(s).toLowerCase().includes(q))
+                        : typeof r.skills === 'string'
+                            ? r.skills.toLowerCase().includes(q)
+                            : false)
                 );
             }
 
@@ -327,7 +339,7 @@ export default function SearchResumesPage() {
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-semibold text-lg text-slate-900">
-                                                    {resume.title}
+                                                    {resume.title || resume.desired_position || resume.field_title || (lang === 'ru' ? 'Специалист' : 'Mutaxassis')}
                                                 </h3>
                                                 <p className="text-slate-600 mt-1">
                                                     {resume.full_name || (lang === 'ru' ? 'Имя не указано' : 'Ism ko\'rsatilmagan')}

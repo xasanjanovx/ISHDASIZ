@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -14,12 +14,15 @@ import {
     MapPin, Phone, Calendar, Loader2, Mail, CheckCircle, Banknote
 } from '@/components/ui/icons';
 import { toast } from 'sonner';
-import { formatSalary, formatDate, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, LANGUAGES_LIST, GENDER_OPTIONS } from '@/lib/constants';
+import { formatSalary, formatDate, EDUCATION_OPTIONS, LANGUAGES_LIST, GENDER_OPTIONS } from '@/lib/constants';
+import { getExperienceLabel as getExperienceLabelCompat } from '@/lib/experience-compat';
 
 interface Resume {
     id: string;
     user_id: string;
     title: string;
+    desired_position?: string | null;
+    field_title?: string | null;
     full_name: string | null;
     birth_date: string | null;
     phone: string;
@@ -155,7 +158,7 @@ export default function ResumeDetailPage() {
                         if (distData) {
                             const dName = lang === 'uz' ? distData.name_uz : distData.name_ru;
                             const rName = lang === 'uz' ? (distData as any).regions?.name_uz : (distData as any).regions?.name_ru;
-                            const rLabel = rName ? (lang === 'uz' ? `${rName} vil.` : `${rName} обл.`) : '';
+                            const rLabel = rName ? (lang === 'uz' ? `${rName} vil.` : `${rName} РѕР±Р».`) : '';
                             setDistrictName(rLabel ? `${rLabel}, ${dName}` : dName);
                         }
                     } else if (data.city) {
@@ -173,19 +176,14 @@ export default function ResumeDetailPage() {
         fetchResume();
     }, [resumeId, lang]);
 
-    const getExperienceLabel = (value: string) => {
-        const opt = EXPERIENCE_OPTIONS.find(o => o.value === value);
-        return opt ? (lang === 'uz' ? opt.label_uz : opt.label_ru) : (lang === 'ru' ? 'Не указано' : 'Ko\'rsatilmagan');
-    };
-
     const getEducationLabel = (value: string) => {
         const opt = EDUCATION_OPTIONS.find(o => o.value === value);
-        return opt ? (lang === 'uz' ? opt.label_uz : opt.label_ru) : (lang === 'ru' ? 'Не указано' : 'Ko\'rsatilmagan');
+        return opt ? (lang === 'uz' ? opt.label_uz : opt.label_ru) : (lang === 'ru' ? 'РќРµ СѓРєР°Р·Р°РЅРѕ' : 'Ko\'rsatilmagan');
     };
 
     const getGenderLabel = (value: string) => {
         const opt = GENDER_OPTIONS.find(o => o.value === value);
-        return opt ? (lang === 'uz' ? opt.label_uz : opt.label_ru) : (lang === 'ru' ? 'Не указано' : 'Ko\'rsatilmagan');
+        return opt ? (lang === 'uz' ? opt.label_uz : opt.label_ru) : (lang === 'ru' ? 'РќРµ СѓРєР°Р·Р°РЅРѕ' : 'Ko\'rsatilmagan');
     };
 
     const getLanguageLabel = (value: string) => {
@@ -208,8 +206,8 @@ export default function ResumeDetailPage() {
     const handleRequireEmployerAccess = () => {
         if (!isAuthenticated || !currentUser) {
             toast.info(lang === 'uz'
-                ? 'Rezyumeni ko‘rish uchun ish beruvchi sifatida kiring.'
-                : 'Для просмотра резюме войдите как работодатель.');
+                ? 'Rezyumeni koвЂrish uchun ish beruvchi sifatida kiring.'
+                : 'Р”Р»СЏ РїСЂРѕСЃРјРѕС‚СЂР° СЂРµР·СЋРјРµ РІРѕР№РґРёС‚Рµ РєР°Рє СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЊ.');
             openModal();
             return;
         }
@@ -217,13 +215,13 @@ export default function ResumeDetailPage() {
         if (currentUser.active_role === 'job_seeker') {
             if (currentUser.has_employer_profile) {
                 toast.info(lang === 'uz'
-                    ? 'Ish beruvchi roliga o‘tkazilmoqda...'
-                    : 'Переключаем на роль работодателя...');
+                    ? 'Ish beruvchi roliga oвЂtkazilmoqda...'
+                    : 'РџРµСЂРµРєР»СЋС‡Р°РµРј РЅР° СЂРѕР»СЊ СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЏ...');
                 switchRole('employer');
             } else {
                 toast.error(lang === 'uz'
-                    ? 'Sizda ish beruvchi profili yo‘q. Avval ish beruvchi profilini oching.'
-                    : 'У вас нет профиля работодателя. Сначала создайте профиль работодателя.');
+                    ? 'Sizda ish beruvchi profili yoвЂq. Avval ish beruvchi profilini oching.'
+                    : 'РЈ РІР°СЃ РЅРµС‚ РїСЂРѕС„РёР»СЏ СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЏ. РЎРЅР°С‡Р°Р»Р° СЃРѕР·РґР°Р№С‚Рµ РїСЂРѕС„РёР»СЊ СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЏ.');
                 openModal();
             }
         }
@@ -246,7 +244,7 @@ export default function ResumeDetailPage() {
         if (employer) {
             router.push(`/profile/employer/messages?chat_with=${resume.user_id}`);
         } else {
-            toast.error(lang === 'uz' ? 'Faqat ish beruvchilar yozishi mumkin' : 'Только работодатели могут писать');
+            toast.error(lang === 'uz' ? 'Faqat ish beruvchilar yozishi mumkin' : 'РўРѕР»СЊРєРѕ СЂР°Р±РѕС‚РѕРґР°С‚РµР»Рё РјРѕРіСѓС‚ РїРёСЃР°С‚СЊ');
         }
     };
 
@@ -262,14 +260,14 @@ export default function ResumeDetailPage() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
                 <h1 className="text-2xl font-bold text-slate-900">
-                    {lang === 'uz' ? 'Rezyume topilmadi' : 'Резюме не найдено'}
+                    {lang === 'uz' ? 'Rezyume topilmadi' : 'Р РµР·СЋРјРµ РЅРµ РЅР°Р№РґРµРЅРѕ'}
                 </h1>
                 <p className="text-slate-500">
-                    {lang === 'uz' ? 'Bu rezyume mavjud emas yoki yashirilgan' : 'Это резюме не существует или скрыто'}
+                    {lang === 'uz' ? 'Bu rezyume mavjud emas yoki yashirilgan' : 'Р­С‚Рѕ СЂРµР·СЋРјРµ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ РёР»Рё СЃРєСЂС‹С‚Рѕ'}
                 </p>
                 <Button onClick={() => router.back()}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    {lang === 'uz' ? 'Orqaga' : 'Назад'}
+                    {lang === 'uz' ? 'Orqaga' : 'РќР°Р·Р°Рґ'}
                 </Button>
             </div>
         );
@@ -279,6 +277,12 @@ export default function ResumeDetailPage() {
     const languageList = normalizeLanguages(resume.languages);
     const experienceList = normalizeExperience(resume);
     const educationList = normalizeEducation(resume);
+    const displayTitle = resume.title || resume.desired_position || resume.field_title || (lang === 'ru' ? 'РЎРїРµС†РёР°Р»РёСЃС‚' : 'Mutaxassis');
+    const displayExperience = getExperienceLabelCompat(
+        resume.experience ?? (resume as any).experience_level,
+        resume.experience_years,
+        lang === 'uz' ? 'uz' : 'ru'
+    );
     const isOwner = Boolean(currentUser?.id && currentUser.id === resume.user_id);
     const isEmployerViewer = Boolean(isAuthenticated && currentUser?.active_role === 'employer');
     const canViewResume = isOwner || isEmployerViewer;
@@ -290,19 +294,19 @@ export default function ResumeDetailPage() {
                     <h2 className="text-xl font-bold text-slate-900 mb-2">
                         {lang === 'uz'
                             ? 'Rezyume faqat ish beruvchilar uchun ochiq'
-                            : 'Резюме доступно только работодателям'}
+                            : 'Р РµР·СЋРјРµ РґРѕСЃС‚СѓРїРЅРѕ С‚РѕР»СЊРєРѕ СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЏРј'}
                     </h2>
                     <p className="text-slate-500 mb-6">
                         {lang === 'uz'
                             ? 'Davom etish uchun ish beruvchi sifatida tizimga kiring.'
-                            : 'Чтобы продолжить, войдите в систему как работодатель.'}
+                            : 'Р§С‚РѕР±С‹ РїСЂРѕРґРѕР»Р¶РёС‚СЊ, РІРѕР№РґРёС‚Рµ РІ СЃРёСЃС‚РµРјСѓ РєР°Рє СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЊ.'}
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-3">
                         <Button onClick={handleRequireEmployerAccess}>
-                            {lang === 'uz' ? 'Ish beruvchi sifatida kirish' : 'Войти как работодатель'}
+                            {lang === 'uz' ? 'Ish beruvchi sifatida kirish' : 'Р’РѕР№С‚Рё РєР°Рє СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЊ'}
                         </Button>
                         <Button variant="outline" onClick={() => router.push('/resumes')}>
-                            {lang === 'uz' ? 'Orqaga qaytish' : 'Вернуться назад'}
+                            {lang === 'uz' ? 'Orqaga qaytish' : 'Р’РµСЂРЅСѓС‚СЊСЃСЏ РЅР°Р·Р°Рґ'}
                         </Button>
                     </div>
                 </div>
@@ -325,7 +329,7 @@ export default function ResumeDetailPage() {
                         className="text-slate-400 hover:text-white hover:bg-white/10 mb-5 -ml-2 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
-                        {lang === 'uz' ? 'Orqaga' : 'Назад'}
+                        {lang === 'uz' ? 'Orqaga' : 'РќР°Р·Р°Рґ'}
                     </Button>
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
@@ -333,7 +337,7 @@ export default function ResumeDetailPage() {
                             {/* Avatar */}
                             <div className="relative flex-shrink-0">
                                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl md:text-3xl font-bold text-white shadow-xl shadow-blue-500/20">
-                                    {(resume.full_name || resume.title || 'I').charAt(0).toUpperCase()}
+                                    {(resume.full_name || displayTitle || 'I').charAt(0).toUpperCase()}
                                 </div>
                                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-400 rounded-full border-2 border-slate-900" />
                             </div>
@@ -341,17 +345,17 @@ export default function ResumeDetailPage() {
                             {/* Name + meta */}
                             <div className="min-w-0">
                                 <h1 className="text-xl md:text-2xl font-bold text-white truncate leading-tight mb-1">
-                                    {resume.title || (lang === 'ru' ? 'Специалист' : 'Mutaxassis')}
+                                    {displayTitle}
                                 </h1>
                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
                                     <span className="flex items-center gap-1.5">
                                         <User className="w-3.5 h-3.5" />
-                                        {resume.full_name || (lang === 'ru' ? 'Имя не указано' : "Ism ko'rsatilmagan")}
+                                        {resume.full_name || (lang === 'ru' ? 'РРјСЏ РЅРµ СѓРєР°Р·Р°РЅРѕ' : "Ism ko'rsatilmagan")}
                                     </span>
                                     {resume.birth_date && (
                                         <span className="flex items-center gap-1.5">
                                             <Calendar className="w-3.5 h-3.5" />
-                                            {calculateAge(resume.birth_date)} {lang === 'ru' ? 'лет' : 'yosh'}
+                                            {calculateAge(resume.birth_date)} {lang === 'ru' ? 'Р»РµС‚' : 'yosh'}
                                         </span>
                                     )}
                                     {isOwner && districtName && (
@@ -367,12 +371,12 @@ export default function ResumeDetailPage() {
                                         {getEducationLabel(resume.education_level || '')}
                                     </Badge>
                                     <Badge className="bg-blue-500/15 text-blue-300 border-blue-400/20 text-[10px] px-2 py-0.5">
-                                        {getExperienceLabel(resume.experience)}
+                                        {displayExperience}
                                     </Badge>
                                     {resume.employment_type && (
                                         <Badge className="bg-teal-500/15 text-teal-300 border-teal-400/20 text-[10px] px-2 py-0.5">
-                                            {resume.employment_type === 'full_time' ? (lang === 'uz' ? 'To\'liq' : 'Полная') :
-                                                resume.employment_type === 'part_time' ? (lang === 'uz' ? 'Yarim' : 'Частичная') :
+                                            {resume.employment_type === 'full_time' ? (lang === 'uz' ? 'To\'liq' : 'РџРѕР»РЅР°СЏ') :
+                                                resume.employment_type === 'part_time' ? (lang === 'uz' ? 'Yarim' : 'Р§Р°СЃС‚РёС‡РЅР°СЏ') :
                                                     resume.employment_type}
                                         </Badge>
                                     )}
@@ -387,7 +391,7 @@ export default function ResumeDetailPage() {
                                 className="w-full md:w-auto h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]"
                             >
                                 <Mail className="w-4 h-4" />
-                                {lang === 'ru' ? 'Написать' : 'Xabar yozish'}
+                                {lang === 'ru' ? 'РќР°РїРёСЃР°С‚СЊ' : 'Xabar yozish'}
                             </Button>
                         )}
                     </div>
@@ -398,7 +402,7 @@ export default function ResumeDetailPage() {
             <div className="container mx-auto px-4 py-6 md:py-8">
                 <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
 
-                    {/* LEFT COLUMN — Main info */}
+                    {/* LEFT COLUMN вЂ” Main info */}
                     <div className="lg:col-span-2 space-y-5">
 
                         {/* About */}
@@ -409,7 +413,7 @@ export default function ResumeDetailPage() {
                                         <User className="w-3.5 h-3.5 text-blue-600" />
                                     </div>
                                     <h2 className="text-sm font-bold text-slate-900">
-                                        {lang === 'ru' ? 'О себе' : 'O\'zim haqimda'}
+                                        {lang === 'ru' ? 'Рћ СЃРµР±Рµ' : 'O\'zim haqimda'}
                                     </h2>
                                 </div>
                                 <CardContent className="p-5">
@@ -428,7 +432,7 @@ export default function ResumeDetailPage() {
                                         <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
                                     </div>
                                     <h2 className="text-sm font-bold text-slate-900">
-                                        {lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}
+                                        {lang === 'ru' ? 'РћРїС‹С‚ СЂР°Р±РѕС‚С‹' : 'Ish tajribasi'}
                                     </h2>
                                 </div>
                                 <CardContent className="p-5">
@@ -438,7 +442,7 @@ export default function ResumeDetailPage() {
                                             const company = exp?.company || exp?.employer || exp?.organization || '';
                                             const start = exp?.start_date || exp?.start_year || exp?.start || '';
                                             const end = exp?.end_date || exp?.end_year || exp?.end || '';
-                                            const timeLabel = start || end ? `${start || ''} — ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
+                                            const timeLabel = start || end ? `${start || ''} вЂ” ${end || (lang === 'uz' ? 'Hozirgi' : 'РќР°СЃС‚РѕСЏС‰РµРµ РІСЂРµРјСЏ')}` : '';
                                             return (
                                                 <div key={idx} className={`flex gap-4 ${idx > 0 ? 'pt-4 border-t border-slate-100' : ''}`}>
                                                     <div className="flex-shrink-0 pt-0.5">
@@ -448,7 +452,7 @@ export default function ResumeDetailPage() {
                                                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-1 mb-1">
                                                             <div>
                                                                 <div className="font-semibold text-slate-900 text-sm">
-                                                                    {position || (lang === 'uz' ? 'Lavozim' : 'Должность')}
+                                                                    {position || (lang === 'uz' ? 'Lavozim' : 'Р”РѕР»Р¶РЅРѕСЃС‚СЊ')}
                                                                 </div>
                                                                 {company && <div className="text-blue-600 text-xs font-medium">{company}</div>}
                                                             </div>
@@ -478,7 +482,7 @@ export default function ResumeDetailPage() {
                                         <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
                                     </div>
                                     <h2 className="text-sm font-bold text-slate-900">
-                                        {lang === 'ru' ? 'Образование' : "Ma'lumot"}
+                                        {lang === 'ru' ? 'РћР±СЂР°Р·РѕРІР°РЅРёРµ' : "Ma'lumot"}
                                     </h2>
                                 </div>
                                 <CardContent className="p-5">
@@ -488,7 +492,7 @@ export default function ResumeDetailPage() {
                                             const field = edu?.field || edu?.specialty || edu?.faculty || '';
                                             const start = edu?.start_year || edu?.start_date || edu?.start || '';
                                             const end = edu?.end_year || edu?.end_date || edu?.end || '';
-                                            const timeLabel = start || end ? `${start || ''} — ${end || (lang === 'uz' ? 'Hozirgi' : 'Настоящее время')}` : '';
+                                            const timeLabel = start || end ? `${start || ''} вЂ” ${end || (lang === 'uz' ? 'Hozirgi' : 'РќР°СЃС‚РѕСЏС‰РµРµ РІСЂРµРјСЏ')}` : '';
                                             return (
                                                 <div key={idx} className={`flex gap-4 ${idx > 0 ? 'pt-4 border-t border-slate-100' : ''}`}>
                                                     <div className="flex-shrink-0 pt-0.5">
@@ -498,7 +502,7 @@ export default function ResumeDetailPage() {
                                                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-1 mb-1">
                                                             <div>
                                                                 <div className="font-semibold text-slate-900 text-sm">
-                                                                    {institution || (lang === 'uz' ? "O'quv muassasa" : 'Учебное заведение')}
+                                                                    {institution || (lang === 'uz' ? "O'quv muassasa" : 'РЈС‡РµР±РЅРѕРµ Р·Р°РІРµРґРµРЅРёРµ')}
                                                                 </div>
                                                                 {field && <div className="text-teal-600 text-xs font-medium">{field}</div>}
                                                             </div>
@@ -531,7 +535,7 @@ export default function ResumeDetailPage() {
                                             <CheckCircle className="w-3 h-3 text-violet-600" />
                                         </div>
                                         <h3 className="font-bold text-slate-900 text-xs">
-                                            {lang === 'ru' ? 'Навыки' : "Ko'nikmalar"}
+                                            {lang === 'ru' ? 'РќР°РІС‹РєРё' : "Ko'nikmalar"}
                                         </h3>
                                     </div>
                                     <CardContent className="p-4">
@@ -556,7 +560,7 @@ export default function ResumeDetailPage() {
                                             <LanguagesIcon className="w-3 h-3 text-cyan-600" />
                                         </div>
                                         <h3 className="font-bold text-slate-900 text-xs">
-                                            {lang === 'ru' ? 'Языки' : 'Tillar'}
+                                            {lang === 'ru' ? 'РЇР·С‹РєРё' : 'Tillar'}
                                         </h3>
                                     </div>
                                     <CardContent className="p-4">
@@ -586,7 +590,7 @@ export default function ResumeDetailPage() {
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN — Sidebar */}
+                    {/* RIGHT COLUMN вЂ” Sidebar */}
                     <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
 
                         {/* Salary Card */}
@@ -594,11 +598,11 @@ export default function ResumeDetailPage() {
                             <Card className="border-slate-200 shadow-sm bg-white rounded-xl relative overflow-hidden">
                                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600" />
                                 <CardContent className="p-5">
-                                    <p className="text-slate-500 font-medium text-[10px] mb-1 uppercase tracking-wider">{lang === 'ru' ? 'Ожидаемая зарплата' : 'Kutilayotgan maosh'}</p>
+                                    <p className="text-slate-500 font-medium text-[10px] mb-1 uppercase tracking-wider">{lang === 'ru' ? 'РћР¶РёРґР°РµРјР°СЏ Р·Р°СЂРїР»Р°С‚Р°' : 'Kutilayotgan maosh'}</p>
                                     <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-0.5">
                                         {formatSalary(resume.expected_salary_min, resume.expected_salary_max, lang)}
                                     </h3>
-                                    <p className="text-slate-400 text-xs mb-4">{lang === 'ru' ? 'в месяц' : 'oyiga'}</p>
+                                    <p className="text-slate-400 text-xs mb-4">{lang === 'ru' ? 'РІ РјРµСЃСЏС†' : 'oyiga'}</p>
 
                                     {isEmployerViewer && (
                                         <Button
@@ -606,11 +610,11 @@ export default function ResumeDetailPage() {
                                             className="w-full h-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 font-semibold transition-all text-sm shadow-md shadow-blue-500/15 hover:shadow-blue-500/25"
                                         >
                                             <Mail className="w-4 h-4 mr-2" />
-                                            {lang === 'ru' ? 'Предложить работу' : 'Ish taklif qilish'}
+                                            {lang === 'ru' ? 'РџСЂРµРґР»РѕР¶РёС‚СЊ СЂР°Р±РѕС‚Сѓ' : 'Ish taklif qilish'}
                                         </Button>
                                     )}
                                     <p className="text-center text-[10px] text-slate-400 mt-3">
-                                        {lang === 'ru' ? 'Размещено' : 'Joylangan'}: {formatDate(resume.created_at, lang)}
+                                        {lang === 'ru' ? 'Р Р°Р·РјРµС‰РµРЅРѕ' : 'Joylangan'}: {formatDate(resume.created_at, lang)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -619,7 +623,7 @@ export default function ResumeDetailPage() {
                         {/* Contact Card */}
                         <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden">
                             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
-                                <h3 className="font-bold text-slate-900 text-xs">{lang === 'ru' ? 'Контакты' : 'Aloqa'}</h3>
+                                <h3 className="font-bold text-slate-900 text-xs">{lang === 'ru' ? 'РљРѕРЅС‚Р°РєС‚С‹' : 'Aloqa'}</h3>
                             </div>
                             <CardContent className="p-4 space-y-3">
                                 {resume.phone && (isEmployerViewer || isOwner) && (
@@ -629,7 +633,7 @@ export default function ResumeDetailPage() {
                                                 <Phone className="w-3.5 h-3.5" />
                                             </div>
                                             <div>
-                                                <p className="text-[9px] text-slate-400 font-medium uppercase">{lang === 'ru' ? 'Телефон' : 'Telefon'}</p>
+                                                <p className="text-[9px] text-slate-400 font-medium uppercase">{lang === 'ru' ? 'РўРµР»РµС„РѕРЅ' : 'Telefon'}</p>
                                                 <p className="font-bold text-slate-900 text-xs">{resume.phone}</p>
                                             </div>
                                         </div>
@@ -670,7 +674,7 @@ export default function ResumeDetailPage() {
                                             <MapPin className="w-3.5 h-3.5" />
                                         </div>
                                         <div>
-                                            <p className="text-[9px] text-slate-400 font-medium uppercase">{lang === 'ru' ? 'Местоположение' : 'Manzil'}</p>
+                                            <p className="text-[9px] text-slate-400 font-medium uppercase">{lang === 'ru' ? 'РњРµСЃС‚РѕРїРѕР»РѕР¶РµРЅРёРµ' : 'Manzil'}</p>
                                             <p className="font-bold text-slate-900 text-xs leading-tight">{districtName}</p>
                                         </div>
                                     </div>
@@ -680,19 +684,19 @@ export default function ResumeDetailPage() {
 
                         {/* Trust Card */}
                         <Card className="p-4 bg-slate-50 border-slate-200 shadow-sm rounded-xl">
-                            <h4 className="font-bold text-slate-900 text-xs mb-3">{lang === 'ru' ? 'Для работодателя' : 'Ish beruvchi uchun'}</h4>
+                            <h4 className="font-bold text-slate-900 text-xs mb-3">{lang === 'ru' ? 'Р”Р»СЏ СЂР°Р±РѕС‚РѕРґР°С‚РµР»СЏ' : 'Ish beruvchi uchun'}</h4>
                             <div className="space-y-2">
                                 <div className="flex items-start gap-2">
                                     <div className="w-4 h-4 rounded bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
                                         <CheckCircle className="w-2.5 h-2.5 text-blue-600" />
                                     </div>
-                                    <p className="text-[11px] text-slate-600">{lang === 'ru' ? 'Кандидат прошел проверку номера' : 'Nomzod raqami tasdiqlangan'}</p>
+                                    <p className="text-[11px] text-slate-600">{lang === 'ru' ? 'РљР°РЅРґРёРґР°С‚ РїСЂРѕС€РµР» РїСЂРѕРІРµСЂРєСѓ РЅРѕРјРµСЂР°' : 'Nomzod raqami tasdiqlangan'}</p>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <div className="w-4 h-4 rounded bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
                                         <CheckCircle className="w-2.5 h-2.5 text-blue-600" />
                                     </div>
-                                    <p className="text-[11px] text-slate-600">{lang === 'ru' ? 'Профиль заполнен на 85%' : 'Profil 85% to\'ldirilgan'}</p>
+                                    <p className="text-[11px] text-slate-600">{lang === 'ru' ? 'РџСЂРѕС„РёР»СЊ Р·Р°РїРѕР»РЅРµРЅ РЅР° 85%' : 'Profil 85% to\'ldirilgan'}</p>
                                 </div>
                             </div>
                         </Card>
@@ -702,3 +706,4 @@ export default function ResumeDetailPage() {
         </div>
     );
 }
+

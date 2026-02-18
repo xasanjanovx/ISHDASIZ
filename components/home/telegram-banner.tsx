@@ -11,7 +11,7 @@ export function TelegramBanner() {
     return (
         <div className="container mx-auto px-4 py-6 md:py-8">
             <Link
-                href="https://t.me/ishdasiz_bot"
+                href="https://t.me/ishdasizbot"
                 target="_blank"
                 className="block"
             >

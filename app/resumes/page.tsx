@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Category, District, Region } from '@/types/database';
 import { Search, Loader2, Filter as SlidersHorizontal, X } from '@/components/ui/icons';
 import { toast } from 'sonner';
+import { expandExperienceFilterValues } from '@/lib/experience-compat';
 
 export default function ResumesPage() {
     const { lang } = useLanguage();
@@ -91,7 +92,12 @@ export default function ResumesPage() {
             query = query.in('district_id', districtIds);
         }
 
-        if (selectedExperience !== 'all') query = query.eq('experience', selectedExperience);
+        if (selectedExperience !== 'all') {
+            const experienceValues = expandExperienceFilterValues(selectedExperience);
+            query = experienceValues.length > 1
+                ? query.in('experience', experienceValues)
+                : query.eq('experience', selectedExperience);
+        }
         if (selectedEducation !== 'all') query = query.eq('education_level', selectedEducation);
         if (selectedGender !== 'all') query = query.eq('gender', selectedGender);
 
@@ -138,9 +144,14 @@ export default function ResumesPage() {
             filtered = filtered.filter((r) =>
                 r.title?.toLowerCase().includes(q) ||
                 r.desired_position?.toLowerCase().includes(q) ||
+                r.field_title?.toLowerCase().includes(q) ||
                 r.full_name?.toLowerCase().includes(q) ||
                 r.about?.toLowerCase().includes(q) ||
-                r.skills?.some?.((s: string) => s.toLowerCase().includes(q))
+                (Array.isArray(r.skills)
+                    ? r.skills.some((s: string) => String(s).toLowerCase().includes(q))
+                    : typeof r.skills === 'string'
+                        ? r.skills.toLowerCase().includes(q)
+                        : false)
             );
         }
 

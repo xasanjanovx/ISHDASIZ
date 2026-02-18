@@ -57,6 +57,6 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     return NextResponse.json({
         status: 'Telegram Bot Webhook Active',
-        bot: 'ishdasiz_bot'
+        bot: 'ishdasizbot'
     });
 }

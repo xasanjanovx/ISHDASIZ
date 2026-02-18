@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { JobWithRelations, Category, District, Region } from '@/types/database';
 import { Search, Grid3X3, List, MapIcon, Loader2 } from '@/components/ui/icons';
 import Link from 'next/link';
+import { expandExperienceFilterValues } from '@/lib/experience-compat';
 
 export default function JobsPage() {
   const { lang, t } = useLanguage();
@@ -122,7 +123,10 @@ export default function JobsPage() {
       query = query.eq('employment_type', selectedEmploymentType);
     }
     if (selectedExperience !== 'all') {
-      query = query.eq('experience', selectedExperience);
+      const experienceValues = expandExperienceFilterValues(selectedExperience);
+      query = experienceValues.length > 1
+        ? query.in('experience', experienceValues)
+        : query.eq('experience', selectedExperience);
     }
     if (selectedEducation !== 'all') {
       query = query.eq('education_level', selectedEducation);

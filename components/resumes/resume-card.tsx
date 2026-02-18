@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Wallet, Clock, ArrowRight } from '@/components/ui/icons';
+import { MapPin, Clock, ArrowRight } from '@/components/ui/icons';
 import { formatSalary } from '@/lib/constants';
 import { normalizeLocation } from '@/lib/text';
+import { getExperienceLabel } from '@/lib/experience-compat';
 
 interface ResumeCardProps {
     resume: any;
@@ -15,9 +16,12 @@ interface ResumeCardProps {
 
 export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAccess }: ResumeCardProps) {
     const { lang } = useLanguage();
-    const title = lang === 'uz' ? (resume.desired_position || 'Rezyume') : (resume.desired_position || 'Резюме');
+    const displayTitle = resume.title || resume.desired_position || resume.field_title || null;
+    const title = lang === 'uz' ? (displayTitle || 'Rezyume') : (displayTitle || 'Резюме');
     const fullName = resume.full_name || '';
     const initial = fullName ? fullName[0]?.toUpperCase() : '?';
+    const salaryMin = resume.expected_salary_min ?? resume.desired_salary_min ?? null;
+    const salaryMax = resume.expected_salary_max ?? resume.desired_salary_max ?? null;
 
     let regionName = '';
     let districtName = '';
@@ -29,11 +33,18 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
     }
     const cleanRegion = normalizeLocation(regionName);
     const cleanDistrict = normalizeLocation(districtName);
-    let locationLabel = [cleanRegion, cleanDistrict].filter(Boolean).join(', ');
+    const locationLabel = [cleanRegion, cleanDistrict].filter(Boolean).join(', ');
 
-    const experienceLabel = resume.experience_years
-        ? `${resume.experience_years} ${lang === 'uz' ? 'yil' : 'лет'}`
-        : (lang === 'uz' ? 'Tajribasiz' : 'Без опыта');
+    const experienceLabel = getExperienceLabel(
+        resume.experience ?? resume.experience_level,
+        resume.experience_years,
+        lang === 'uz' ? 'uz' : 'ru'
+    );
+    const skillsList = Array.isArray(resume.skills)
+        ? resume.skills
+        : (typeof resume.skills === 'string'
+            ? resume.skills.split(',').map((item: string) => item.trim()).filter(Boolean)
+            : []);
 
     return (
         <Card
@@ -42,7 +53,6 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
             }}
             className="group relative cursor-pointer hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-slate-200/80 hover:border-blue-300/50 bg-white rounded-xl h-full"
         >
-            {/* Gradient left accent */}
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-teal-400 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity" />
 
             {canOpenDetails && (
@@ -50,9 +60,7 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
             )}
 
             <CardContent className="p-4 md:p-5 h-full flex flex-col">
-                {/* Header */}
                 <div className="flex items-start gap-3 mb-3">
-                    {/* Avatar with gradient ring */}
                     <div className="relative flex-shrink-0">
                         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
                             {initial}
@@ -66,7 +74,6 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
                     </div>
                 </div>
 
-                {/* Metadata pills */}
                 <div className="flex flex-wrap items-center gap-1.5 mb-3 text-xs font-medium">
                     {locationLabel && (
                         <div className="flex items-center gap-1 bg-teal-50/60 text-teal-700 px-2 py-1 rounded-md border border-teal-200/50">
@@ -80,17 +87,15 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
                     </div>
                 </div>
 
-                {/* Salary */}
                 <div className="mb-3">
                     <span className="text-sm font-bold text-amber-700 bg-gradient-to-br from-amber-50 to-amber-100/50 px-2.5 py-1 rounded-md border border-amber-200/60 shadow-sm">
-                        {formatSalary(resume.desired_salary_min, resume.desired_salary_max, lang)}
+                        {formatSalary(salaryMin, salaryMax, lang)}
                     </span>
                 </div>
 
-                {/* Skills */}
-                {resume.skills && resume.skills.length > 0 && (
+                {skillsList.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-auto pt-3 border-t border-slate-100/80">
-                        {resume.skills.slice(0, 4).map((skill: string, i: number) => (
+                        {skillsList.slice(0, 4).map((skill: string, i: number) => (
                             <span
                                 key={i}
                                 className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 border border-slate-200/60 group-hover:border-blue-200/40 group-hover:text-blue-700 transition-colors"
@@ -98,15 +103,14 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
                                 {skill}
                             </span>
                         ))}
-                        {resume.skills.length > 4 && (
+                        {skillsList.length > 4 && (
                             <span className="text-[10px] text-slate-400 px-1 py-0.5 font-medium">
-                                +{resume.skills.length - 4}
+                                +{skillsList.length - 4}
                             </span>
                         )}
                     </div>
                 )}
 
-                {/* Footer */}
                 <div className="flex items-center justify-end mt-3 pt-2">
                     <div className="flex items-center gap-1 text-blue-600 text-xs font-bold group-hover:gap-2 transition-all duration-300">
                         {lang === 'uz' ? 'Batafsil' : 'Подробнее'}
@@ -117,3 +121,4 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
         </Card>
     );
 }
+

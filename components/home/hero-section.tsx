@@ -223,7 +223,7 @@ export function HeroSection() {
             className="flex flex-wrap items-center justify-center gap-3 mb-10"
           >
             {/* Telegram bot — with YANGI corner badge */}
-            <Link href="https://t.me/ishdasiz_bot" target="_blank" rel="noopener noreferrer" className="group relative">
+            <Link href="https://t.me/ishdasizbot" target="_blank" rel="noopener noreferrer" className="group relative">
               <Button className="h-10 px-5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/20 text-white font-medium transition-all duration-300 shadow-lg shadow-blue-600/20 group-hover:shadow-blue-500/30 group-hover:scale-105">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 {lang === 'uz' ? 'Telegram bot' : 'Telegram бот'}
