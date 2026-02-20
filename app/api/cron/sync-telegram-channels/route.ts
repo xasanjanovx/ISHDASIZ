@@ -306,7 +306,7 @@ async function syncEntityToChannel(event: SyncEventRow, regionCache: { byId: Map
       }
     }
 
-    const sent = await sendMessage(channel, message, { parseMode: 'HTML' });
+    const sent = await sendMessage(channel, message, { parseMode: 'HTML', disableWebPagePreview: true });
     await upsertChannelPost('job', event.entity_id, channel, Number(sent?.message_id), messageHash);
     return { sent: 1, edited: 0, deleted, skipped: 0 };
   }
@@ -353,7 +353,7 @@ async function syncEntityToChannel(event: SyncEventRow, regionCache: { byId: Map
     }
   }
 
-  const sent = await sendMessage(channel, message, { parseMode: 'HTML' });
+  const sent = await sendMessage(channel, message, { parseMode: 'HTML', disableWebPagePreview: true });
   await upsertChannelPost('resume', event.entity_id, channel, Number(sent?.message_id), messageHash);
   return { sent: 1, edited: 0, deleted, skipped: 0 };
 }
