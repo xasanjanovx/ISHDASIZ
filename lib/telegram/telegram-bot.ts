@@ -2305,9 +2305,17 @@ export class TelegramBot {
     }
 
     private async handleModerationBlock(chatId: number, session: TelegramSession, reason?: string, sourceText?: string): Promise<void> {
-        const data = session.data || {};
-        const profanityCount = (data.profanity_count || 0) + (reason === 'profanity' ? 1 : 0);
-        const updatedData: Record<string, any> = { ...data, profanity_count: profanityCount };
+        type ModerationData = Record<string, any> & {
+            profanity_count?: number;
+            banned_until?: string;
+            last_abuse_reason?: string;
+            last_abuse_at?: string;
+            last_abuse_text?: string;
+        };
+
+        const data: ModerationData = (session.data || {}) as ModerationData;
+        const profanityCount = Number(data.profanity_count || 0) + (reason === 'profanity' ? 1 : 0);
+        const updatedData: ModerationData = { ...data, profanity_count: profanityCount };
         if (reason) {
             updatedData.last_abuse_reason = reason;
             updatedData.last_abuse_at = new Date().toISOString();
