@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "Telegram Bot Builder": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "e9a2a0cae316b54cc992a4c23494ab7f72dd9db0d85611d26c52c9e119c4dfd8"
+    },
+    "fullstack-developer": {
+      "source": "Shubhamsaboo/awesome-llm-apps",
+      "sourceType": "github",
+      "computedHash": "92f6f4f9bbdde529237f1840d94c4269abb62ad1d5e41d9c76bd14266001cbe8"
+    }
+  }
+}

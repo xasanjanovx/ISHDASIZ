@@ -206,7 +206,7 @@ function resolveRegionSlug(regionCache: { byId: Map<number, RegionRow>; byName: 
 async function loadJob(jobId: string): Promise<any | null> {
     const { data, error } = await supabaseAdmin
         .from('jobs')
-        .select('id, title, title_uz, title_ru, field_title, company_name, salary_min, salary_max, experience, education_level, status, is_active, region_id, district_id, region_name, district_name, working_days, working_hours, benefits, contact_phone, phone, address')
+        .select('id, title, title_uz, title_ru, field_title, company_name, salary_min, salary_max, experience, education_level, status, is_active, region_id, district_id, region_name, district_name, working_days, working_hours, benefits, contact_phone, phone, address, hr_name, contact_telegram, raw_source_json')
         .eq('id', jobId)
         .maybeSingle();
     if (error) throw error;
