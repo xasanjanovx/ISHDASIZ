@@ -272,10 +272,26 @@ export class TelegramBot {
         return false;
     }
 
-    private async handleModerationBlock(chatId: number, session: TelegramSession, reason?: string): Promise<void> {
-        const data = session.data || {};
-        const profanityCount = (data.profanity_count || 0) + (reason === 'profanity' ? 1 : 0);
-        const updatedData = { ...data, profanity_count: profanityCount };
+    private async handleModerationBlock(chatId: number, session: TelegramSession, reason?: string, sourceText?: string): Promise<void> {
+        type ModerationData = Record<string, any> & {
+            profanity_count?: number;
+            banned_until?: string;
+            last_abuse_reason?: string;
+            last_abuse_at?: string;
+            last_abuse_text?: string;
+        };
+
+        const data: ModerationData = (session.data || {}) as ModerationData;
+        const profanityCount = Number(data.profanity_count || 0) + (reason === 'profanity' ? 1 : 0);
+        const updatedData: ModerationData = { ...data, profanity_count: profanityCount };
+        if (reason) {
+            updatedData.last_abuse_reason = reason;
+            updatedData.last_abuse_at = new Date().toISOString();
+        }
+        const normalizedSource = String(sourceText || '').trim();
+        if (normalizedSource) {
+            updatedData.last_abuse_text = normalizedSource.slice(0, 220);
+        }
 
         if (reason === 'profanity' && profanityCount >= 3) {
             const banUntil = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString();
