@@ -297,7 +297,10 @@ async function syncEntityToChannel(event: SyncEventRow, regionCache: { byId: Map
 
     if (target) {
       try {
-        await editMessage(channel, Number(target.message_id), message, { parseMode: 'HTML' });
+        await editMessage(channel, Number(target.message_id), message, {
+          parseMode: 'HTML',
+          premiumKey: 'jobPublished'
+        });
         await upsertChannelPost('job', event.entity_id, channel, Number(target.message_id), messageHash);
         return { sent: 0, edited: 1, deleted, skipped: 0 };
       } catch (error) {
@@ -306,7 +309,11 @@ async function syncEntityToChannel(event: SyncEventRow, regionCache: { byId: Map
       }
     }
 
-    const sent = await sendMessage(channel, message, { parseMode: 'HTML', disableWebPagePreview: true });
+    const sent = await sendMessage(channel, message, {
+      parseMode: 'HTML',
+      disableWebPagePreview: true,
+      premiumKey: 'jobPublished'
+    });
     await upsertChannelPost('job', event.entity_id, channel, Number(sent?.message_id), messageHash);
     return { sent: 1, edited: 0, deleted, skipped: 0 };
   }
@@ -344,7 +351,10 @@ async function syncEntityToChannel(event: SyncEventRow, regionCache: { byId: Map
 
   if (target) {
     try {
-      await editMessage(channel, Number(target.message_id), message, { parseMode: 'HTML' });
+      await editMessage(channel, Number(target.message_id), message, {
+        parseMode: 'HTML',
+        premiumKey: 'resumeSaved'
+      });
       await upsertChannelPost('resume', event.entity_id, channel, Number(target.message_id), messageHash);
       return { sent: 0, edited: 1, deleted, skipped: 0 };
     } catch (error) {
@@ -353,7 +363,11 @@ async function syncEntityToChannel(event: SyncEventRow, regionCache: { byId: Map
     }
   }
 
-  const sent = await sendMessage(channel, message, { parseMode: 'HTML', disableWebPagePreview: true });
+  const sent = await sendMessage(channel, message, {
+    parseMode: 'HTML',
+    disableWebPagePreview: true,
+    premiumKey: 'resumeSaved'
+  });
   await upsertChannelPost('resume', event.entity_id, channel, Number(sent?.message_id), messageHash);
   return { sent: 1, edited: 0, deleted, skipped: 0 };
 }
