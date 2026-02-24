@@ -1955,8 +1955,10 @@ export class TelegramBot {
     private async handleCancel(chatId: number, session: TelegramSession): Promise<void> {
         const lang = session.lang;
         await this.clearFlowCancelKeyboard(chatId, session);
+        const activeRole = session.data?.active_role === 'employer' ? 'employer' : 'seeker';
         const updatedData = {
             ...session.data,
+            active_role: session.data?.active_role,
             edit_mode: false,
             edit_field: null,
             location_intent: null,
@@ -1968,7 +1970,7 @@ export class TelegramBot {
             data: updatedData
         });
         await this.sendPrompt(chatId, session, botTexts.mainMenu[lang], {
-            replyMarkup: keyboards.mainMenuKeyboard(lang, updatedData.active_role === 'employer' ? 'employer' : 'seeker')
+            replyMarkup: keyboards.mainMenuKeyboard(lang, activeRole)
         });
     }
 
@@ -2262,9 +2264,9 @@ export class TelegramBot {
             : resume.category_id ? [resume.category_id] : [];
         if (categoryIds.length > 0) {
             const names = categoryIds
-                .map((id: string) => categories.find(cat => cat.id === id))
+                .map((id: string) => categories.find((cat: { id: string; name_uz: string; name_ru: string }) => cat.id === id))
                 .filter(Boolean)
-                .map(cat => lang === 'uz' ? cat!.name_uz : cat!.name_ru);
+                .map((cat: { id: string; name_uz: string; name_ru: string }) => lang === 'uz' ? cat.name_uz : cat.name_ru);
             if (names.length > 0) lines.push(`🧭 | ${lang === 'uz' ? 'Soha' : 'Сфера'}: ${names.join(', ')}`);
         }
 

@@ -32,7 +32,7 @@ interface CategoryItem {
     id: string;
     name_uz: string;
     name_ru: string;
-    icon?: string;
+    icon?: string | null;
 }
 
 // ============================================
