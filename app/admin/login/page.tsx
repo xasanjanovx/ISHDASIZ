@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,15 +31,36 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(email.trim(), password);
 
       if (error) {
-        toast.error(
-          lang === 'uz'
-            ? 'Email yoki parol notogri'
-            : 'Неверный email или пароль'
-        );
-        setLoading(false);
+        const message = String(error.message || '').toLowerCase();
+        const isAdminAccessDenied = message.includes('admin access denied');
+        const isInvalidCredentials =
+          message.includes('invalid login credentials') ||
+          message.includes('invalid email or password') ||
+          message.includes('email') ||
+          message.includes('password');
+
+        if (isAdminAccessDenied) {
+          toast.error(
+            lang === 'uz'
+              ? 'Admin ruxsati topilmadi. Iltimos, admin profilingizni tekshiring.'
+              : 'Доступ в админ-панель не подтверждён. Проверьте админ-профиль.'
+          );
+        } else if (isInvalidCredentials) {
+          toast.error(
+            lang === 'uz'
+              ? 'Email yoki parol noto‘g‘ri'
+              : 'Неверный email или пароль'
+          );
+        } else {
+          toast.error(
+            lang === 'uz'
+              ? `Kirishda xatolik: ${error.message}`
+              : `Ошибка входа: ${error.message}`
+          );
+        }
         return;
       }
 
@@ -51,6 +72,7 @@ export default function AdminLoginPage() {
       toast.error(
         lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'
       );
+    } finally {
       setLoading(false);
     }
   };
