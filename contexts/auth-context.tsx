@@ -22,12 +22,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const ensureAdminProfile = async (accessToken?: string | null): Promise<AdminProfile | null> => {
+    if (!accessToken) return null;
+    try {
+      const res = await fetch('/api/admin/ensure-profile', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (!res.ok) return null;
+      const json = await res.json().catch(() => null);
+      return (json?.profile as AdminProfile) || null;
+    } catch (err) {
+      console.error('ensureAdminProfile error:', err);
+      return null;
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchAdminProfile(session.user.id);
+        await fetchAdminProfile(session.user.id, session.access_token);
       } else {
         setLoading(false);
       }
@@ -38,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchAdminProfile(session.user.id);
+          await fetchAdminProfile(session.user.id, session.access_token);
         } else {
           setAdminProfile(null);
           setLoading(false);
@@ -49,16 +67,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchAdminProfile = async (userId: string) => {
+  const fetchAdminProfile = async (userId: string, accessToken?: string | null): Promise<AdminProfile | null> => {
     setLoading(true);
-    const { data } = await supabase
-      .from('admin_profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data: localProfile, error: localError } = await supabase
+        .from('admin_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    setAdminProfile(data);
-    setLoading(false);
+      if (localError) {
+        console.warn('fetchAdminProfile local query warning:', localError.message);
+      }
+
+      if (localProfile) {
+        setAdminProfile(localProfile as AdminProfile);
+        return localProfile as AdminProfile;
+      }
+
+      const ensuredProfile = await ensureAdminProfile(accessToken);
+      if (ensuredProfile) {
+        setAdminProfile(ensuredProfile);
+        return ensuredProfile;
+      }
+
+      // Final fallback in case profile was created but local read is delayed
+      const { data: retryData } = await supabase
+        .from('admin_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const profile = (retryData as AdminProfile) || null;
+      setAdminProfile(profile);
+      return profile;
+    } catch (err) {
+      console.error('fetchAdminProfile error:', err);
+      setAdminProfile(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
@@ -69,7 +118,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data.user) {
-      await fetchAdminProfile(data.user.id);
+      const profile = await fetchAdminProfile(data.user.id, data.session?.access_token);
+      if (!profile) {
+        await supabase.auth.signOut();
+        return { error: new Error('Admin access denied') as Error | null };
+      }
     }
 
     return { error: null };
