@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -49,6 +50,8 @@ export default function AdminApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationWithJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<ApplicationWithJob | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [jobFilter, setJobFilter] = useState<string>('all');
 
   useEffect(() => {
     if (!authLoading && (!user || !adminProfile)) {
@@ -71,6 +74,37 @@ export default function AdminApplicationsPage() {
       fetchApplications();
     }
   }, [user, adminProfile, fetchApplications]);
+
+  const jobOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const app of applications) {
+      if (app.jobs?.id) {
+        map.set(app.jobs.id, lang === 'uz' ? app.jobs.title_uz : app.jobs.title_ru);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [applications, lang]);
+
+  const filteredApplications = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return applications.filter((app) => {
+      const byJob = jobFilter === 'all' || app.jobs?.id === jobFilter;
+      const byQuery =
+        !query ||
+        (app.full_name || '').toLowerCase().includes(query) ||
+        (app.phone || '').toLowerCase().includes(query) ||
+        (app.email || '').toLowerCase().includes(query) ||
+        (app.message || '').toLowerCase().includes(query) ||
+        (app.jobs?.title_uz || '').toLowerCase().includes(query) ||
+        (app.jobs?.title_ru || '').toLowerCase().includes(query) ||
+        (app.jobs?.company_name || '').toLowerCase().includes(query);
+
+      return byJob && byQuery;
+    });
+  }, [applications, searchQuery, jobFilter]);
 
   if (authLoading || loading) {
     return (
@@ -97,7 +131,9 @@ export default function AdminApplicationsPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white relative z-10">{t.admin.applications}</h1>
               <p className="text-sky-100 mt-1">
-                {lang === 'uz' ? `${applications.length} ta ariza` : `${applications.length} заявок`}
+                {lang === 'uz'
+                  ? `${filteredApplications.length} / ${applications.length} ta ariza`
+                  : `${filteredApplications.length} / ${applications.length} заявок`}
               </p>
             </div>
           </div>
@@ -105,6 +141,42 @@ export default function AdminApplicationsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={lang === 'uz' ? 'Qidirish: ism, telefon, email, xabar...' : 'Поиск: имя, телефон, email, сообщение...'}
+              />
+
+              <select
+                value={jobFilter}
+                onChange={(e) => setJobFilter(e.target.value)}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+              >
+                <option value="all">{lang === 'uz' ? 'Barcha vakansiyalar' : 'Все вакансии'}</option>
+                {jobOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('');
+                  setJobFilter('all');
+                }}
+              >
+                {lang === 'uz' ? 'Filtrlarni tozalash' : 'Сбросить фильтры'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -113,31 +185,22 @@ export default function AdminApplicationsPage() {
                   <TableRow>
                     <TableHead>{lang === 'uz' ? 'Ism' : 'Имя'}</TableHead>
                     <TableHead>{lang === 'uz' ? 'Telefon' : 'Телефон'}</TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      {lang === 'uz' ? 'Vakansiya' : 'Вакансия'}
-                    </TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      {lang === 'uz' ? 'Sana' : 'Дата'}
-                    </TableHead>
+                    <TableHead className="hidden md:table-cell">{lang === 'uz' ? 'Vakansiya' : 'Вакансия'}</TableHead>
+                    <TableHead className="hidden md:table-cell">{lang === 'uz' ? 'Sana' : 'Дата'}</TableHead>
                     <TableHead className="text-right">{lang === 'uz' ? 'Amallar' : 'Действия'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {applications.map((app) => (
+                  {filteredApplications.map((app) => (
                     <TableRow key={app.id}>
                       <TableCell>
                         <div>
                           <p className="font-medium">{app.full_name}</p>
-                          {app.email && (
-                            <p className="text-xs text-slate-500">{app.email}</p>
-                          )}
+                          {app.email && <p className="text-xs text-slate-500">{app.email}</p>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <a
-                          href={`tel:${app.phone}`}
-                          className="text-sky-600 hover:underline flex items-center gap-1"
-                        >
+                        <a href={`tel:${app.phone}`} className="text-sky-600 hover:underline flex items-center gap-1">
                           <Phone className="w-3 h-3" />
                           {app.phone}
                         </a>
@@ -145,31 +208,30 @@ export default function AdminApplicationsPage() {
                       <TableCell className="hidden md:table-cell">
                         {app.jobs ? (
                           <div>
-                            <p className="text-sm">
-                              {lang === 'uz' ? app.jobs.title_uz : app.jobs.title_ru}
-                            </p>
+                            <p className="text-sm">{lang === 'uz' ? app.jobs.title_uz : app.jobs.title_ru}</p>
                             <p className="text-xs text-slate-500">{app.jobs.company_name}</p>
                           </div>
                         ) : (
-                          <Badge variant="secondary">
-                            {lang === 'uz' ? 'O\'chirilgan' : 'Удалена'}
-                          </Badge>
+                          <Badge variant="secondary">{lang === 'uz' ? 'O\'chirilgan' : 'Удалена'}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-slate-500">
                         {formatDate(app.created_at, lang)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedApp(app)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => setSelectedApp(app)}>
                           <Eye className="w-4 h-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {filteredApplications.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-slate-500 py-10">
+                        {lang === 'uz' ? 'Filtrlar bo‘yicha ariza topilmadi.' : 'По текущим фильтрам заявки не найдены.'}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -180,28 +242,19 @@ export default function AdminApplicationsPage() {
       <Dialog open={!!selectedApp} onOpenChange={() => setSelectedApp(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {lang === 'uz' ? 'Ariza tafsilotlari' : 'Детали заявки'}
-            </DialogTitle>
+            <DialogTitle>{lang === 'uz' ? 'Ariza tafsilotlari' : 'Детали заявки'}</DialogTitle>
           </DialogHeader>
           {selectedApp && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-slate-500 mb-1">
-                  {lang === 'uz' ? 'Ism' : 'Имя'}
-                </p>
+                <p className="text-sm text-slate-500 mb-1">{lang === 'uz' ? 'Ism' : 'Имя'}</p>
                 <p className="font-medium">{selectedApp.full_name}</p>
               </div>
 
               <div className="flex gap-4">
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">
-                    {lang === 'uz' ? 'Telefon' : 'Телефон'}
-                  </p>
-                  <a
-                    href={`tel:${selectedApp.phone}`}
-                    className="flex items-center gap-1 text-sky-600 hover:underline"
-                  >
+                  <p className="text-sm text-slate-500 mb-1">{lang === 'uz' ? 'Telefon' : 'Телефон'}</p>
+                  <a href={`tel:${selectedApp.phone}`} className="flex items-center gap-1 text-sky-600 hover:underline">
                     <Phone className="w-4 h-4" />
                     {selectedApp.phone}
                   </a>
@@ -209,10 +262,7 @@ export default function AdminApplicationsPage() {
                 {selectedApp.email && (
                   <div>
                     <p className="text-sm text-slate-500 mb-1">Email</p>
-                    <a
-                      href={`mailto:${selectedApp.email}`}
-                      className="flex items-center gap-1 text-sky-600 hover:underline"
-                    >
+                    <a href={`mailto:${selectedApp.email}`} className="flex items-center gap-1 text-sky-600 hover:underline">
                       <Mail className="w-4 h-4" />
                       {selectedApp.email}
                     </a>
@@ -232,22 +282,15 @@ export default function AdminApplicationsPage() {
 
               {selectedApp.jobs && (
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-slate-500 mb-1">
-                    {lang === 'uz' ? 'Vakansiya' : 'Вакансия'}
-                  </p>
-                  <Link
-                    href={`/jobs/${selectedApp.jobs.id}`}
-                    className="text-sky-600 hover:underline"
-                  >
+                  <p className="text-sm text-slate-500 mb-1">{lang === 'uz' ? 'Vakansiya' : 'Вакансия'}</p>
+                  <Link href={`/jobs/${selectedApp.jobs.id}`} className="text-sky-600 hover:underline">
                     {lang === 'uz' ? selectedApp.jobs.title_uz : selectedApp.jobs.title_ru}
                   </Link>
                   <p className="text-sm text-slate-500">{selectedApp.jobs.company_name}</p>
                 </div>
               )}
 
-              <div className="text-xs text-slate-400">
-                {formatDate(selectedApp.created_at, lang)}
-              </div>
+              <div className="text-xs text-slate-400">{formatDate(selectedApp.created_at, lang)}</div>
             </div>
           )}
         </DialogContent>

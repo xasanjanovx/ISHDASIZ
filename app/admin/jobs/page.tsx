@@ -1,16 +1,17 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/language-context';
 import { useAuth } from '@/contexts/auth-context';
 import { supabase } from '@/lib/supabase';
 import { JobWithRelations } from '@/types/database';
-import { formatSalary, formatDate } from '@/lib/constants';
+import { formatSalary } from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
   Table,
@@ -41,6 +42,9 @@ export default function AdminJobsPage() {
 
   const [jobs, setJobs] = useState<JobWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     if (!authLoading && (!user || !adminProfile)) {
@@ -79,7 +83,7 @@ export default function AdminJobsPage() {
           ? 'Vakansiya faollashtirildi'
           : 'Вакансия активирована'
         : lang === 'uz'
-          ? 'Vakansiya ochirildi'
+          ? 'Vakansiya o\'chirildi'
           : 'Вакансия деактивирована'
     );
   };
@@ -93,8 +97,45 @@ export default function AdminJobsPage() {
     }
 
     setJobs((prev) => prev.filter((j) => j.id !== jobId));
-    toast.success(lang === 'uz' ? 'Vakansiya ochirildi' : 'Вакансия удалена');
+    toast.success(lang === 'uz' ? 'Vakansiya o\'chirildi' : 'Вакансия удалена');
   };
+
+  const categoryOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const job of jobs) {
+      if (job.category_id && job.categories) {
+        map.set(job.category_id, lang === 'uz' ? job.categories.name_uz : job.categories.name_ru);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [jobs, lang]);
+
+  const filteredJobs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return jobs.filter((job) => {
+      const byStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && job.is_active) ||
+        (statusFilter === 'inactive' && !job.is_active);
+
+      const byCategory = categoryFilter === 'all' || job.category_id === categoryFilter;
+
+      const byQuery =
+        !query ||
+        (job.title_uz || '').toLowerCase().includes(query) ||
+        (job.title_ru || '').toLowerCase().includes(query) ||
+        (job.company_name || '').toLowerCase().includes(query) ||
+        (job.categories?.name_uz || '').toLowerCase().includes(query) ||
+        (job.categories?.name_ru || '').toLowerCase().includes(query) ||
+        (job.districts?.name_uz || '').toLowerCase().includes(query) ||
+        (job.districts?.name_ru || '').toLowerCase().includes(query);
+
+      return byStatus && byCategory && byQuery;
+    });
+  }, [jobs, searchQuery, statusFilter, categoryFilter]);
 
   if (authLoading || loading) {
     return (
@@ -122,7 +163,9 @@ export default function AdminJobsPage() {
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-white relative z-10">{t.admin.jobs}</h1>
                 <p className="text-sky-100 mt-1">
-                  {lang === 'uz' ? `${jobs.length} ta vakansiya` : `${jobs.length} вакансий`}
+                  {lang === 'uz'
+                    ? `${filteredJobs.length} / ${jobs.length} ta vakansiya`
+                    : `${filteredJobs.length} / ${jobs.length} вакансий`}
                 </p>
               </div>
             </div>
@@ -137,6 +180,53 @@ export default function AdminJobsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="grid gap-3 md:grid-cols-4">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={lang === 'uz' ? 'Qidirish: lavozim, kompaniya, hudud...' : 'Поиск: вакансия, компания, регион...'}
+              />
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+              >
+                <option value="all">{lang === 'uz' ? 'Barcha holatlar' : 'Все статусы'}</option>
+                <option value="active">{lang === 'uz' ? 'Faol' : 'Активные'}</option>
+                <option value="inactive">{lang === 'uz' ? 'Nofaol' : 'Неактивные'}</option>
+              </select>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+              >
+                <option value="all">{lang === 'uz' ? 'Barcha kategoriyalar' : 'Все категории'}</option>
+                {categoryOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setCategoryFilter('all');
+                }}
+              >
+                {lang === 'uz' ? 'Filtrlarni tozalash' : 'Сбросить фильтры'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -158,19 +248,13 @@ export default function AdminJobsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {jobs.map((job) => (
+                  {filteredJobs.map((job) => (
                     <TableRow key={job.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">
-                            {lang === 'uz' ? job.title_uz : job.title_ru}
-                          </p>
+                          <p className="font-medium">{lang === 'uz' ? job.title_uz : job.title_ru}</p>
                           <p className="text-xs text-slate-500">
-                            {job.categories
-                              ? lang === 'uz'
-                                ? job.categories.name_uz
-                                : job.categories.name_ru
-                              : ''}
+                            {job.categories ? (lang === 'uz' ? job.categories.name_uz : job.categories.name_ru) : ''}
                           </p>
                         </div>
                       </TableCell>
@@ -208,20 +292,17 @@ export default function AdminJobsPage() {
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  {lang === 'uz' ? 'Vakansiyani ochirish' : 'Удалить вакансию'}
+                                  {lang === 'uz' ? 'Vakansiyani o\'chirish' : 'Удалить вакансию'}
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   {lang === 'uz'
-                                    ? 'Bu amalni qaytarib bolmaydi. Vakansiya butunlay ochiriladi.'
+                                    ? 'Bu amalni qaytarib bo\'lmaydi. Vakansiya butunlay o\'chiriladi.'
                                     : 'Это действие нельзя отменить. Вакансия будет удалена навсегда.'}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>{t.admin.cancel}</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteJob(job.id)}
-                                  className="bg-red-500 hover:bg-red-600"
-                                >
+                                <AlertDialogAction onClick={() => deleteJob(job.id)} className="bg-red-500 hover:bg-red-600">
                                   {t.admin.deleteJob}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -231,6 +312,13 @@ export default function AdminJobsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {filteredJobs.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-slate-500 py-10">
+                        {lang === 'uz' ? 'Filtrlar bo‘yicha vakansiya topilmadi.' : 'По текущим фильтрам вакансии не найдены.'}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
