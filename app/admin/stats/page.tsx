@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, TrendingUp, Briefcase, MapPin, Users, Eye } from '@/components/ui/icons';
 
+const ADMIN_FETCH_BATCH = 1000;
+
 interface Stats {
   totalJobs: number;
   activeJobs: number;
@@ -35,21 +37,73 @@ export default function AdminStatsPage() {
   }, [user, adminProfile, authLoading, router]);
 
   const fetchStats = useCallback(async () => {
-    const [jobsRes, appsRes, categoriesRes, districtsRes] = await Promise.all([
-      supabase.from('jobs').select('*, categories(*), districts(*, regions(*))'),
-      supabase.from('job_applications').select('id'),
+    const fetchAllJobs = async () => {
+      const allJobs: any[] = [];
+      let from = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('*, categories(*), districts(*, regions(*))')
+          .range(from, from + ADMIN_FETCH_BATCH - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        const batch = data || [];
+        allJobs.push(...batch);
+
+        if (batch.length < ADMIN_FETCH_BATCH) {
+          break;
+        }
+
+        from += ADMIN_FETCH_BATCH;
+      }
+
+      return allJobs;
+    };
+
+    const fetchAllApplications = async () => {
+      const allApplications: { id: string }[] = [];
+      let from = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('job_applications')
+          .select('id')
+          .range(from, from + ADMIN_FETCH_BATCH - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        const batch = data || [];
+        allApplications.push(...batch);
+
+        if (batch.length < ADMIN_FETCH_BATCH) {
+          break;
+        }
+
+        from += ADMIN_FETCH_BATCH;
+      }
+
+      return allApplications;
+    };
+
+    const [jobs, applications, categoriesRes, districtsRes] = await Promise.all([
+      fetchAllJobs(),
+      fetchAllApplications(),
       supabase.from('categories').select('*').neq('id', 'a0000011-0011-4000-8000-000000000011'),
       supabase.from('districts').select('*'),
     ]);
-
-    const jobs = jobsRes.data || [];
     const categories = categoriesRes.data || [];
     const districts = districtsRes.data || [];
 
     const totalJobs = jobs.length;
     const activeJobs = jobs.filter((j) => j.is_active).length;
     const totalViews = jobs.reduce((sum, j) => sum + (j.views_count || 0), 0);
-    const totalApplications = appsRes.data?.length || 0;
+    const totalApplications = applications.length || 0;
 
     const categoryCount: Record<string, number> = {};
     jobs.forEach((job) => {

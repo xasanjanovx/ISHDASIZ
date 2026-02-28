@@ -35,6 +35,8 @@ import {
 import { Plus, Pencil, Trash2, Eye, Loader2, ArrowLeft } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
+const ADMIN_FETCH_BATCH = 1000;
+
 export default function AdminJobsPage() {
   const { lang, t } = useLanguage();
   const { user, adminProfile, loading: authLoading } = useAuth();
@@ -53,14 +55,41 @@ export default function AdminJobsPage() {
   }, [user, adminProfile, authLoading, router]);
 
   const fetchJobs = useCallback(async () => {
-    const { data } = await supabase
-      .from('jobs')
-      .select('*, categories(*), districts(*)')
-      .order('created_at', { ascending: false });
+    setLoading(true);
+    try {
+      const allJobs: JobWithRelations[] = [];
+      let from = 0;
 
-    setJobs(data || []);
-    setLoading(false);
-  }, []);
+      while (true) {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('*, categories(*), districts(*)')
+          .order('created_at', { ascending: false })
+          .range(from, from + ADMIN_FETCH_BATCH - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        const batch = (data || []) as JobWithRelations[];
+        allJobs.push(...batch);
+
+        if (batch.length < ADMIN_FETCH_BATCH) {
+          break;
+        }
+
+        from += ADMIN_FETCH_BATCH;
+      }
+
+      setJobs(allJobs);
+    } catch (error) {
+      console.error('Admin jobs fetch error:', error);
+      toast.error(lang === 'uz' ? 'Vakansiyalarni yuklashda xatolik yuz berdi' : 'Ошибка загрузки вакансий');
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [lang]);
 
   useEffect(() => {
     if (user && adminProfile) {

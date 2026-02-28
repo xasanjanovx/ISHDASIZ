@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/dialog';
 import { ArrowLeft, Loader2, Eye, Phone, Mail, MessageSquare } from '@/components/ui/icons';
 
+const ADMIN_FETCH_BATCH = 1000;
+
 interface ApplicationWithJob {
   id: string;
   full_name: string;
@@ -60,13 +62,39 @@ export default function AdminApplicationsPage() {
   }, [user, adminProfile, authLoading, router]);
 
   const fetchApplications = useCallback(async () => {
-    const { data } = await supabase
-      .from('job_applications')
-      .select('*, jobs(id, title_uz, title_ru, company_name)')
-      .order('created_at', { ascending: false });
+    setLoading(true);
+    try {
+      const allApplications: ApplicationWithJob[] = [];
+      let from = 0;
 
-    setApplications((data as ApplicationWithJob[]) || []);
-    setLoading(false);
+      while (true) {
+        const { data, error } = await supabase
+          .from('job_applications')
+          .select('*, jobs(id, title_uz, title_ru, company_name)')
+          .order('created_at', { ascending: false })
+          .range(from, from + ADMIN_FETCH_BATCH - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        const batch = (data as ApplicationWithJob[]) || [];
+        allApplications.push(...batch);
+
+        if (batch.length < ADMIN_FETCH_BATCH) {
+          break;
+        }
+
+        from += ADMIN_FETCH_BATCH;
+      }
+
+      setApplications(allApplications);
+    } catch (error) {
+      console.error('Admin applications fetch error:', error);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
