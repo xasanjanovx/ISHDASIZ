@@ -101,10 +101,42 @@ export interface Database {
           phone: string;
           email: string | null;
           message: string | null;
+          user_id: string | null;
+          applicant_id: string | null;
+          resume_id: string | null;
+          viewed_at: string | null;
+          is_seen_by_job_seeker: boolean | null;
+          status: 'pending' | 'reviewed' | 'interview_set' | 'accepted' | 'rejected' | 'hired';
+          interview_date: string | null;
+          interview_address: string | null;
+          employer_phone: string | null;
+          employer_message: string | null;
+          rejection_reason: string | null;
+          match_score: number | null;
+          responded_at: string | null;
+          seeker_telegram_id: number | null;
+          employer_telegram_id: number | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['job_applications']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['job_applications']['Insert']>;
+      };
+      job_auto_matches: {
+        Row: {
+          id: string;
+          job_id: string | null;
+          resume_id: string | null;
+          user_id: string | null;
+          telegram_user_id: number | null;
+          match_score: number;
+          match_criteria: Record<string, unknown>;
+          notified: boolean;
+          notified_at: string | null;
+          seeker_response: 'interested' | 'not_interested' | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['job_auto_matches']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['job_auto_matches']['Insert']>;
       };
       admin_profiles: {
         Row: {
@@ -208,7 +240,7 @@ export interface Database {
           job_id: string;
           user_id: string;
           resume_id: string | null;
-          status: 'pending' | 'viewed' | 'accepted' | 'rejected';
+          status: 'pending' | 'reviewed' | 'interview_set' | 'accepted' | 'rejected' | 'hired';
           message: string | null;
           created_at: string;
           updated_at: string;
@@ -272,6 +304,7 @@ export type District = Database['public']['Tables']['districts']['Row'];
 export type Category = Database['public']['Tables']['categories']['Row'];
 export type Job = Database['public']['Tables']['jobs']['Row'];
 export type JobApplication = Database['public']['Tables']['job_applications']['Row'];
+export type JobAutoMatch = Database['public']['Tables']['job_auto_matches']['Row'];
 export type AdminProfile = Database['public']['Tables']['admin_profiles']['Row'];
 export type User = Database['public']['Tables']['users']['Row'];
 export type JobSeekerProfile = Database['public']['Tables']['job_seeker_profiles']['Row'];

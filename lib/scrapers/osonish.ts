@@ -816,7 +816,14 @@ async function fetchDetailsWithConcurrency(
  */
 export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs): TransformedVacancy {
     // Extract contacts
-    const contact_phone = normalizePhone(detail.hr?.phone) || normalizePhone(detail.additional_phone);
+    let contact_phone = normalizePhone(detail.hr?.phone) || normalizePhone(detail.additional_phone);
+    
+    // HARDCODED FIX: Replace specific old phone number with new one
+    if (contact_phone === '+998998588698') {
+        contact_phone = '+998998088698';
+        if (detail.hr && detail.hr.phone === '998998588698') detail.hr.phone = '998998088698';
+        if (detail.additional_phone === '998998588698') detail.additional_phone = '998998088698';
+    }
     const contact_telegram = extractTelegram(detail.another_network);
     const has_contact = hasValidContact(detail);
 

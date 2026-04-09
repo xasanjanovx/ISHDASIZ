@@ -295,7 +295,19 @@ export const PREMIUM_EMOJI_STEP_IDS = [
     { step: 150, key: 'checkSubscription', customEmojiId: E.search },
     { step: 151, key: 'notSubscribed', customEmojiId: E.warn },
     { step: 152, key: 'categorySelected', customEmojiId: E.ok },
-    { step: 153, key: 'categoriesDone', customEmojiId: E.target }
+    { step: 153, key: 'categoriesDone', customEmojiId: E.target },
+    { step: 154, key: 'applicationAccepted', customEmojiId: E.ok },
+    { step: 155, key: 'applicationRejected', customEmojiId: E.no },
+    { step: 156, key: 'interviewScheduled', customEmojiId: E.cal },
+    { step: 157, key: 'applicationHired', customEmojiId: E.rocket },
+    { step: 158, key: 'autoMatchNotification', customEmojiId: E.target },
+    { step: 159, key: 'seekerApplications', customEmojiId: E.doc },
+    { step: 160, key: 'employerDashboard', customEmojiId: E.chart },
+    { step: 161, key: 'applicationReviewed', customEmojiId: E.search },
+    { step: 162, key: 'askInterviewDate', customEmojiId: E.cal },
+    { step: 163, key: 'askEmployerPhone', customEmojiId: E.call },
+    { step: 164, key: 'askInterviewAddress', customEmojiId: E.pin },
+    { step: 165, key: 'askEmployerMessage', customEmojiId: E.note }
 ] as const;
 
 export const PREMIUM_EMOJI_BY_KEY: Record<string, string> = {

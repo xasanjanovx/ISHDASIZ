@@ -86,6 +86,11 @@ export enum BotState {
     POSTING_JOB_DESCRIPTION = 'posting_job_description',
     POSTING_JOB_CONFIRM = 'posting_job_confirm',
     ENTERING_COMPANY_NAME = 'entering_company_name',
+    APPLICATION_INTERVIEW_DATE = 'application_interview_date',
+    APPLICATION_INTERVIEW_ADDRESS = 'application_interview_address',
+    APPLICATION_INTERVIEW_PHONE = 'application_interview_phone',
+    APPLICATION_INTERVIEW_MESSAGE = 'application_interview_message',
+    APPLICATION_REJECTION_REASON = 'application_rejection_reason',
 
     // Resume Creation Flow
     REQUESTING_LOCATION = 'requesting_location',
@@ -1492,6 +1497,7 @@ export class TelegramBot {
         const candidates = [
             lang === 'uz' ? '🔎 Ish topish' : '🔎 Найти работу',
             lang === 'uz' ? '⭐ Saqlanganlar' : '⭐ Сохранённые',
+            lang === 'uz' ? '📋 Mening arizalarim' : '📋 Мои отклики',
             lang === 'uz' ? '📨 Takliflar' : '📨 Приглашения',
             lang === 'uz' ? '🧾 Rezyume' : '🧾 Резюме',
             lang === 'uz' ? '⚙️ Sozlamalar' : '⚙️ Настройки',
@@ -1502,6 +1508,7 @@ export class TelegramBot {
             lang === 'uz' ? '👥 Ishchi topish' : '👥 Найти кандидатов',
             lang === 'uz' ? '🧑‍💼 Ishchi topish' : '🧑‍💼 Найти сотрудника',
             lang === 'uz' ? '📨 Arizalar' : '📨 Отклики',
+            lang === 'uz' ? '📊 Dashboard' : '📊 Dashboard',
             lang === 'uz' ? '📊 Statistika' : '📊 Статистика',
             lang === 'uz' ? '🚨 Qoidabuzarlar' : '🚨 Нарушители',
             lang === 'uz' ? '📣 Hammaga xabar yuborish' : '📣 Рассылка всем',
@@ -1813,7 +1820,8 @@ export class TelegramBot {
             'fav', 'apply', 'profile', 'settings', 'admin', 'subs', 'ai', 'sub', 'searchmode',
             'resume_new', 'resumeedit', 'cancel', 'resume', 'mcat', 'search', 'searchregion', 'searchdist',
             'worker', 'matchjob', 'matchrelated', 'autojobs',
-            'jobview', 'jobactivate', 'jobdelete', 'jobclose'
+            'jobview', 'jobactivate', 'jobdelete', 'jobclose',
+            'appview', 'apps', 'appdecision', 'appinterview', 'seekerapps', 'seekerapp', 'automatch', 'dashboard'
         ]);
         return sensitive.has(action);
     }
@@ -1838,7 +1846,10 @@ export class TelegramBot {
             'jobactivate',
             'jobdelete',
             'jobclose',
-            'offer'
+            'offer',
+            'appdecision',
+            'appinterview',
+            'automatch'
         ]).has(action);
     }
 
@@ -2111,7 +2122,9 @@ export class TelegramBot {
             BotState.ENTERING_WORKPLACE_YEARS,
             BotState.ENTERING_WORKPLACE_END_YEAR,
             BotState.ENTERING_EDUCATION_START_YEAR,
-            BotState.ENTERING_EDUCATION_END_YEAR
+            BotState.ENTERING_EDUCATION_END_YEAR,
+            BotState.APPLICATION_INTERVIEW_DATE,
+            BotState.APPLICATION_INTERVIEW_PHONE
         ];
         if (skipStates.includes(state)) return true;
         if (!text) return false;
@@ -3039,6 +3052,24 @@ export class TelegramBot {
                 case 'apps':
                     if (value === 'list') await this.showEmployerApplications(chatId, session);
                     else if (value === 'back') await this.showMainMenu(chatId, session);
+                    break;
+                case 'appdecision':
+                    await this.handleApplicationDecisionAction(chatId, value, extra, session);
+                    break;
+                case 'appinterview':
+                    await this.handleApplicationInterviewAction(chatId, value, extra, session);
+                    break;
+                case 'seekerapps':
+                    if (value === 'list') await this.showSeekerApplications(chatId, session);
+                    break;
+                case 'seekerapp':
+                    if (value === 'view') await this.showSeekerApplicationDetail(chatId, extra, session);
+                    break;
+                case 'automatch':
+                    await this.handleAutoMatchAction(chatId, value, extra, session);
+                    break;
+                case 'dashboard':
+                    await this.showEmployerDashboard(chatId, session);
                     break;
                 case 'offer':
                     await this.handleOfferAction(chatId, value, extra, session);
@@ -6069,6 +6100,16 @@ export class TelegramBot {
             }
         }
         if (skipTexts.includes(text)) {
+            if (
+                state === BotState.APPLICATION_INTERVIEW_DATE
+                || state === BotState.APPLICATION_INTERVIEW_ADDRESS
+                || state === BotState.APPLICATION_INTERVIEW_PHONE
+                || state === BotState.APPLICATION_INTERVIEW_MESSAGE
+                || state === BotState.APPLICATION_REJECTION_REASON
+            ) {
+                await this.handleApplicationInterviewAction(chatId, 'skip', '', session);
+                return;
+            }
             if (state === BotState.ENTERING_WORKPLACE || state === BotState.ENTERING_WORKPLACE_YEARS || state === BotState.ENTERING_WORKPLACE_END_YEAR) {
                 const prompt = state === BotState.ENTERING_WORKPLACE_END_YEAR
                     ? botTexts.askWorkEndYear[lang]
@@ -6180,6 +6221,80 @@ export class TelegramBot {
             await this.sendPrompt(chatId, session, locationPrompt, {
                 replyMarkup: keyboards.locationRequestKeyboard(lang)
             });
+            return;
+        }
+
+        if (
+            state === BotState.APPLICATION_INTERVIEW_DATE
+            || state === BotState.APPLICATION_INTERVIEW_ADDRESS
+            || state === BotState.APPLICATION_INTERVIEW_PHONE
+            || state === BotState.APPLICATION_INTERVIEW_MESSAGE
+            || state === BotState.APPLICATION_REJECTION_REASON
+        ) {
+            const flow = this.getApplicationPipelineData(session);
+            if (!flow) {
+                await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.employerMainMenuKeyboard(lang) });
+                return;
+            }
+            const updatedFlow = { ...flow };
+            const cleaned = String(text || '').trim();
+
+            if (state === BotState.APPLICATION_INTERVIEW_DATE) {
+                if (cleaned.length < 5) {
+                    await this.sendPrompt(chatId, session, botTexts.askInterviewDate[lang], {
+                        parseMode: 'HTML',
+                        replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+                    });
+                    return;
+                }
+                updatedFlow.mode = 'interview';
+                updatedFlow.interview_date = cleaned;
+            } else if (state === BotState.APPLICATION_INTERVIEW_ADDRESS) {
+                if (cleaned.length < 3) {
+                    await this.sendPrompt(chatId, session, botTexts.askInterviewAddress[lang], {
+                        parseMode: 'HTML',
+                        replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+                    });
+                    return;
+                }
+                updatedFlow.mode = 'interview';
+                updatedFlow.interview_address = cleaned;
+            } else if (state === BotState.APPLICATION_INTERVIEW_PHONE) {
+                const normalizedPhone = this.normalizeUzPhoneStrict(cleaned);
+                if (!normalizedPhone) {
+                    await this.sendPrompt(chatId, session, botTexts.askEmployerPhone[lang], {
+                        parseMode: 'HTML',
+                        replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+                    });
+                    return;
+                }
+                updatedFlow.employer_phone = normalizedPhone;
+            } else if (state === BotState.APPLICATION_INTERVIEW_MESSAGE) {
+                if (cleaned.length < 2) {
+                    await this.sendPrompt(chatId, session, botTexts.askEmployerMessage[lang], {
+                        parseMode: 'HTML',
+                        replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+                    });
+                    return;
+                }
+                updatedFlow.employer_message = cleaned;
+            } else if (state === BotState.APPLICATION_REJECTION_REASON) {
+                if (cleaned.length < 2) {
+                    await this.sendPrompt(chatId, session, botTexts.askRejectionReason[lang], {
+                        parseMode: 'HTML',
+                        replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+                    });
+                    return;
+                }
+                updatedFlow.mode = 'reject';
+                updatedFlow.rejection_reason = cleaned;
+            }
+
+            await this.setSession(session, {
+                state: BotState.EMPLOYER_MAIN_MENU,
+                data: { ...session.data, application_pipeline: updatedFlow }
+            });
+            await this.showApplicationPipelinePanel(chatId, session);
             return;
         }
 
@@ -6991,6 +7106,7 @@ export class TelegramBot {
             jobs: { uz: '🔎 Ish topish', ru: '🔎 Найти работу' },
             saved: { uz: '⭐ Saqlanganlar', ru: '⭐ Сохранённые' },
             offers: { uz: '📨 Takliflar', ru: '📨 Приглашения' },
+            applications: { uz: '📋 Mening arizalarim', ru: '📋 Мои отклики' },
             resume: { uz: '🧾 Rezyume', ru: '🧾 Резюме' },
             settings: { uz: '⚙️ Sozlamalar', ru: '⚙️ Настройки' },
             help: { uz: '🆘 Yordam', ru: '🆘 Помощь' }
@@ -7001,6 +7117,7 @@ export class TelegramBot {
             find_worker: { uz: '🔎 Ishchi topish', ru: '🔎 Найти кандидатов' },
             find_worker_legacy: { uz: '👥 Nomzod topish', ru: '👥 Найти кандидатов' },
             applications: { uz: '📨 Arizalar', ru: '📨 Отклики' },
+            dashboard: { uz: '📊 Dashboard', ru: '📊 Dashboard' },
             help: { uz: '🆘 Yordam', ru: '🆘 Помощь' },
             settings: { uz: '⚙️ Sozlamalar', ru: '⚙️ Настройки' }
         };
@@ -7049,6 +7166,8 @@ export class TelegramBot {
                 await this.handleEmployerMainMenu(chatId, 'find_worker', session);
             } else if (this.equalsMenuText(text, employerTexts.applications[lang])) {
                 await this.handleEmployerMainMenu(chatId, 'applications', session);
+            } else if (this.equalsMenuText(text, employerTexts.dashboard[lang])) {
+                await this.handleEmployerMainMenu(chatId, 'dashboard', session);
             } else if (this.equalsMenuText(text, employerTexts.help[lang])) {
                 await this.handleAction(chatId, 'help', session);
             } else if (this.equalsMenuText(text, employerTexts.settings[lang])) {
@@ -7061,6 +7180,8 @@ export class TelegramBot {
 
         if (this.equalsMenuText(text, menuTexts.jobs[lang])) {
             await this.handleAction(chatId, 'jobs', session);
+        } else if (this.equalsMenuText(text, menuTexts.applications[lang])) {
+            await this.handleAction(chatId, 'my_applications', session);
         } else if (this.equalsMenuText(text, menuTexts.offers[lang])) {
             await this.handleAction(chatId, 'offers', session);
         } else if (this.equalsMenuText(text, menuTexts.resume[lang])) {
@@ -7218,7 +7339,8 @@ export class TelegramBot {
             clean_inputs: false,
             selected_categories: [],
             resume: {},
-            temp_job: null
+            temp_job: null,
+            application_pipeline: null
         };
         await this.setSession(session, {
             state: isEmployer ? BotState.EMPLOYER_MAIN_MENU : BotState.MAIN_MENU,
@@ -10705,6 +10827,12 @@ export class TelegramBot {
                 return 'job_contact';
             case BotState.POSTING_JOB_CONFIRM:
                 return 'job_description';
+            case BotState.APPLICATION_INTERVIEW_DATE:
+            case BotState.APPLICATION_INTERVIEW_ADDRESS:
+            case BotState.APPLICATION_INTERVIEW_PHONE:
+            case BotState.APPLICATION_INTERVIEW_MESSAGE:
+            case BotState.APPLICATION_REJECTION_REASON:
+                return 'main_menu';
             case BotState.ADMIN_BROADCAST_INPUT:
             case BotState.ADMIN_BROADCAST_CONFIRM:
                 return 'admin_menu';
@@ -11726,6 +11854,16 @@ export class TelegramBot {
             return;
         }
 
+        if (action === 'my_applications') {
+            await this.showSeekerApplications(chatId, session);
+            return;
+        }
+
+        if (action === 'dashboard') {
+            await this.showEmployerDashboard(chatId, session);
+            return;
+        }
+
         if (action === 'search') {
             const prompted = await this.maybeShowSoftSubscriptionPrompt(chatId, session, 'jobs');
             if (prompted) return;
@@ -11821,6 +11959,10 @@ export class TelegramBot {
             await this.sendPrompt(chatId, session, lang === 'uz' ? "📋 Mening vakansiyalarim:" : '📋 Мои вакансии:', {
                 replyMarkup: keyboards.employerVacanciesKeyboard(lang, jobs)
             });
+            return;
+        }
+        if (action === 'dashboard') {
+            await this.showEmployerDashboard(chatId, session);
             return;
         }
         if (action === 'applications') {
@@ -12208,7 +12350,7 @@ export class TelegramBot {
 
     private async handleApplicationView(chatId: number, applicationId: string, session: TelegramSession): Promise<void> {
         const lang = session.lang;
-        let appSelect = 'id, job_id, resume_id, user_id, applicant_id, full_name, phone';
+        let appSelect = 'id, job_id, resume_id, user_id, applicant_id, full_name, phone, status, match_score, seeker_telegram_id';
         let app: any = null;
         let error: any = null;
         for (let attempt = 0; attempt < 12; attempt += 1) {
@@ -12302,7 +12444,7 @@ export class TelegramBot {
                 '',
                 `📞 | ${lang === 'uz' ? 'Telefon' : 'Телефон'}: ${app.phone || '—'}`
             ].join('\n');
-            await this.sendPrompt(chatId, session, fallback, { replyMarkup: keyboards.applicationViewKeyboard(lang) });
+            await this.sendPrompt(chatId, session, fallback, { replyMarkup: keyboards.applicationViewKeyboard(lang, applicationId, app.status || 'pending') });
             return;
         }
 
@@ -12314,10 +12456,935 @@ export class TelegramBot {
             : `${header}\n\n${resumeText}`;
         await this.sendPrompt(chatId, session, text, {
             parseMode: 'HTML',
-            replyMarkup: keyboards.applicationViewKeyboard(lang)
+            replyMarkup: keyboards.applicationViewKeyboard(lang, applicationId, app.status || 'pending')
         });
     }
 
+    private normalizeApplicationStatusValue(raw: any): 'pending' | 'reviewed' | 'interview_set' | 'accepted' | 'rejected' | 'hired' {
+        const key = String(raw || '').trim().toLowerCase();
+        if (key === 'viewed' || key === 'reviewed') return 'reviewed';
+        if (key === 'invited' || key === 'interview' || key === 'interview_set') return 'interview_set';
+        if (key === 'accepted') return 'accepted';
+        if (key === 'rejected') return 'rejected';
+        if (key === 'hired') return 'hired';
+        return 'pending';
+    }
+
+    private async fetchJobApplicationById(applicationId: string): Promise<any | null> {
+        let appSelect = [
+            'id', 'job_id', 'resume_id', 'user_id', 'applicant_id', 'full_name', 'phone',
+            'status', 'match_score', 'seeker_telegram_id', 'employer_telegram_id',
+            'interview_date', 'interview_address', 'employer_phone', 'employer_message',
+            'rejection_reason', 'responded_at', 'created_at', 'viewed_at'
+        ].join(', ');
+        let app: any = null;
+        let error: any = null;
+        for (let attempt = 0; attempt < 16; attempt += 1) {
+            const result = await this.supabase
+                .from('job_applications')
+                .select(appSelect)
+                .eq('id', applicationId)
+                .maybeSingle();
+            app = result.data || null;
+            error = result.error || null;
+            if (!error) break;
+            const missingColumn = this.extractMissingColumn(error);
+            if (!missingColumn) break;
+            const next = this.stripColumnFromSelect(appSelect, missingColumn);
+            if (!next || next === appSelect) break;
+            appSelect = next;
+        }
+        if (error) {
+            console.error('fetchJobApplicationById error:', error);
+            return null;
+        }
+        if (!app) return null;
+        app.status = this.normalizeApplicationStatusValue(app.status);
+        return app;
+    }
+
+    private async updateJobApplicationWithFallback(applicationId: string, payload: Record<string, any>): Promise<void> {
+        let updatePayload: Record<string, any> = { ...payload };
+        for (let attempt = 0; attempt < 16; attempt += 1) {
+            const { error } = await this.supabase
+                .from('job_applications')
+                .update(updatePayload)
+                .eq('id', applicationId);
+            if (!error) return;
+            const missingColumn = this.extractMissingColumn(error);
+            if (missingColumn && Object.prototype.hasOwnProperty.call(updatePayload, missingColumn)) {
+                delete updatePayload[missingColumn];
+                continue;
+            }
+            const message = String(error.message || '').toLowerCase();
+            if (message.includes('column') && message.includes('does not exist')) {
+                break;
+            }
+            throw error;
+        }
+    }
+
+    private async resolveSeekerUserIdByApplication(app: any): Promise<string | null> {
+        const directUserId = String(app?.user_id || app?.applicant_id || '').trim();
+        if (directUserId) return directUserId;
+        const resumeId = String(app?.resume_id || '').trim();
+        if (!resumeId) return null;
+        try {
+            const { data: resume } = await this.supabase
+                .from('resumes')
+                .select('user_id')
+                .eq('id', resumeId)
+                .maybeSingle();
+            const userId = String(resume?.user_id || '').trim();
+            return userId || null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async loadEmployerApplicationContext(session: TelegramSession, applicationId: string): Promise<{ app: any; job: any } | null> {
+        const app = await this.fetchJobApplicationById(applicationId);
+        if (!app?.job_id) return null;
+        const job = await this.getEmployerOwnedJobById(session, String(app.job_id));
+        if (!job) return null;
+        return { app, job };
+    }
+
+    private async notifySeekerAboutApplicationStatus(
+        app: any,
+        status: 'accepted' | 'rejected' | 'interview_set' | 'hired',
+        jobTitle: string
+    ): Promise<void> {
+        const seekerUserId = await this.resolveSeekerUserIdByApplication(app);
+        if (!seekerUserId) return;
+        const meta = await this.getUserTelegramMeta(seekerUserId);
+        if (!meta.telegramId) return;
+        const lang = meta.lang;
+
+        let text = '';
+        if (status === 'accepted') {
+            text = botTexts.applicationAccepted[lang](
+                jobTitle,
+                app?.employer_phone || null,
+                app?.employer_message || null
+            );
+        } else if (status === 'rejected') {
+            text = botTexts.applicationRejected[lang](
+                jobTitle,
+                app?.rejection_reason || null
+            );
+        } else if (status === 'interview_set') {
+            text = botTexts.interviewScheduled[lang](
+                jobTitle,
+                app?.interview_date ? String(app.interview_date) : null,
+                app?.interview_address || null,
+                app?.employer_phone || null
+            );
+        } else {
+            text = botTexts.applicationHired[lang];
+        }
+
+        try {
+            await sendMessage(meta.telegramId, text, { parseMode: 'HTML' });
+        } catch (err) {
+            console.error('notifySeekerAboutApplicationStatus error:', err);
+        }
+    }
+
+    private getApplicationPipelineData(session: TelegramSession): {
+        application_id: string;
+        mode: 'accept' | 'interview' | 'reject';
+        employer_phone?: string | null;
+        employer_message?: string | null;
+        interview_date?: string | null;
+        interview_address?: string | null;
+        rejection_reason?: string | null;
+    } | null {
+        const raw = session.data?.application_pipeline;
+        if (!raw || typeof raw !== 'object') return null;
+        const applicationId = String(raw.application_id || '').trim();
+        const modeRaw = String(raw.mode || '').trim();
+        if (!applicationId || !['accept', 'interview', 'reject'].includes(modeRaw)) return null;
+        return {
+            application_id: applicationId,
+            mode: modeRaw as 'accept' | 'interview' | 'reject',
+            employer_phone: raw.employer_phone || null,
+            employer_message: raw.employer_message || null,
+            interview_date: raw.interview_date || null,
+            interview_address: raw.interview_address || null,
+            rejection_reason: raw.rejection_reason || null
+        };
+    }
+
+    private async showApplicationPipelinePanel(chatId: number, session: TelegramSession): Promise<void> {
+        const lang = session.lang;
+        const flow = this.getApplicationPipelineData(session);
+        if (!flow) {
+            await this.showEmployerApplications(chatId, session);
+            return;
+        }
+
+        if (flow.mode === 'accept') {
+            const lines = [
+                lang === 'uz' ? '<b>✅ Arizani qabul qilish</b>' : '<b>✅ Принятие отклика</b>',
+                flow.employer_phone ? `${lang === 'uz' ? '📞 Telefon' : '📞 Телефон'}: <b>${this.escapeHtml(flow.employer_phone)}</b>` : '',
+                flow.employer_message ? `${lang === 'uz' ? '💬 Xabar' : '💬 Сообщение'}: <i>${this.escapeHtml(flow.employer_message)}</i>` : ''
+            ].filter(Boolean);
+            await this.sendPrompt(chatId, session, lines.join('\n'), {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.applicationAcceptKeyboard(lang, flow.application_id)
+            });
+            return;
+        }
+
+        if (flow.mode === 'interview') {
+            const lines = [
+                lang === 'uz' ? '<b>📅 Suhbat maʼlumotlari</b>' : '<b>📅 Данные собеседования</b>',
+                flow.interview_date ? `${lang === 'uz' ? '🗓 Sana' : '🗓 Дата'}: <b>${this.escapeHtml(flow.interview_date)}</b>` : '',
+                flow.interview_address ? `${lang === 'uz' ? '📍 Manzil' : '📍 Адрес'}: <b>${this.escapeHtml(flow.interview_address)}</b>` : '',
+                flow.employer_phone ? `${lang === 'uz' ? '📞 Telefon' : '📞 Телефон'}: <b>${this.escapeHtml(flow.employer_phone)}</b>` : ''
+            ].filter(Boolean);
+            await this.sendPrompt(chatId, session, lines.join('\n'), {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.applicationInterviewKeyboard(lang, flow.application_id)
+            });
+            return;
+        }
+
+        const lines = [
+            lang === 'uz' ? '<b>❌ Arizani rad etish</b>' : '<b>❌ Отклонение отклика</b>',
+            flow.rejection_reason
+                ? `${lang === 'uz' ? '📋 Sabab' : '📋 Причина'}: <i>${this.escapeHtml(flow.rejection_reason)}</i>`
+                : (lang === 'uz' ? '<i>Sabab ko‘rsatilmagan.</i>' : '<i>Причина не указана.</i>')
+        ];
+        await this.sendPrompt(chatId, session, lines.join('\n'), {
+            parseMode: 'HTML',
+            replyMarkup: keyboards.applicationRejectKeyboard(lang, flow.application_id)
+        });
+    }
+
+    private async handleApplicationDecisionAction(
+        chatId: number,
+        action: string,
+        extra: string,
+        session: TelegramSession
+    ): Promise<void> {
+        const lang = session.lang;
+        const applicationId = String(extra || '').trim();
+        if (!applicationId) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang]);
+            return;
+        }
+        const context = await this.loadEmployerApplicationContext(session, applicationId);
+        if (!context) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.employerMainMenuKeyboard(lang) });
+            return;
+        }
+
+        if (action === 'hire') {
+            const okPayload: Record<string, any> = {
+                status: 'hired',
+                responded_at: new Date().toISOString(),
+                is_seen_by_job_seeker: false
+            };
+            await this.updateJobApplicationWithFallback(applicationId, okPayload);
+            const app = await this.fetchJobApplicationById(applicationId);
+            const title = String(
+                context.job?.title_uz
+                || context.job?.title_ru
+                || context.job?.title
+                || (lang === 'uz' ? 'Vakansiya' : 'Вакансия')
+            );
+            if (app) {
+                await this.notifySeekerAboutApplicationStatus(app, 'hired', title);
+            }
+            await this.sendPrompt(chatId, session, botTexts.applicationAcceptedEmployer[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.applicationViewKeyboard(lang, applicationId, 'hired')
+            });
+            return;
+        }
+
+        const flowMode = action === 'accept'
+            ? 'accept'
+            : action === 'interview'
+                ? 'interview'
+                : 'reject';
+        await this.setSession(session, {
+            data: {
+                ...session.data,
+                application_pipeline: {
+                    application_id: applicationId,
+                    mode: flowMode,
+                    employer_phone: context.app?.employer_phone || null,
+                    employer_message: context.app?.employer_message || null,
+                    interview_date: context.app?.interview_date || null,
+                    interview_address: context.app?.interview_address || null,
+                    rejection_reason: context.app?.rejection_reason || null
+                }
+            }
+        });
+        await this.showApplicationPipelinePanel(chatId, session);
+    }
+
+    private async handleApplicationInterviewAction(
+        chatId: number,
+        action: string,
+        extra: string,
+        session: TelegramSession
+    ): Promise<void> {
+        const lang = session.lang;
+        const flow = this.getApplicationPipelineData(session);
+        const fallbackId = flow?.application_id || '';
+        const applicationId = String(extra || fallbackId).trim();
+        if (!applicationId) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang]);
+            return;
+        }
+
+        const context = await this.loadEmployerApplicationContext(session, applicationId);
+        if (!context) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.employerMainMenuKeyboard(lang) });
+            return;
+        }
+
+        const current = {
+            application_id: applicationId,
+            mode: (flow?.mode || (action === 'confirm_reject' || action === 'reason' ? 'reject' : 'interview')) as 'accept' | 'interview' | 'reject',
+            employer_phone: flow?.employer_phone || context.app?.employer_phone || null,
+            employer_message: flow?.employer_message || context.app?.employer_message || null,
+            interview_date: flow?.interview_date || context.app?.interview_date || null,
+            interview_address: flow?.interview_address || context.app?.interview_address || null,
+            rejection_reason: flow?.rejection_reason || context.app?.rejection_reason || null
+        };
+
+        const nextData = { ...session.data, application_pipeline: current };
+
+        if (action === 'phone') {
+            await this.setSession(session, { state: BotState.APPLICATION_INTERVIEW_PHONE, data: nextData });
+            await this.sendPrompt(chatId, session, botTexts.askEmployerPhone[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+            });
+            return;
+        }
+        if (action === 'message') {
+            await this.setSession(session, { state: BotState.APPLICATION_INTERVIEW_MESSAGE, data: nextData });
+            await this.sendPrompt(chatId, session, botTexts.askEmployerMessage[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+            });
+            return;
+        }
+        if (action === 'date') {
+            await this.setSession(session, { state: BotState.APPLICATION_INTERVIEW_DATE, data: { ...nextData, application_pipeline: { ...current, mode: 'interview' } } });
+            await this.sendPrompt(chatId, session, botTexts.askInterviewDate[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+            });
+            return;
+        }
+        if (action === 'address') {
+            await this.setSession(session, { state: BotState.APPLICATION_INTERVIEW_ADDRESS, data: { ...nextData, application_pipeline: { ...current, mode: 'interview' } } });
+            await this.sendPrompt(chatId, session, botTexts.askInterviewAddress[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+            });
+            return;
+        }
+        if (action === 'reason') {
+            await this.setSession(session, { state: BotState.APPLICATION_REJECTION_REASON, data: { ...nextData, application_pipeline: { ...current, mode: 'reject' } } });
+            await this.sendPrompt(chatId, session, botTexts.askRejectionReason[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.appFlowSkipKeyboard(lang)
+            });
+            return;
+        }
+        if (action === 'skip') {
+            if (session.state === BotState.APPLICATION_INTERVIEW_PHONE) {
+                current.employer_phone = null;
+            } else if (session.state === BotState.APPLICATION_INTERVIEW_MESSAGE) {
+                current.employer_message = null;
+            } else if (session.state === BotState.APPLICATION_INTERVIEW_DATE) {
+                current.interview_date = null;
+            } else if (session.state === BotState.APPLICATION_INTERVIEW_ADDRESS) {
+                current.interview_address = null;
+            } else if (session.state === BotState.APPLICATION_REJECTION_REASON) {
+                current.rejection_reason = null;
+            }
+            await this.setSession(session, {
+                state: BotState.EMPLOYER_MAIN_MENU,
+                data: { ...session.data, application_pipeline: current }
+            });
+            await this.showApplicationPipelinePanel(chatId, session);
+            return;
+        }
+
+        if (action === 'confirm_accept') {
+            const payload: Record<string, any> = {
+                status: 'accepted',
+                employer_phone: current.employer_phone || null,
+                employer_message: current.employer_message || null,
+                responded_at: new Date().toISOString(),
+                is_seen_by_job_seeker: false
+            };
+            await this.updateJobApplicationWithFallback(applicationId, payload);
+            const app = await this.fetchJobApplicationById(applicationId);
+            const title = String(
+                context.job?.title_uz
+                || context.job?.title_ru
+                || context.job?.title
+                || (lang === 'uz' ? 'Vakansiya' : 'Вакансия')
+            );
+            if (app) {
+                await this.notifySeekerAboutApplicationStatus(app, 'accepted', title);
+            }
+            await this.setSession(session, {
+                state: BotState.EMPLOYER_MAIN_MENU,
+                data: { ...session.data, application_pipeline: null }
+            });
+            await this.sendPrompt(chatId, session, botTexts.applicationAcceptedEmployer[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.applicationViewKeyboard(lang, applicationId, 'accepted')
+            });
+            return;
+        }
+
+        if (action === 'confirm_interview') {
+            const payload: Record<string, any> = {
+                status: 'interview_set',
+                interview_date: current.interview_date || null,
+                interview_address: current.interview_address || null,
+                employer_phone: current.employer_phone || null,
+                responded_at: new Date().toISOString(),
+                is_seen_by_job_seeker: false
+            };
+            await this.updateJobApplicationWithFallback(applicationId, payload);
+            const app = await this.fetchJobApplicationById(applicationId);
+            const title = String(
+                context.job?.title_uz
+                || context.job?.title_ru
+                || context.job?.title
+                || (lang === 'uz' ? 'Vakansiya' : 'Вакансия')
+            );
+            if (app) {
+                await this.notifySeekerAboutApplicationStatus(app, 'interview_set', title);
+            }
+            await this.setSession(session, {
+                state: BotState.EMPLOYER_MAIN_MENU,
+                data: { ...session.data, application_pipeline: null }
+            });
+            await this.sendPrompt(chatId, session, botTexts.interviewScheduledEmployer[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.applicationViewKeyboard(lang, applicationId, 'interview_set')
+            });
+            return;
+        }
+
+        if (action === 'confirm_reject') {
+            const payload: Record<string, any> = {
+                status: 'rejected',
+                rejection_reason: current.rejection_reason || null,
+                responded_at: new Date().toISOString(),
+                is_seen_by_job_seeker: false
+            };
+            await this.updateJobApplicationWithFallback(applicationId, payload);
+            const app = await this.fetchJobApplicationById(applicationId);
+            const title = String(
+                context.job?.title_uz
+                || context.job?.title_ru
+                || context.job?.title
+                || (lang === 'uz' ? 'Vakansiya' : 'Вакансия')
+            );
+            if (app) {
+                await this.notifySeekerAboutApplicationStatus(app, 'rejected', title);
+            }
+            await this.setSession(session, {
+                state: BotState.EMPLOYER_MAIN_MENU,
+                data: { ...session.data, application_pipeline: null }
+            });
+            await this.sendPrompt(chatId, session, botTexts.applicationRejectedEmployer[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.applicationViewKeyboard(lang, applicationId, 'rejected')
+            });
+            return;
+        }
+
+        await this.showApplicationPipelinePanel(chatId, session);
+    }
+
+    private async showSeekerApplications(chatId: number, session: TelegramSession): Promise<void> {
+        const lang = session.lang;
+        if (!session.user_id && !session.phone) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+            return;
+        }
+
+        let selectClause = 'id, job_id, status, created_at, user_id, applicant_id, phone, interview_date, interview_address, employer_phone, employer_message, rejection_reason';
+        let rows: any[] = [];
+        let fetched = false;
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+            let query = this.supabase
+                .from('job_applications')
+                .select(selectClause)
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (session.user_id) {
+                query = query.or(`user_id.eq.${session.user_id},applicant_id.eq.${session.user_id}`);
+            } else if (session.phone) {
+                query = query.eq('phone', session.phone);
+            }
+            const result = await query;
+            if (!result.error) {
+                rows = Array.isArray(result.data) ? result.data : [];
+                fetched = true;
+                break;
+            }
+            const missingColumn = this.extractMissingColumn(result.error);
+            if (missingColumn) {
+                const next = this.stripColumnFromSelect(selectClause, missingColumn);
+                if (next && next !== selectClause) {
+                    selectClause = next;
+                    continue;
+                }
+            }
+            break;
+        }
+        if (!fetched) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+            return;
+        }
+
+        if (!rows.length) {
+            await this.sendPrompt(chatId, session, botTexts.seekerNoApplications[lang], {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker')
+            });
+            return;
+        }
+
+        const jobIds = Array.from(new Set(rows.map((row: any) => String(row?.job_id || '')).filter(Boolean)));
+        const titlesByJobId = new Map<string, string>();
+        if (jobIds.length > 0) {
+            try {
+                const { data: jobs } = await this.supabase
+                    .from('jobs')
+                    .select('id, title_uz, title_ru, title')
+                    .in('id', jobIds);
+                for (const row of jobs || []) {
+                    const title = lang === 'uz'
+                        ? (row as any)?.title_uz || (row as any)?.title_ru || (row as any)?.title || 'Vakansiya'
+                        : (row as any)?.title_ru || (row as any)?.title_uz || (row as any)?.title || 'Вакансия';
+                    titlesByJobId.set(String((row as any)?.id || ''), String(title));
+                }
+            } catch {
+                // ignore
+            }
+        }
+
+        const items = rows.map((row: any) => ({
+            id: String(row?.id || ''),
+            jobTitle: titlesByJobId.get(String(row?.job_id || '')) || (lang === 'uz' ? 'Vakansiya' : 'Вакансия'),
+            status: this.normalizeApplicationStatusValue(row?.status)
+        })).filter((item: any) => item.id);
+
+        await this.setSession(session, {
+            state: BotState.MAIN_MENU,
+            data: {
+                ...session.data,
+                seeker_applications_list: rows
+            }
+        });
+
+        await this.sendPrompt(chatId, session, botTexts.seekerApplicationsTitle[lang], {
+            parseMode: 'HTML',
+            replyMarkup: keyboards.seekerApplicationsListKeyboard(lang, items)
+        });
+    }
+
+    private async showSeekerApplicationDetail(chatId: number, applicationId: string, session: TelegramSession): Promise<void> {
+        const lang = session.lang;
+        const app = await this.fetchJobApplicationById(applicationId);
+        if (!app) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+            return;
+        }
+        const ownerUserId = String(app?.user_id || app?.applicant_id || '').trim();
+        if (session.user_id && ownerUserId && ownerUserId !== String(session.user_id)) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+            return;
+        }
+        if (!session.user_id && session.phone && String(app?.phone || '').trim() !== String(session.phone).trim()) {
+            await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+            return;
+        }
+
+        let title = lang === 'uz' ? 'Vakansiya' : 'Вакансия';
+        try {
+            const { data: job } = await this.supabase
+                .from('jobs')
+                .select('id, title_uz, title_ru, title')
+                .eq('id', String(app?.job_id || ''))
+                .maybeSingle();
+            if (job) {
+                title = String(
+                    lang === 'uz'
+                        ? ((job as any).title_uz || (job as any).title_ru || (job as any).title || title)
+                        : ((job as any).title_ru || (job as any).title_uz || (job as any).title || title)
+                );
+            }
+        } catch {
+            // ignore
+        }
+
+        const status = this.normalizeApplicationStatusValue(app?.status);
+        const statusMap: Record<string, string> = lang === 'uz'
+            ? {
+                pending: '🟡 Kutilmoqda',
+                reviewed: "👁️ Ko'rib chiqildi",
+                interview_set: '📅 Suhbat belgilangan',
+                accepted: '✅ Qabul qilindi',
+                rejected: '❌ Rad etildi',
+                hired: '🚀 Ishga olindi'
+            }
+            : {
+                pending: '🟡 Ожидает',
+                reviewed: '👁️ Просмотрен',
+                interview_set: '📅 Назначено собеседование',
+                accepted: '✅ Принят',
+                rejected: '❌ Отклонён',
+                hired: '🚀 Нанят'
+            };
+
+        const lines = [
+            lang === 'uz' ? '<b>📋 Mening arizam</b>' : '<b>📋 Мой отклик</b>',
+            `${lang === 'uz' ? '💼 Vakansiya' : '💼 Вакансия'}: <b>${this.escapeHtml(title)}</b>`,
+            `${lang === 'uz' ? '📊 Holat' : '📊 Статус'}: <b>${statusMap[status] || status}</b>`
+        ];
+        if (app?.interview_date) lines.push(`${lang === 'uz' ? '🗓 Sana' : '🗓 Дата'}: <b>${this.escapeHtml(String(app.interview_date))}</b>`);
+        if (app?.interview_address) lines.push(`${lang === 'uz' ? '📍 Manzil' : '📍 Адрес'}: <b>${this.escapeHtml(String(app.interview_address))}</b>`);
+        if (app?.employer_phone) lines.push(`${lang === 'uz' ? '📞 Telefon' : '📞 Телефон'}: <b>${this.escapeHtml(String(app.employer_phone))}</b>`);
+        if (app?.employer_message) lines.push(`${lang === 'uz' ? '💬 Xabar' : '💬 Сообщение'}: <i>${this.escapeHtml(String(app.employer_message))}</i>`);
+        if (app?.rejection_reason) lines.push(`${lang === 'uz' ? '📋 Sabab' : '📋 Причина'}: <i>${this.escapeHtml(String(app.rejection_reason))}</i>`);
+
+        await this.sendPrompt(chatId, session, lines.join('\n'), {
+            parseMode: 'HTML',
+            replyMarkup: keyboards.seekerApplicationViewKeyboard(lang)
+        });
+    }
+
+    private async showEmployerDashboard(chatId: number, session: TelegramSession): Promise<void> {
+        const lang = session.lang;
+        const jobs = await this.getEmployerJobs(session, 800);
+        const jobIds = (jobs || []).map((job: any) => String(job?.id || '')).filter(Boolean);
+        const activeJobs = (jobs || []).filter((job: any) => {
+            const state = this.getJobLifecycleState(job);
+            return !state.isPaused && !state.isFilled;
+        }).length;
+
+        let totalApps = 0;
+        let pendingApps = 0;
+        let acceptedApps = 0;
+        let interviewsToday = 0;
+
+        if (jobIds.length > 0) {
+            let selectClause = 'id, status, interview_date';
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+                const { data, error } = await this.supabase
+                    .from('job_applications')
+                    .select(selectClause)
+                    .in('job_id', jobIds);
+                if (error) {
+                    const missingColumn = this.extractMissingColumn(error);
+                    if (missingColumn) {
+                        const next = this.stripColumnFromSelect(selectClause, missingColumn);
+                        if (next && next !== selectClause) {
+                            selectClause = next;
+                            continue;
+                        }
+                    }
+                    break;
+                }
+                const rows = Array.isArray(data) ? data : [];
+                totalApps = rows.length;
+                const today = new Date().toISOString().slice(0, 10);
+                for (const row of rows) {
+                    const status = this.normalizeApplicationStatusValue((row as any)?.status);
+                    if (status === 'pending') pendingApps += 1;
+                    if (status === 'accepted') acceptedApps += 1;
+                    if (status === 'interview_set') {
+                        const dateRaw = String((row as any)?.interview_date || '');
+                        if (dateRaw.slice(0, 10) === today) {
+                            interviewsToday += 1;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        await this.sendPrompt(chatId, session, botTexts.employerDashboard[lang]({
+            activeJobs,
+            totalApps,
+            pendingApps,
+            interviewsToday,
+            acceptedApps
+        }), {
+            parseMode: 'HTML',
+            replyMarkup: keyboards.employerDashboardKeyboard(lang)
+        });
+    }
+
+    private async markAutoMatchResponse(matchId: string, payload: Record<string, any>): Promise<void> {
+        const normalized = String(matchId || '').trim();
+        if (!normalized) return;
+        const rawStatus = String(payload?.status || payload?.seeker_response || '').toLowerCase();
+        const seekerResponse = rawStatus === 'accepted' || rawStatus === 'interested'
+            ? 'interested'
+            : (rawStatus === 'rejected' || rawStatus === 'not_interested' ? 'not_interested' : null);
+        try {
+            const updatePayload: Record<string, any> = {};
+            if (seekerResponse) {
+                updatePayload.seeker_response = seekerResponse;
+            }
+            if (payload?.seen_at) {
+                updatePayload.notified_at = payload.seen_at;
+            }
+            if (Object.keys(updatePayload).length > 0) {
+                await this.supabase
+                    .from('job_auto_matches')
+                    .update(updatePayload)
+                    .eq('id', normalized);
+            }
+        } catch {
+            // ignore
+        }
+        try {
+            await this.supabase
+                .from('job_offers')
+                .update(payload)
+                .eq('id', normalized);
+        } catch {
+            // ignore
+        }
+        try {
+            await this.supabase
+                .from('telegram_match_recommendations')
+                .update({ is_active: payload.status === 'rejected' ? false : true })
+                .eq('id', normalized);
+        } catch {
+            // ignore
+        }
+    }
+
+    private async handleAutoMatchAction(chatId: number, action: string, extra: string, session: TelegramSession): Promise<void> {
+        const lang = session.lang;
+        const parts = String(extra || '').split(':').filter(Boolean);
+        if (action === 'view') {
+            const jobId = String(parts[0] || '').trim();
+            const matchId = String(parts[1] || '').trim();
+            if (!jobId) {
+                await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+                return;
+            }
+            const { data: job } = await this.supabase
+                .from('jobs')
+                .select('*')
+                .eq('id', jobId)
+                .maybeSingle();
+            if (!job) {
+                await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+                return;
+            }
+            const normalized = this.normalizeJob(job, lang);
+            await this.sendPrompt(chatId, session, formatFullJobCard(normalized, lang), {
+                parseMode: 'HTML',
+                replyMarkup: keyboards.autoMatchNotificationKeyboard(lang, jobId, matchId || jobId)
+            });
+            return;
+        }
+
+        if (action === 'apply') {
+            const jobId = String(parts[0] || '').trim();
+            const matchId = String(parts[1] || '').trim();
+            if (!jobId) {
+                await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+                return;
+            }
+            await this.handleJobApply(chatId, jobId, session);
+            await this.markAutoMatchResponse(matchId, {
+                status: 'accepted',
+                seen_at: new Date().toISOString()
+            });
+            return;
+        }
+
+        if (action === 'skip') {
+            const matchId = String(parts[0] || '').trim();
+            await this.markAutoMatchResponse(matchId, {
+                status: 'rejected',
+                seen_at: new Date().toISOString()
+            });
+            await this.sendPrompt(
+                chatId,
+                session,
+                lang === 'uz' ? '✅ Qabul qilindi. Bu tavsiya yashirildi.' : '✅ Принято. Эта рекомендация скрыта.',
+                { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') }
+            );
+            return;
+        }
+
+        await this.sendPrompt(chatId, session, botTexts.error[lang], { replyMarkup: keyboards.mainMenuKeyboard(lang, 'seeker') });
+    }
+
+    private async autoMatchAndNotifyOnPublish(job: any, session: TelegramSession): Promise<void> {
+        if (!job?.id) return;
+        const lang = session.lang;
+        let selectClause = 'id, user_id, full_name, title, field_title, region_id, district_id, category_id, category_ids, expected_salary_min, experience, experience_level, gender, birth_date, education_level, is_public, status';
+        let resumes: any[] = [];
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+            let query = this.supabase.from('resumes').select(selectClause).limit(1200);
+            query = query.eq('is_public', true);
+            const result = await query;
+            if (!result.error) {
+                resumes = Array.isArray(result.data) ? result.data : [];
+                break;
+            }
+            const missingColumn = this.extractMissingColumn(result.error);
+            if (missingColumn) {
+                const next = this.stripColumnFromSelect(selectClause, missingColumn);
+                if (next && next !== selectClause) {
+                    selectClause = next;
+                    continue;
+                }
+            }
+            return;
+        }
+        if (!resumes.length) return;
+
+        const scored = resumes
+            .map((resume: any) => {
+                const profile = {
+                    region_id: this.toCoordinate(resume?.region_id),
+                    district_id: this.toCoordinate(resume?.district_id),
+                    category_id: resume?.category_id || null,
+                    category_ids: Array.isArray(resume?.category_ids) ? resume.category_ids : [],
+                    field_id: resume?.field_id || null,
+                    field_title: resume?.field_title || resume?.title || null,
+                    expected_salary_min: this.toCoordinate(resume?.expected_salary_min) || null,
+                    experience_level: resume?.experience || resume?.experience_level || null,
+                    gender: resume?.gender || null,
+                    birth_date: resume?.birth_date || null,
+                    education_level: resume?.education_level || null,
+                    title: resume?.field_title || resume?.title || null
+                };
+                const normalizedJob = this.normalizeJob(job, lang);
+                const matched = calculateMatchScore(profile, normalizedJob);
+                return { resume, matched };
+            })
+            .filter((row: any) => Number(row?.matched?.matchScore || 0) >= 50)
+            .sort((a: any, b: any) => Number(b.matched.matchScore || 0) - Number(a.matched.matchScore || 0))
+            .slice(0, 12);
+
+        if (!scored.length) return;
+
+        await this.saveMatchRecommendations(
+            'employer_to_resume',
+            String(job.id),
+            scored.map((row: any) => ({
+                targetId: String(row.resume?.id || ''),
+                score: Number(row.matched?.matchScore || 0),
+                strictScore: Number(row.matched?.matchScore || 0),
+                reason: lang === 'uz' ? 'Vakansiya va rezyume mosligi' : 'Matching between vacancy and resume'
+            }))
+        );
+
+        for (const row of scored) {
+            const resume = row.resume || {};
+            const seekerUserId = String(resume?.user_id || '').trim();
+            if (!seekerUserId) continue;
+
+            const meta = await this.getUserTelegramMeta(seekerUserId);
+            const score = Number(row?.matched?.matchScore || 0);
+            const matchCriteria = row?.matched?.matchCriteria && typeof row.matched.matchCriteria === 'object'
+                ? row.matched.matchCriteria
+                : {};
+            let matchId: string | null = null;
+            let autoMatchPersisted = false;
+
+            try {
+                const upserted = await this.supabase
+                    .from('job_auto_matches')
+                    .upsert({
+                        job_id: String(job.id),
+                        resume_id: String(resume?.id || ''),
+                        user_id: seekerUserId,
+                        telegram_user_id: meta.telegramId || null,
+                        match_score: score,
+                        match_criteria: matchCriteria,
+                        notified: false,
+                        notified_at: null,
+                        seeker_response: null
+                    }, { onConflict: 'job_id,resume_id' })
+                    .select('id')
+                    .maybeSingle();
+                if (!upserted.error && upserted.data?.id) {
+                    matchId = String(upserted.data.id);
+                    autoMatchPersisted = true;
+                }
+            } catch {
+                // ignore missing table/schema mismatches; fallback below
+            }
+
+            if (!matchId) {
+                try {
+                    const inserted = await this.supabase
+                        .from('job_offers')
+                        .insert({
+                            job_id: String(job.id),
+                            resume_id: String(resume?.id || ''),
+                            employer_user_id: session.user_id,
+                            seeker_user_id: seekerUserId,
+                            status: 'pending',
+                            message: lang === 'uz' ? 'Auto-match tavsiyasi' : 'Auto-match recommendation',
+                            notified_at: new Date().toISOString()
+                        })
+                        .select('id')
+                        .maybeSingle();
+                    matchId = inserted.data?.id ? String(inserted.data.id) : null;
+                } catch {
+                    // ignore duplicates / missing table scenarios
+                }
+            }
+
+            if (!meta.telegramId) continue;
+            const notifyLang = meta.lang;
+            const title = String(
+                notifyLang === 'uz'
+                    ? (job?.title_uz || job?.title_ru || job?.title || 'Vakansiya')
+                    : (job?.title_ru || job?.title_uz || job?.title || '��������')
+            );
+            const company = String(job?.company_name || (notifyLang === 'uz' ? 'Tashkilot' : '��������'));
+            try {
+                await sendMessage(meta.telegramId, botTexts.autoMatchVacancy[notifyLang](title, company, score), {
+                    parseMode: 'HTML',
+                    replyMarkup: keyboards.autoMatchNotificationKeyboard(notifyLang, String(job.id), matchId || String(resume?.id || ''))
+                });
+                if (autoMatchPersisted && matchId) {
+                    await this.supabase
+                        .from('job_auto_matches')
+                        .update({
+                            notified: true,
+                            notified_at: new Date().toISOString(),
+                            telegram_user_id: meta.telegramId
+                        })
+                        .eq('id', matchId);
+                }
+            } catch (err) {
+                console.error('autoMatchAndNotifyOnPublish notify error:', err);
+            }
+        }
+    }
     private buildResumeJobMatchBlock(resume: any, job: any, lang: BotLang): string | null {
         if (!resume || !job) return null;
 
@@ -12980,6 +14047,11 @@ export class TelegramBot {
                 ...payload,
                 ...createdJob
             });
+            try {
+                await this.autoMatchAndNotifyOnPublish({ ...payload, ...createdJob }, session);
+            } catch (autoMatchError) {
+                console.error('autoMatchAndNotifyOnPublish error:', autoMatchError);
+            }
         }
 
         await this.sendSeriousSticker(chatId, 'success');
@@ -15684,3 +16756,4 @@ export class TelegramBot {
 }
 
 export const telegramBot = new TelegramBot();
+

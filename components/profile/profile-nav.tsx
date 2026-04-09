@@ -120,7 +120,7 @@ export function ProfileNav({ userType }: ProfileNavProps) {
                             .from('job_applications')
                             .select('*', { count: 'exact', head: true })
                             .eq('user_id', user.id)
-                            .in('status', ['viewed', 'accepted', 'rejected'])
+                            .in('status', ['reviewed', 'interview_set', 'accepted', 'rejected', 'hired', 'viewed', 'invited'])
                             .eq('is_seen_by_job_seeker', false);
 
                         if (error && error.code === '42703') throw error; // Column missing
@@ -130,7 +130,7 @@ export function ProfileNav({ userType }: ProfileNavProps) {
                             .from('job_applications')
                             .select('*', { count: 'exact', head: true })
                             .eq('user_id', user.id)
-                            .in('status', ['viewed', 'accepted']);
+                            .in('status', ['reviewed', 'interview_set', 'accepted', 'rejected', 'hired', 'viewed', 'invited']);
                         appCount = count || 0;
                     }
                 }

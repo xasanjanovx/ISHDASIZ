@@ -27,6 +27,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { fetchEmployerOwnedJobs } from '@/lib/employer-jobs';
 import { toast } from 'sonner';
+import { normalizeApplicationStatus } from '@/lib/application-status';
 
 interface Application {
     id: string;
@@ -56,10 +57,11 @@ interface Application {
 
 const statusOptions = [
     { value: 'pending', label_uz: 'Yangi', label_ru: 'Новый', color: 'bg-blue-100 text-blue-700' },
-    { value: 'viewed', label_uz: 'Ko\'rildi', label_ru: 'Просмотрен', color: 'bg-gray-100 text-gray-700' },
-    { value: 'invited', label_uz: 'Taklif qilindi', label_ru: 'Приглашен', color: 'bg-green-100 text-green-700' },
+    { value: 'reviewed', label_uz: 'Ko\'rib chiqildi', label_ru: 'Просмотрен', color: 'bg-gray-100 text-gray-700' },
+    { value: 'interview_set', label_uz: 'Suhbat belgilandi', label_ru: 'Собеседование', color: 'bg-indigo-100 text-indigo-700' },
+    { value: 'accepted', label_uz: 'Qabul qilindi', label_ru: 'Принят', color: 'bg-green-100 text-green-700' },
     { value: 'rejected', label_uz: 'Rad etildi', label_ru: 'Отклонен', color: 'bg-red-100 text-red-700' },
-    { value: 'hired', label_uz: 'Ishga olindi', label_ru: 'Принят', color: 'bg-emerald-100 text-emerald-700' },
+    { value: 'hired', label_uz: 'Ishga olindi', label_ru: 'Нанят', color: 'bg-emerald-100 text-emerald-700' },
 ];
 
 export default function EmployerApplicationsPage() {
@@ -131,13 +133,13 @@ export default function EmployerApplicationsPage() {
                     const pendingIds = pendingApps.map((app: any) => app.id);
                     await supabase
                         .from('job_applications')
-                        .update({ status: 'viewed', viewed_at: new Date().toISOString() })
+                        .update({ status: 'reviewed', viewed_at: new Date().toISOString() })
                         .in('id', pendingIds);
 
                     // Update local state
                     setApplications(prev => prev.map(app =>
                         pendingIds.includes(app.id)
-                            ? { ...app, status: 'viewed', viewed_at: new Date().toISOString() }
+                            ? { ...app, status: 'reviewed', viewed_at: new Date().toISOString() }
                             : app
                     ));
 
@@ -157,7 +159,7 @@ export default function EmployerApplicationsPage() {
     const updateStatus = async (appId: string, newStatus: string) => {
         try {
             const updateData: any = { status: newStatus };
-            if (newStatus === 'viewed' || !applications.find(a => a.id === appId)?.viewed_at) {
+            if (newStatus === 'reviewed' || !applications.find(a => a.id === appId)?.viewed_at) {
                 updateData.viewed_at = new Date().toISOString();
             }
 
@@ -179,7 +181,8 @@ export default function EmployerApplicationsPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        const opt = statusOptions.find(s => s.value === status) || statusOptions[0];
+        const normalized = normalizeApplicationStatus(status);
+        const opt = statusOptions.find(s => s.value === normalized) || statusOptions[0];
         return (
             <Badge className={opt.color}>
                 {lang === 'ru' ? opt.label_ru : opt.label_uz}
@@ -189,13 +192,14 @@ export default function EmployerApplicationsPage() {
 
     const filteredApplications = filterStatus === 'all'
         ? applications
-        : applications.filter(a => a.status === filterStatus);
+        : applications.filter(a => normalizeApplicationStatus(a.status) === filterStatus);
 
     const stats = {
         total: applications.length,
-        pending: applications.filter(a => a.status === 'pending').length,
-        invited: applications.filter(a => a.status === 'invited').length,
-        rejected: applications.filter(a => a.status === 'rejected').length,
+        pending: applications.filter(a => normalizeApplicationStatus(a.status) === 'pending').length,
+        interview_set: applications.filter(a => normalizeApplicationStatus(a.status) === 'interview_set').length,
+        accepted: applications.filter(a => normalizeApplicationStatus(a.status) === 'accepted').length,
+        rejected: applications.filter(a => normalizeApplicationStatus(a.status) === 'rejected').length,
     };
 
     if (isLoading) {
@@ -222,7 +226,7 @@ export default function EmployerApplicationsPage() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <Card>
                         <CardContent className="p-4 text-center">
                             <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
@@ -237,8 +241,14 @@ export default function EmployerApplicationsPage() {
                     </Card>
                     <Card>
                         <CardContent className="p-4 text-center">
-                            <p className="text-2xl font-bold text-green-600">{stats.invited}</p>
-                            <p className="text-sm text-slate-500">{lang === 'ru' ? 'Приглашены' : 'Taklif qilingan'}</p>
+                            <p className="text-2xl font-bold text-indigo-600">{stats.interview_set}</p>
+                            <p className="text-sm text-slate-500">{lang === 'ru' ? 'Собеседования' : 'Suhbatlar'}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4 text-center">
+                            <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
+                            <p className="text-sm text-slate-500">{lang === 'ru' ? 'Приняты' : 'Qabul qilingan'}</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -325,7 +335,7 @@ export default function EmployerApplicationsPage() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Select
-                                                    value={app.status || 'pending'}
+                                                    value={normalizeApplicationStatus(app.status)}
                                                     onValueChange={(value) => updateStatus(app.id, value)}
                                                 >
                                                     <SelectTrigger className="w-[140px]">
@@ -434,10 +444,10 @@ export default function EmployerApplicationsPage() {
                                     <Button variant="outline" onClick={() => setSelectedApp(null)}>
                                         {lang === 'ru' ? 'Закрыть' : 'Yopish'}
                                     </Button>
-                                    <Button
-                                        className="bg-green-600 hover:bg-green-700"
-                                        onClick={() => {
-                                            updateStatus(selectedApp.id, 'invited');
+                                            <Button
+                                                className="bg-green-600 hover:bg-green-700"
+                                                onClick={() => {
+                                            updateStatus(selectedApp.id, 'interview_set');
                                             setSelectedApp(null);
                                         }}
                                     >

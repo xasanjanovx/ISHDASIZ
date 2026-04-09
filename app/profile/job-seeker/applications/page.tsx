@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { formatSalary, formatDate } from '@/lib/constants';
+import { normalizeApplicationStatus } from '@/lib/application-status';
 
 interface Application {
     id: string;
@@ -68,7 +69,7 @@ export default function ApplicationsPage() {
                 // Note: user must run the SQL migration for 'is_seen_by_job_seeker' column first
                 try {
                     const unseenApps = (data || []).filter((app: any) =>
-                        ['viewed', 'accepted', 'rejected'].includes(app.status)
+                        ['reviewed', 'interview_set', 'accepted', 'rejected', 'hired', 'viewed', 'invited'].includes(String(app.status || '').toLowerCase())
                     );
 
                     if (unseenApps.length > 0) {
@@ -132,12 +133,26 @@ export default function ApplicationsPage() {
     }, [user?.id, user?.phone]);
 
     const getStatusBadge = (status: string) => {
-        switch (status) {
+        switch (normalizeApplicationStatus(status)) {
             case 'pending':
                 return (
                     <Badge variant="secondary" className="bg-yellow-50 text-yellow-700">
                         <Clock className="w-3 h-3 mr-1" />
                         {lang === 'ru' ? 'На рассмотрении' : 'Ko\'rib chiqilmoqda'}
+                    </Badge>
+                );
+            case 'reviewed':
+                return (
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-700">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {lang === 'ru' ? 'Просмотрен' : 'Ko\'rib chiqildi'}
+                    </Badge>
+                );
+            case 'interview_set':
+                return (
+                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {lang === 'ru' ? 'Собеседование назначено' : 'Suhbat belgilangan'}
                     </Badge>
                 );
             case 'accepted':
@@ -152,6 +167,13 @@ export default function ApplicationsPage() {
                     <Badge variant="secondary" className="bg-red-50 text-red-700">
                         <XCircle className="w-3 h-3 mr-1" />
                         {lang === 'ru' ? 'Отклонено' : 'Rad etildi'}
+                    </Badge>
+                );
+            case 'hired':
+                return (
+                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {lang === 'ru' ? 'Принят на работу' : 'Ishga qabul qilindi'}
                     </Badge>
                 );
             default:
@@ -214,6 +236,7 @@ export default function ApplicationsPage() {
                         {applications.map((app) => {
                             const job = Array.isArray(app.jobs) ? app.jobs[0] : app.jobs;
                             if (!job) return null;
+                            const normalizedStatus = normalizeApplicationStatus(app.status);
 
                             const title = lang === 'ru' ? job.title_ru : job.title_uz;
 
@@ -229,8 +252,10 @@ export default function ApplicationsPage() {
                                 <Card key={app.id} className="group hover:shadow-lg transition-all border-slate-200 overflow-hidden">
                                     <CardContent className="p-0">
                                         <div className="flex">
-                                            <div className={`w-1.5 ${app.status === 'accepted' ? 'bg-emerald-500' :
-                                                app.status === 'rejected' ? 'bg-red-500' :
+                                            <div className={`w-1.5 ${normalizedStatus === 'accepted' || normalizedStatus === 'hired' ? 'bg-emerald-500' :
+                                                normalizedStatus === 'rejected' ? 'bg-red-500' :
+                                                    normalizedStatus === 'interview_set' ? 'bg-indigo-500' :
+                                                        normalizedStatus === 'reviewed' ? 'bg-slate-400' :
                                                     'bg-amber-400'
                                                 }`} />
                                             <div className="flex-1 p-5">
