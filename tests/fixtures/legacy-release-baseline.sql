@@ -22,7 +22,7 @@ CREATE TABLE jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),source text DEFA
  source_url text,employer_id uuid REFERENCES employer_profiles(id),user_id uuid,created_by uuid,title_uz text,title_ru text,description_uz text NOT NULL DEFAULT '',description_ru text NOT NULL DEFAULT '',company_name text,
  category_id uuid REFERENCES categories(id),region_id integer,district_id integer,salary_min integer,salary_max integer,employment_type text,latitude double precision,longitude double precision,address text,
  contact_phone text,contact_telegram text,requirements_uz text,requirements_ru text,benefits text,experience text,education_level text,gender text,age_min integer,age_max integer,
- languages jsonb,skills jsonb,is_for_students boolean DEFAULT false,is_for_disabled boolean DEFAULT false,is_for_women boolean DEFAULT false,payment_type integer,work_mode text,
+ languages jsonb,skills jsonb,is_for_students boolean DEFAULT false,is_for_graduates boolean DEFAULT false,is_for_disabled boolean DEFAULT false,is_for_women boolean DEFAULT false,payment_type integer,work_mode text,
  status text DEFAULT 'active',is_active boolean DEFAULT true,views_count integer DEFAULT 0,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),
  raw_source_json jsonb,last_seen_at timestamptz,last_synced_at timestamptz,last_checked_at timestamptz,UNIQUE(source,source_id));
 CREATE TABLE resumes(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid REFERENCES users(id),status text,is_public boolean,post_to_channel boolean,

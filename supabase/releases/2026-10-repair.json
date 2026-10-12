@@ -241,6 +241,42 @@
       "requires": [
         "20261010210000_chat_actions.sql"
       ]
+    },
+    {
+      "file": "20261012093000_public_query_performance.sql",
+      "sha256": "1a9519984673441ee48a48524c17fe1fa4fb40a47b6d7b94519d9f33be80343c",
+      "requires": [
+        "20261009090000_public_job_availability.sql",
+        "20261009110000_public_statistics.sql"
+      ]
+    },
+    {
+      "file": "20261012094500_public_visibility_fast_path.sql",
+      "sha256": "e18c6c67a93644b8b7af45a2ff387427c1214a5d7e2787b6051d1d76d0ceeff1",
+      "requires": [
+        "20261012093000_public_query_performance.sql"
+      ]
+    },
+    {
+      "file": "20261012101500_inline_public_visibility.sql",
+      "sha256": "0935970185f9974a2f9b95b52685bad1cf694ea5a3449b3f3b13eb9cf186cbad",
+      "requires": [
+        "20261012094500_public_visibility_fast_path.sql"
+      ]
+    },
+    {
+      "file": "20261012103000_public_catalog_count_index.sql",
+      "sha256": "64de44318a5305d2e0669f320971c058abb87dae35665e34176d83d646284819",
+      "requires": [
+        "20261012101500_inline_public_visibility.sql"
+      ]
+    },
+    {
+      "file": "20261012113500_public_home_counts.sql",
+      "sha256": "9b6ec6b543fce9b2452104ac03c07932822c40cfdec622082e36000a12a78fb6",
+      "requires": [
+        "20261012103000_public_catalog_count_index.sql"
+      ]
     }
   ]
 }

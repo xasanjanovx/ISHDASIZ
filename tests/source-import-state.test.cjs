@@ -27,7 +27,7 @@ before(async()=>{
   source_url text,employer_id uuid,user_id uuid,created_by uuid,title_uz text,title_ru text,description_uz text NOT NULL DEFAULT '',description_ru text NOT NULL DEFAULT '',company_name text,
   category_id uuid,region_id integer,district_id integer,salary_min integer,salary_max integer,employment_type text,latitude double precision,longitude double precision,address text,
   contact_phone text,contact_telegram text,requirements_uz text,requirements_ru text,benefits text,experience text,education_level text,gender text,age_min integer,age_max integer,
-  languages jsonb,skills jsonb,is_for_students boolean DEFAULT false,is_for_disabled boolean DEFAULT false,is_for_women boolean DEFAULT false,payment_type integer,work_mode text,
+  languages jsonb,skills jsonb,is_for_students boolean DEFAULT false,is_for_graduates boolean DEFAULT false,is_for_disabled boolean DEFAULT false,is_for_women boolean DEFAULT false,payment_type integer,work_mode text,
   status text DEFAULT 'active',is_active boolean DEFAULT true,views_count integer DEFAULT 0,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),
   raw_source_json jsonb,last_seen_at timestamptz,last_synced_at timestamptz,last_checked_at timestamptz,UNIQUE(source,source_id));
  CREATE TABLE job_applications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),job_id uuid REFERENCES jobs(id),status text,user_id uuid,resume_id uuid REFERENCES resumes(id),full_name text,phone text,message text,created_at timestamptz DEFAULT now());
@@ -219,6 +219,34 @@ test('three consecutive source errors stop safely, while confirmed item writes r
 
 
 const publicStatistics=async()=>(await db.query('SELECT ishdasiz_public_statistics() AS r')).rows[0].r;
+
+test('optimized public visibility preserves every source/publication/owner combination and aggregate permissions',async()=>{
+ await db.query('INSERT INTO users(id,password_hash,phone,closed_at) VALUES($1,$2,$3,null),($4,$2,$5,now()) ON CONFLICT(id) DO UPDATE SET closed_at=excluded.closed_at',[A,'synthetic','+998901111111',B,'+998902222222']);
+ // Reconstruct legacy orphan/closed-owner rows; current write guards reject them.
+ await db.exec(`ALTER TABLE employer_profiles DISABLE TRIGGER ishdasiz_guard_closed_account;
+ ALTER TABLE jobs DISABLE TRIGGER ishdasiz_guard_closed_account;
+ INSERT INTO employer_profiles(id,user_id) VALUES('${ID(9001)}','${A}'),('${ID(9002)}','${B}'),('${ID(9003)}',null),('${ID(9004)}','${ID(9999)}');
+ INSERT INTO jobs(id,source_status,status,is_active,employer_id,user_id,created_by,description_uz,raw_source_json)
+ SELECT gen_random_uuid(),s,p,true,o.employer,o.owner,o.creator,repeat('synthetic ',1000),jsonb_build_object('body',repeat('synthetic ',1000))
+ FROM unnest(ARRAY[null,'active','filled','removed_at_source','archived','deleted','inactive','paused','on_hold','closed','unknown']) s
+ CROSS JOIN unnest(ARRAY[null,'active','published','open','draft','archived']) p
+ CROSS JOIN (VALUES(null::uuid,null::uuid,null::uuid),(null,'${A}','${B}'),(null,'${B}','${A}'),(null,null,'${A}'),(null,null,'${B}'),(null,'${ID(9999)}',null),('${ID(9001)}','${B}',null),('${ID(9002)}','${A}',null),('${ID(9003)}','${A}',null),('${ID(9004)}','${A}',null),('${ID(9005)}','${A}',null)) o(employer,owner,creator);
+ ALTER TABLE employer_profiles ENABLE TRIGGER ishdasiz_guard_closed_account;
+ ALTER TABLE jobs ENABLE TRIGGER ishdasiz_guard_closed_account;
+ CREATE TEMP TABLE prior_visibility AS SELECT id,ishdasiz_job_available(j) visible,
+  ishdasiz_job_owner(employer_id,user_id,created_by) owner,
+  ishdasiz_account_open(ishdasiz_job_owner(employer_id,user_id,created_by)) account_open FROM jobs j;`);
+ const oldStats=await publicStatistics();delete oldStats.asOf;const oldCounts=await publicCounts();
+ await db.exec(read('20261012093000_public_query_performance.sql'));await db.exec(read('20261012094500_public_visibility_fast_path.sql'));await db.exec(read('20261012101500_inline_public_visibility.sql'));await db.exec(read('20261012103000_public_catalog_count_index.sql'));   
+ assert.equal((await db.query('SELECT count(*)::integer n FROM jobs j JOIN prior_visibility b USING(id) WHERE b.visible IS DISTINCT FROM ishdasiz_job_available(j)')).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM jobs j JOIN prior_visibility b USING(id) WHERE b.owner IS DISTINCT FROM ishdasiz_job_owner(employer_id,user_id,created_by) OR b.account_open IS DISTINCT FROM ishdasiz_account_open(ishdasiz_job_owner(employer_id,user_id,created_by))')).rows[0].n,0);
+ for(const role of ['anon','authenticated','service_role']){await db.exec('SET ROLE '+role);try{
+  const stats=await publicStatistics();delete stats.asOf;assert.deepEqual(stats,oldStats);assert.deepEqual(await publicCounts(),oldCounts);
+ }finally{await db.exec('RESET ROLE');}}
+ await db.exec(read('20261012093000_public_query_performance.sql'));await db.exec(read('20261012094500_public_visibility_fast_path.sql'));await db.exec(read('20261012101500_inline_public_visibility.sql'));await db.exec(read('20261012103000_public_catalog_count_index.sql'));   assert.deepEqual(await publicCounts(),oldCounts);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM jobs')).rows[0].n,726);
+ await db.exec('DROP TABLE prior_visibility');
+});
 test('public statistics count every visible vacancy beyond a REST page and aggregate private applications without returning rows',async()=>{
  await db.exec("INSERT INTO jobs(id,views_count,region_id,district_id,category_id,employment_type) SELECT ('10000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,2,22,100,'20000000-0000-4000-8000-000000000001','full_time' FROM generate_series(1,1205) n");await db.query('INSERT INTO job_applications(job_id,status,user_id,full_name,phone,message) VALUES($1,$2,$3,$4,$5,$6)',[ID(1),'pending',U,'Private candidate','private phone','private message']);
  await db.exec('SET ROLE anon');let result;try{result=await publicStatistics();await assert.rejects(db.query('SELECT * FROM job_applications'),e=>e.code==='42501');}finally{await db.exec('RESET ROLE');}
@@ -239,4 +267,24 @@ test('closed and missing assigned owners and closed applicants contribute no pub
 });
 test('empty public statistics are explicit and repeating the migration preserves jobs, applications and aggregate-only permissions',async()=>{
  const empty=await publicStatistics();assert.equal(empty.availableJobs,0);assert.equal(empty.views,0);assert.equal(empty.applications,0);assert.deepEqual(empty.byRegion,[]);await db.query('INSERT INTO jobs(id,views_count) VALUES($1,11)',[ID(1)]);await db.query('INSERT INTO job_applications(job_id,status) VALUES($1,$2)',[ID(1),'pending']);await db.exec(read('20261009110000_public_statistics.sql'));for(const role of ['anon','authenticated','service_role']){await db.exec('SET ROLE '+role);try{const result=await publicStatistics();assert.equal(result.availableJobs,1);assert.equal(result.views,11);assert.equal(result.applications,1);}finally{await db.exec('RESET ROLE');}}assert.equal((await db.query('SELECT count(*)::integer AS n FROM job_applications')).rows[0].n,1);
+});
+
+test('one homepage aggregate preserves category and special filters and returns only visible counts',async()=>{
+ await db.exec(read('20261012113500_public_home_counts.sql'));
+ const C1=ID(8001),C2=ID(8002);
+ const rows=[
+  [1,C1,true,false,false,false,'female','active','active'],
+  [2,C1,false,true,true,false,'male','active','active'],
+  [3,C2,false,false,false,false,'any','active','active'],
+  [4,null,false,false,false,false,null,'active','active'],
+  [5,C1,true,true,true,true,'female','draft','active'],
+  [6,C1,true,true,true,true,'female','active','filled'],
+  [7,C2,false,false,false,true,'male','active','active'],
+ ];
+ for(const [n,category,student,graduate,disabled,women,gender,status,source] of rows)await db.query('INSERT INTO jobs(id,category_id,is_for_students,is_for_graduates,is_for_disabled,is_for_women,gender,status,source_status,description_ru) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[ID(n),category,student,graduate,disabled,women,gender,status,source,'private fixture body']);
+ const expected={total:5,categories:{[C1]:2,[C2]:2},special:{students:2,disabled:1,women:4}};
+ for(const role of ['anon','authenticated','service_role']){await db.exec('SET ROLE '+role);try{
+  const result=(await db.query('SELECT ishdasiz_public_home_counts() r')).rows[0].r;assert.deepEqual(result,expected);assert.equal(JSON.stringify(result).includes('private'),false);
+ }finally{await db.exec('RESET ROLE');}}
+ await db.exec(read('20261012113500_public_home_counts.sql'));assert.deepEqual((await db.query('SELECT ishdasiz_public_home_counts() r')).rows[0].r,expected);
 });
