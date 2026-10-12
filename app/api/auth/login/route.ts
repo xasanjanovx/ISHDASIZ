@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { normalizePhone, readAuthUser, setAuthCookie } from '@/lib/auth/server';
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
@@ -12,23 +13,25 @@ export async function POST(request: NextRequest) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        const { phone, password, selectedRole } = await request.json();
+        const body = await request.json().catch(() => null);
+        const phone = normalizePhone(body?.phone);
+        const password = body?.password;
+        const selectedRole = body?.selectedRole;
 
-        if (!phone || !password) {
+        if (!phone || typeof password !== 'string' || !password || Buffer.byteLength(password, 'utf8') > 72
+            || (selectedRole && !['seeker', 'job_seeker', 'employer'].includes(selectedRole))) {
             return NextResponse.json({ error: 'Phone and password are required' }, { status: 400 });
         }
 
         // Get user
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('id, phone, password_hash, role, login_attempts, locked_until')
-            .eq('phone', phone)
-            .single();
+        const { data: user, error } = await readAuthUser(supabase,
+            'id, phone, password_hash, role, is_verified, login_attempts, locked_until', 'phone', phone);
 
         if (error || !user) {
             return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 404 });
         }
 
+        if (user.closed_at) return NextResponse.json({ error: 'Аккаунт закрыт. Подтвердите номер по SMS для восстановления. / Akkaunt yopilgan. Tiklash uchun raqamni SMS orqali tasdiqlang.', needsRestoration: true }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
         // Check if account is locked
         if (user.locked_until && new Date(user.locked_until) > new Date()) {
             const remainingMs = new Date(user.locked_until).getTime() - Date.now();
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
 
         if (!isValidPassword) {
             // Increment login attempts
-            const newAttempts = (user.login_attempts || 0) + 1;
+            const newAttempts = (user.locked_until && new Date(user.locked_until) <= new Date() ? 0 : (user.login_attempts || 0)) + 1;
 
             if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
                 // Lock account
@@ -113,7 +116,7 @@ export async function POST(request: NextRequest) {
 
         // Determine the active role based on what user selected
         // Convert from auth modal format to internal format
-        const wantedRole = selectedRole === 'seeker' ? 'job_seeker' :
+        const wantedRole = selectedRole === 'seeker' || selectedRole === 'job_seeker' ? 'job_seeker' :
             selectedRole === 'employer' ? 'employer' : null;
 
         // If user selected a role and doesn't have that profile, create it automatically
@@ -156,12 +159,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Return user data for session
-        return NextResponse.json({
+        if (jobSeekerResult.error || employerResult.error
+            || (wantedRole === 'job_seeker' && !hasJobSeekerProfile)
+            || (wantedRole === 'employer' && !hasEmployerProfile)) {
+            return NextResponse.json({ error: 'Profilni yuklab bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
+        }
+        return setAuthCookie(NextResponse.json({
             success: true,
             user: {
                 id: user.id,
                 phone: user.phone,
                 role: activeRole, // For backward compatibility
+                active_role: activeRole,
                 has_job_seeker_profile: hasJobSeekerProfile,
                 has_employer_profile: hasEmployerProfile,
                 full_name: jobSeekerResult.data?.full_name || null,
@@ -170,7 +179,7 @@ export async function POST(request: NextRequest) {
             // Role selection no longer needed - we use what user selected
             needsRoleSelection: false,
             message: 'Muvaffaqiyatli kirdingiz!'
-        });
+        }), user);
 
     } catch (error) {
         console.error('Login error:', error);

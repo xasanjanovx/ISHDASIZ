@@ -1,3 +1,4 @@
+import { verifyCron } from '@/lib/auth/cron';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -183,6 +184,7 @@ async function syncDistricts(sourceDistricts: OsonishDistrict[]): Promise<{ adde
 // ==================== MAIN HANDLER ====================
 
 export async function GET(request: NextRequest) {
+    if (!verifyCron(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const startTime = Date.now();
 
     try {

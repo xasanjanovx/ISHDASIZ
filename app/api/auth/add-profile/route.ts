@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { SESSION_COOKIE, verifyAuthToken, passwordVersion, readAuthUser } from '@/lib/auth/server';
 
 export async function POST(request: NextRequest) {
     try {
@@ -8,7 +9,13 @@ export async function POST(request: NextRequest) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        const { user_id, role } = await request.json();
+        const body = await request.json().catch(() => null);
+        const user_id = body?.user_id;
+        const role = body?.role;
+        const session = verifyAuthToken(request.cookies.get(SESSION_COOKIE)?.value, 'session');
+        if (!session || session.userId !== user_id) {
+            return NextResponse.json({ error: 'Avval tizimga kiring.' }, { status: 401 });
+        }
 
         if (!user_id || !role) {
             return NextResponse.json({ error: 'user_id and role are required' }, { status: 400 });
@@ -19,14 +26,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Get user
-        const { data: user, error: userError } = await supabase
-            .from('users')
-            .select('id, phone')
-            .eq('id', user_id)
-            .single();
+        const { data: user, error: userError } = await readAuthUser(supabase, 'id, phone, password_hash', 'id', user_id);
 
         if (userError || !user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        if (user.closed_at || session.passwordVersion !== passwordVersion(user.password_hash, user.session_version)) {
+            return NextResponse.json({ error: 'Avval tizimga kiring.' }, { status: 401 });
         }
 
         // Check if profile already exists

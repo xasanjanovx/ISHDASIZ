@@ -178,10 +178,12 @@ export function ResumeFilters({
                     </Label>
                     <Input
                         type="number"
+                        min={0} max={20000000} step={1}
+                        aria-label={lang === 'ru' ? 'Зарплата от' : 'Maosh dan'}
                         placeholder={lang === 'uz' ? 'Dan' : 'От'}
                         value={salaryRange[0] === 0 ? '' : salaryRange[0]}
                         onChange={(e) => {
-                            const val = e.target.value ? parseInt(e.target.value) : 0;
+                            const val = e.target.value ? Number(e.target.value) : 0;
                             onSalaryRangeChange([val, salaryRange[1]]);
                         }}
                         className="h-10 w-36 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors"
@@ -193,10 +195,12 @@ export function ResumeFilters({
                     </Label>
                     <Input
                         type="number"
+                        min={0} max={20000000} step={1}
+                        aria-label={lang === 'ru' ? 'Зарплата до' : 'Maosh gacha'}
                         placeholder={lang === 'uz' ? 'Gacha' : 'До'}
-                        value={salaryRange[1] >= 20000000 ? '' : salaryRange[1]}
+                        value={salaryRange[1] === 20000000 ? '' : salaryRange[1]}
                         onChange={(e) => {
-                            const val = e.target.value ? parseInt(e.target.value) : 20000000;
+                            const val = e.target.value ? Number(e.target.value) : 20000000;
                             onSalaryRangeChange([salaryRange[0], val]);
                         }}
                         className="h-10 w-36 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors"

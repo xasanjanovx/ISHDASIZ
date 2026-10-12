@@ -2,20 +2,25 @@
  * ISHDASIZ Smart AI Chat - Enhanced with Session & Geo
  * 
  * Features:
- * 1. Session memory (Supabase) - persists until tab close
+ * 1. Validated tab-local history; no server lookup by browser-supplied session ID
  * 2. Deep understanding of chaotic/short messages
  * 3. Geo-location search (lat/lng nearby)
  * 4. Profile collection before search
  * 5. Intelligent reranking with Gemini
  * 
  * Architecture:
- * A) Load session → B) Gemini understands → C) Update profile
+ * A) Validate tab state → B) Gemini understands → C) Update profile
  * D) If ready: SQL search → Gemini rerank → Return jobs
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { REGION_COORDINATES } from '@/lib/constants';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { z } from 'zod';
+import { chatRequestSchema, chatResponseSchema, readChatProfile } from '@/lib/ai/chat-contract';
+import { checkRateLimit } from '@/lib/ai/rate-limiter';
+import { AccountError, accountFailure, accountResult, checkSameOrigin } from '@/lib/auth/account';
 
 // ============================================================================
 // INITIALIZATION
@@ -69,65 +74,31 @@ Mavjud kategoriyalar (ID bilan):
 - Savdo va marketing (id: a0000010-0010-4000-8000-000000000010) - sotuvchi, kassir, smm
 `;
 
-const REGIONS_INFO = `
-Viloyatlar (ID bilan):
-- Toshkent shahri (1), Toshkent viloyati (27)
-- Andijon (2), Farg'ona (3), Namangan (4)
-- Samarqand (5), Buxoro (6), Xorazm (7)
-- Qashqadaryo (8), Surxondaryo (9), Jizzax (10)
-- Sirdaryo (11), Navoiy (12), Qoraqalpog'iston (14)
-`;
-
-// ============================================================================
-// SESSION MANAGEMENT
-// ============================================================================
-
-async function loadSession(sessionId: string): Promise<{ profile: UserProfile; messages: any[] }> {
-    if (!sessionId) return { profile: {}, messages: [] };
-
-    const { data } = await supabase
-        .from('ai_sessions')
-        .select('profile, messages')
-        .eq('session_id', sessionId)
-        .maybeSingle();
-
-    return {
-        profile: data?.profile || {},
-        messages: data?.messages || []
-    };
-}
-
-async function saveSession(sessionId: string, profile: UserProfile, messages: any[]): Promise<void> {
-    if (!sessionId) return;
-
-    await supabase
-        .from('ai_sessions')
-        .upsert({
-            session_id: sessionId,
-            profile,
-            messages: messages.slice(-10),
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'session_id' });
-}
+const REGIONS_INFO = 'Viloyatlar (ID bilan):\n' + Object.entries(REGION_COORDINATES).map(([id, region]) => `- ${region.name} (${id})`).join('\n');
 
 // ============================================================================
 // GEMINI - UNDERSTAND & EXTRACT - FALLBACKS
 // ============================================================================
 
 const REGION_MAP: Record<string, number> = {
-    'toshkent shahri': 1, 'toshkent': 1, 'tashkent': 1,
-    'andijon': 2, 'andijan': 2,
-    'farg\'ona': 3, 'fergana': 3, 'fargona': 3,
-    'namangan': 4,
-    'samarqand': 5, 'samarkand': 5,
-    'buxoro': 6, 'bukhara': 6,
-    'xorazm': 7, 'khorezm': 7, 'urganch': 7,
-    'qashqadaryo': 8, 'kashkadarya': 8, 'qarshi': 8,
-    'surxondaryo': 9, 'surkhandarya': 9, 'termez': 9,
-    'jizzax': 10, 'jizzakh': 10,
-    'sirdaryo': 11, 'syrdarya': 11, 'guliston': 11,
-    'navoiy': 12, 'navoi': 12,
-    'qoraqalpog\'iston': 14, 'karakalpakstan': 14, 'nukus': 14
+    'toshkent viloyati': 17, 'ташкентская область': 17,
+    'toshkent shahri': 22, 'toshkent': 22, 'tashkent': 22,
+    'andijon': 12, 'andijan': 12,
+    'farg\'ona': 13, 'fergana': 13, 'fargona': 13,
+    'namangan': 21,
+    'samarqand': 10, 'samarkand': 10,
+    'buxoro': 9, 'bukhara': 9,
+    'xorazm': 16, 'khorezm': 16, 'urganch': 16,
+    'qashqadaryo': 18, 'kashkadarya': 18, 'qarshi': 18,
+    'surxondaryo': 14, 'surkhandarya': 14, 'termez': 14,
+    'jizzax': 19, 'jizzakh': 19,
+    'sirdaryo': 15, 'syrdarya': 15, 'guliston': 15,
+    'navoiy': 11, 'navoi': 11,
+    'qoraqalpog\'iston': 8, 'karakalpakstan': 8, 'nukus': 8,
+    'ташкент': 22, 'андижан': 12, 'ферган': 13, 'наманган': 21, 'самарканд': 10,
+    'бухар': 9, 'хорезм': 16, 'ургенч': 16, 'кашкадар': 18, 'карши': 18,
+    'сурхандар': 14, 'термез': 14, 'джизак': 19, 'сырдар': 15, 'гулистан': 15,
+    'навои': 11, 'каракалпак': 8, 'нукус': 8
 };
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -188,6 +159,12 @@ const CATEGORY_MAP: Record<string, string> = {
     'kurier': 'a0000009-0009-4000-8000-000000000009',
     'logist': 'a0000009-0009-4000-8000-000000000009',
 
+    'программист': 'a0000001-0001-4000-8000-000000000001',
+    'разработчик': 'a0000001-0001-4000-8000-000000000001',
+    'водитель': 'a0000009-0009-4000-8000-000000000009',
+    'учител': 'a0000004-0004-4000-8000-000000000004',
+    'бухгалтер': 'a0000006-0006-4000-8000-000000000006',
+    'продавец': 'a0000010-0010-4000-8000-000000000010',
     // Sales & Marketing - Savdo va marketing
     'savdo': 'a0000010-0010-4000-8000-000000000010',
     'sotuvchi': 'a0000010-0010-4000-8000-000000000010',
@@ -196,8 +173,7 @@ const CATEGORY_MAP: Record<string, string> = {
     'smm': 'a0000010-0010-4000-8000-000000000010'
 };
 
-function fallbackUnderstanding(message: string, currentProfile: UserProfile): GeminiUnderstanding {
-    console.log('[AI] Using fallback logic for:', message);
+function fallbackUnderstanding(message: string, currentProfile: UserProfile, lang: 'uz' | 'ru'): GeminiUnderstanding {
     const lower = message.toLowerCase();
     const updates: Partial<UserProfile> = {};
 
@@ -241,7 +217,7 @@ function fallbackUnderstanding(message: string, currentProfile: UserProfile): Ge
             intent: 'search',
             profile_updates: updates,
             search_ready: false,
-            next_question: "Qaysi hududda ish qidiryapsiz? (Yoki 'joylashuvim' tugmasini bosing)"
+            next_question: lang === 'ru' ? "В каком регионе ищете работу?" : "Qaysi hududda ish qidiryapsiz?"
         };
     }
 
@@ -251,7 +227,7 @@ function fallbackUnderstanding(message: string, currentProfile: UserProfile): Ge
             intent: 'search',
             profile_updates: updates,
             search_ready: false,
-            next_question: "Qaysi sohada ishlamoqchisiz?"
+            next_question: lang === 'ru' ? "В какой сфере хотите работать?" : "Qaysi sohada ishlamoqchisiz?"
         };
     }
 
@@ -260,7 +236,7 @@ function fallbackUnderstanding(message: string, currentProfile: UserProfile): Ge
         intent: 'clarify',
         profile_updates: {},
         search_ready: false,
-        response_text: "Kechirasiz, aniqroq yozing. Masalan: 'Andijonda IT ish kerak' yoki 'Toshkentda haydovchi'"
+        response_text: lang === 'ru' ? "Укажите сферу и регион. Например: IT, Ташкент." : "Soha va hududni yozing. Masalan: IT, Toshkent."
     };
 }
 
@@ -279,11 +255,12 @@ interface GeminiUnderstanding {
 async function understandWithGemini(
     message: string,
     history: any[],
-    currentProfile: UserProfile
+    currentProfile: UserProfile,
+    lang: 'uz' | 'ru'
 ): Promise<GeminiUnderstanding> {
     const historyText = history.slice(-5).map((m: any) => `${m.role}: ${m.content}`).join('\n');
 
-    const prompt = `Sen HR yordamchisissan. Foydalanuvchi xabarini tushun va profil yangilanishlarini chiqar.
+    const prompt = `Sen HR yordamchisissan. Javob tilini saqla: ${lang === 'ru' ? 'Russian' : 'Uzbek'}. Foydalanuvchi xabarini tushun va profil yangilanishlarini chiqar.
 
 JORIY PROFIL: ${JSON.stringify(currentProfile)}
 
@@ -313,9 +290,9 @@ JSON FORMAT:
   "intent": "greeting|search|clarify|feedback",
   "profile_updates": {
     "category": "IT va Texnologiyalar",
-    "category_id": "6cdb160a-f3a9-4d7b-944a-d34df1ebd730",
+    "category_id": "a0000001-0001-4000-8000-000000000001",
     "region": "Andijon",
-    "region_id": 2,
+    "region_id": 12,
     "skills": ["React"],
     "salary_min": 5000000,
     "work_mode": "remote"
@@ -327,6 +304,7 @@ JSON FORMAT:
 
 FAQAT JSON QAYTAR.`;
 
+    if (!process.env.GEMINI_API_KEY) return fallbackUnderstanding(message, currentProfile, lang);
     try {
         const model = genAI.getGenerativeModel({
             model: MODEL,
@@ -346,11 +324,11 @@ FAQAT JSON QAYTAR.`;
         if (jsonStart === -1 || jsonEnd === -1) throw new Error('No JSON found');
 
         const cleaned = text.substring(jsonStart, jsonEnd + 1);
-        return JSON.parse(cleaned);
+        return z.object({ intent: z.enum(['greeting', 'search', 'clarify', 'feedback']), profile_updates: z.unknown().transform(readChatProfile), search_ready: z.boolean(), response_text: z.string().max(3000).optional(), next_question: z.string().max(1000).optional() }).parse(JSON.parse(cleaned));
     } catch (error) {
-        console.error('[AI] Gemini failed:', error);
+        console.error('[AI] Understanding unavailable; using keyword search');
         // CRITICAL FALLBACK (Never say 'I dont understand' if keywords exist)
-        return fallbackUnderstanding(message, currentProfile);
+        return fallbackUnderstanding(message, currentProfile, lang);
     }
 }
 
@@ -383,11 +361,12 @@ async function searchCandidates(profile: UserProfile, userLocation?: UserLocatio
             salary_min, salary_max, work_mode,
             region_id, region_name, district_name,
             latitude, longitude,
-            contact_telegram, contact_phone,
             districts(name_uz, regions(name_uz))
         `)
-        .eq('is_active', true)
+        .eq('ishdasiz_job_available', true)
         .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(30);
 
     // Category filter
@@ -401,8 +380,8 @@ async function searchCandidates(profile: UserProfile, userLocation?: UserLocatio
     }
 
     // Work mode
-    if (profile.work_mode === 'remote') {
-        query = query.eq('work_mode', 'remote');
+    if (profile.work_mode === 'remote' || profile.work_mode === 'onsite') {
+        query = query.eq('work_mode', profile.work_mode);
     }
 
     // Salary
@@ -412,17 +391,16 @@ async function searchCandidates(profile: UserProfile, userLocation?: UserLocatio
 
     const { data, error } = await query;
     if (error) {
-        console.error('[DB] Search error:', error);
-        return [];
+        throw new AccountError(503, 'Поиск временно недоступен / Qidiruv vaqtincha mavjud emas');
     }
 
     let jobs: any[] = data || [];
 
     // Add distance if user location provided
-    if (userLocation && userLocation.lat && userLocation.lng) {
+    if (userLocation) {
         jobs = jobs.map(job => ({
             ...job,
-            distance_km: (job.latitude && job.longitude)
+            distance_km: (Number.isFinite(job.latitude) && Math.abs(job.latitude) <= 90 && Number.isFinite(job.longitude) && Math.abs(job.longitude) <= 180)
                 ? Math.round(haversineDistance(userLocation.lat, userLocation.lng, job.latitude, job.longitude))
                 : null
         }));
@@ -455,18 +433,18 @@ interface RerankResult {
     advice?: string;
 }
 
-async function rerankWithGemini(jobs: any[], profile: UserProfile): Promise<RerankResult> {
+async function rerankWithGemini(jobs: any[], profile: UserProfile, lang: 'uz' | 'ru'): Promise<RerankResult> {
     if (jobs.length === 0) {
         return { ranked_jobs: [] };
     }
 
     // For small result sets, skip reranking
-    if (jobs.length <= 5) {
+    if (jobs.length <= 5 || !process.env.GEMINI_API_KEY) {
         return {
-            ranked_jobs: jobs.map((j, i) => ({
+            ranked_jobs: jobs.slice(0, 8).map((j, i) => ({
                 job_id: j.id,
                 score: 80 - i * 5,
-                reason: 'Mezonlaringizga mos'
+                reason: lang === 'ru' ? 'Соответствует условиям поиска' : 'Mezonlaringizga mos'
             }))
         };
     }
@@ -493,7 +471,7 @@ ${JSON.stringify(jobsForAI, null, 2)}
 VAZIFA:
 1. Har bir vakansiyaning title, description, requirements ni O'QI
 2. Profilga mos kelishini bahola (0-100)
-3. TOP 8 ni tanla, qisqa sabab yoz (O'ZBEKCHA)
+3. TOP 8 ni tanla, qisqa sabab yoz (${lang === 'ru' ? 'Russian' : 'Uzbek'})
 4. distance_km yaqinroq bo'lsa, bonus ber
 
 JSON:
@@ -518,15 +496,22 @@ JSON:
         const text = result.response.text();
         const cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
 
-        return JSON.parse(cleaned);
+        const ranking = z.object({ ranked_jobs: z.array(z.object({ job_id: z.string().uuid(), score: z.number().finite().min(0).max(100), reason: z.string().max(1000) })).max(8), advice: z.string().max(1000).optional() }).parse(JSON.parse(cleaned));
+        const seen = new Set<string>();
+        const ranked_jobs = ranking.ranked_jobs.filter(item => {
+            if (seen.has(item.job_id) || !jobs.some(job => job.id === item.job_id)) return false;
+            seen.add(item.job_id); return true;
+        });
+        if (!ranked_jobs.length) throw new Error('No valid ranked jobs');
+        return { ...ranking, ranked_jobs };
     } catch (error) {
-        console.error('[AI] Rerank error:', error);
+        console.error('[AI] Ranking unavailable; using search order');
         // Fallback to simple ranking
         return {
             ranked_jobs: jobs.slice(0, 8).map((j, i) => ({
                 job_id: j.id,
                 score: 90 - i * 5,
-                reason: 'Mezonlaringizga mos'
+                reason: lang === 'ru' ? 'Соответствует условиям поиска' : 'Mezonlaringizga mos'
             }))
         };
     }
@@ -536,12 +521,13 @@ JSON:
 // FORMAT JOBS FOR CARD
 // ============================================================================
 
-function formatJobsForCard(jobs: any[], rerank: RerankResult): any[] {
-    const rankMap = new Map(rerank.ranked_jobs.map(r => [r.job_id, r]));
+function formatJobsForCard(jobs: any[], rerank: RerankResult, lang: 'uz' | 'ru'): any[] {
+    const seen = new Set<string>();
 
     return rerank.ranked_jobs.map(r => {
         const job = jobs.find(j => j.id === r.job_id);
-        if (!job) return null;
+        if (!job || seen.has(job.id)) return null;
+        seen.add(job.id);
 
         // Build location
         let location = '';
@@ -562,20 +548,19 @@ function formatJobsForCard(jobs: any[], rerank: RerankResult): any[] {
         // Format salary
         const salaryMin = job.salary_min ? Math.round(job.salary_min / 1e6) : 0;
         const salaryMax = job.salary_max ? Math.round(job.salary_max / 1e6) : 0;
-        let salary = 'Kelishiladi';
-        if (salaryMin && salaryMax) salary = `${salaryMin}-${salaryMax} mln`;
-        else if (salaryMax) salary = `${salaryMax} mln gacha`;
-        else if (salaryMin) salary = `${salaryMin} mln dan`;
+        let salary = lang === 'ru' ? 'По договорённости' : 'Kelishiladi';
+        const unit = lang === 'ru' ? 'млн сум' : 'mln so‘m';
+        if (salaryMin && salaryMax) salary = salaryMin + '–' + salaryMax + ' ' + unit;
+        else if (salaryMax) salary = (lang === 'ru' ? 'до ' : '') + salaryMax + ' ' + unit + (lang === 'uz' ? ' gacha' : '');
+        else if (salaryMin) salary = (lang === 'ru' ? 'от ' : '') + salaryMin + ' ' + unit + (lang === 'uz' ? ' dan' : '');
 
         return {
             id: job.id,
-            title: job.title_uz || job.title_ru || 'Vakansiya',
+            title: (lang === 'ru' ? job.title_ru || job.title_uz : job.title_uz || job.title_ru) || (lang === 'ru' ? 'Вакансия' : 'Vakansiya'),
             company: job.company_name || 'Kompaniya',
             salary,
             location,
-            work_mode: job.work_mode === 'remote' ? 'Masofaviy' : '',
-            contact_telegram: job.contact_telegram,
-            contact_phone: job.contact_phone,
+            work_mode: job.work_mode === 'remote' ? (lang === 'ru' ? 'Удалённо' : 'Masofaviy') : '',
             match_score: r.score,
             reason_fit: r.reason
         };
@@ -588,93 +573,34 @@ function formatJobsForCard(jobs: any[], rerank: RerankResult): any[] {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const message = body.message?.trim() || '';
-        const sessionId = body.session_id || '';
-        const history = body.messages || [];
-        const userLocation = body.user_location as UserLocation | undefined;
-
-        if (!message) {
-            return NextResponse.json({ response: "Xabar yozing", jobs: [] });
-        }
-
-        console.log('[Chat] Session:', sessionId, 'Message:', message);
-
-        // ========================================
-        // STEP A: Load session
-        // ========================================
-        const session = await loadSession(sessionId);
-        let profile = session.profile;
-        let messages = [...session.messages, { role: 'user', content: message }];
-
-        // ========================================
-        // STEP B: Gemini understands
-        // ========================================
-        const understanding = await understandWithGemini(message, history, profile);
-        console.log('[Chat] Understanding:', JSON.stringify(understanding));
-
-        // ========================================
-        // STEP C: Merge profile updates
-        // ========================================
-        if (understanding.profile_updates) {
-            profile = { ...profile, ...understanding.profile_updates };
-        }
-
-        // ========================================
-        // Handle greeting/clarify
-        // ========================================
+        checkSameOrigin(request);
+        const raw = await request.text();
+        if (raw.length > 100_000) throw new AccountError(413, 'Сообщение слишком большое / Xabar juda uzun');
+        let body: unknown;
+        try { body = JSON.parse(raw); } catch { throw new AccountError(400, 'Неверный запрос / Noto‘g‘ri so‘rov'); }
+        const parsed = chatRequestSchema.safeParse(body);
+        if (!parsed.success) throw new AccountError(400, 'Проверьте сообщение / Xabarni tekshiring');
+        const { message, messages: history, profile: currentProfile, user_location: userLocation, lang } = parsed.data;
+        // Browser-supplied session/user IDs never determine history ownership or the rate-limit key.
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown';
+        const limit = checkRateLimit('chat:ip:' + ip);
+        if (!limit.allowed) throw new AccountError(429, 'Слишком много запросов. Подождите минуту / Bir daqiqa kuting');
+        const understanding = await understandWithGemini(message, history, currentProfile, lang);
+        const profile = readChatProfile({ ...currentProfile, ...understanding.profile_updates });
         if (understanding.intent === 'greeting' || !understanding.search_ready) {
-            const responseText = understanding.response_text ||
-                understanding.next_question ||
-                "Qaysi soha va shaharda ish qidiryapsiz?";
-
-            messages.push({ role: 'assistant', content: responseText });
-            await saveSession(sessionId, profile, messages);
-
-            return NextResponse.json({
-                response: responseText,
-                jobs: [],
-                intent: understanding.intent,
-                profile
-            });
+            return accountResult(chatResponseSchema.parse({
+                response: understanding.response_text || understanding.next_question || (lang === 'ru' ? 'В какой сфере и регионе ищете работу?' : 'Qaysi soha va hududda ish qidiryapsiz?'),
+                jobs: [], profile,
+            }));
         }
-
-        // ========================================
-        // STEP D: Search + Rerank
-        // ========================================
-        const jobs = await searchCandidates(profile, userLocation);
-        console.log('[Chat] Found:', jobs.length, 'candidates');
-
-        const rerank = await rerankWithGemini(jobs, profile);
-        const formattedJobs = formatJobsForCard(jobs, rerank);
-
-        // Build response
-        let responseText = '';
-        if (formattedJobs.length === 0) {
-            responseText = `Afsuski, ${profile.category || 'tanlangan soha'}da ${profile.region || 'barcha hududlar'}da vakansiya topilmadi. Boshqa soha yoki hududni sinab ko'ring.`;
-        } else {
-            responseText = `${profile.category || 'Barcha sohalar'}, ${profile.region || 'barcha hududlar'} - ${formattedJobs.length} ta mos vakansiya:`;
-            if (rerank.advice) {
-                responseText += `\n\n💡 ${rerank.advice}`;
-            }
-        }
-
-        messages.push({ role: 'assistant', content: responseText });
-        await saveSession(sessionId, { ...profile, profile_complete: true }, messages);
-
-        return NextResponse.json({
-            response: responseText,
-            jobs: formattedJobs,
-            intent: 'search',
-            profile
-        });
-
-    } catch (error: any) {
-        console.error('[Chat] Error:', error);
-        return NextResponse.json({
-            response: "Xatolik yuz berdi. Qaytadan urinib ko'ring.",
-            jobs: [],
-            intent: 'error'
-        }, { status: 500 });
+        const jobs = await searchCandidates(profile, userLocation || undefined);
+        const rerank = await rerankWithGemini(jobs, profile, lang);
+        const formattedJobs = formatJobsForCard(jobs, rerank, lang);
+        const response = formattedJobs.length === 0
+            ? (lang === 'ru' ? 'Подходящих вакансий не найдено. Попробуйте другую сферу или регион.' : 'Mos vakansiya topilmadi. Boshqa soha yoki hududni sinab ko‘ring.')
+            : (lang === 'ru' ? 'Подобрано вакансий: ' : 'Mos vakansiyalar: ') + formattedJobs.length + (rerank.advice ? '\n\n' + rerank.advice : '');
+        return accountResult(chatResponseSchema.parse({ response, jobs: formattedJobs, profile: { ...profile, profile_complete: true } }));
+    } catch (error) {
+        return accountFailure(error);
     }
 }

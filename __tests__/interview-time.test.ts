@@ -1,0 +1,4 @@
+import { interviewFromLocal,interviewToLocal } from '@/lib/interview-time';
+test.each(['2026-02-30T10:30','2025-02-29T10:30','2026-01-01T24:00','2026-01-01T23:60','1999-01-01T10:00','2200-01-01T10:00','2026-1-1T9:00',''])('invalid local interview time is rejected (%s)',value=>{expect(interviewFromLocal(value)).toBeNull();});
+test('interview time has a fixed Uzbekistan offset, including leap days and midnight',()=>{expect(interviewFromLocal('2028-02-29T00:00')).toBe('2028-02-29T00:00:00+05:00');expect(interviewToLocal('2028-02-28T19:00:00Z')).toBe('2028-02-29T00:00');expect(interviewToLocal('2026-10-12T05:30:00Z')).toBe('2026-10-12T10:30');});
+test('missing or malformed stored dates do not prefill a fabricated meeting',()=>{expect(interviewToLocal(null)).toBe('');expect(interviewToLocal('bad')).toBe('');});

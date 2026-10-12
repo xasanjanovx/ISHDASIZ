@@ -1,277 +1,125 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Search, MapPin, ArrowUpRight, Briefcase, FileText, Building2, Globe2, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, MapPin, ArrowRight, Send, MessageCircle } from '@/components/ui/icons';
-import { FlipCounter } from '@/components/ui/flip-counter';
-import { supabase } from '@/lib/supabase';
-import { motion } from 'framer-motion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuthModal } from '@/contexts/auth-modal-context';
+import { useUserAuth } from '@/contexts/user-auth-context';
+import { formatSalary } from '@/lib/constants';
 
-interface Stats {
-  totalJobs: number;
-  totalResumes: number;
-  totalUsers: number;
+interface HeroProps {
+  regions?: { id: number; name_uz: string; name_ru: string }[];
+  jobs?: any[];
+  stats?: { totalJobs: number | null; totalResumes: number | null; totalEmployers: number | null };
 }
 
-interface Region {
-  id: number;
-  name_uz: string;
-  name_ru: string;
-}
-
-export function HeroSection() {
-  const { t, lang } = useLanguage();
+export function HeroSection({ regions = [], jobs = [], stats }: HeroProps) {
+  const { lang } = useLanguage();
+  const ru = lang === 'ru';
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [stats, setStats] = useState<Stats>({ totalJobs: 0, totalResumes: 0, totalUsers: 0 });
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    supabase.from('regions').select('*').order('name_uz').then(({ data }) => {
-      if (data) setRegions(data);
-    });
-  }, []);
-
-  const trackVisitor = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    const sessionId = sessionStorage.getItem('visitor_session_id') || crypto.randomUUID();
-    sessionStorage.setItem('visitor_session_id', sessionId);
-    const lastVisit = localStorage.getItem('last_visit');
-    const now = new Date().getTime();
-    if (!lastVisit || now - parseInt(lastVisit) > 30 * 60 * 1000) {
-      await supabase.from('site_visitors').insert({
-        session_id: sessionId,
-        visited_at: new Date().toISOString(),
-      });
-      localStorage.setItem('last_visit', now.toString());
+  const { openModal, setUserRole, setStep } = useAuthModal();
+  const { user } = useUserAuth();
+  const [query, setQuery] = useState('');
+  const [region, setRegion] = useState('all');
+  const start = (role: 'seeker' | 'employer') => {
+    if (user && (role === 'seeker' ? user.has_job_seeker_profile : user.has_employer_profile)) {
+      router.push(role === 'seeker' ? '/profile/job-seeker/resumes/new' : '/profile/employer/vacancies');
+    } else {
+      setUserRole(role);
+      setStep('auth');
+      openModal();
     }
-  }, []);
-
-  const fetchStats = useCallback(async () => {
-    const [jobsResult, resumesResult, usersResult] = await Promise.all([
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('resumes').select('id', { count: 'exact', head: true }),
-      supabase.from('users').select('id', { count: 'exact', head: true }),
-    ]);
-    setStats({
-      totalJobs: jobsResult.count || 0,
-      totalResumes: resumesResult.count || 0,
-      totalUsers: (usersResult.count || 0) * 2,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (isMounted) {
-      trackVisitor();
-      fetchStats();
-    }
-  }, [isMounted, trackVisitor, fetchStats]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) params.set('q', searchQuery);
-    if (selectedRegion && selectedRegion !== 'all') params.set('region', selectedRegion);
-    router.push(`/jobs?${params.toString()}`);
   };
-
+  const search = (event: React.FormEvent) => {
+    event.preventDefault();
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query.trim());
+    if (region !== 'all') params.set('region', region);
+    router.push(params.size ? `/jobs?${params}` : '/jobs');
+  };
+  const labels = ru
+    ? ['Открытые вакансии', 'Резюме кандидатов', 'Работодатели']
+    : ['Ochiq vakansiyalar', 'Nomzodlar rezyumelari', 'Ish beruvchilar'];
   return (
-    <section className="relative min-h-[560px] lg:min-h-[700px] overflow-hidden flex items-center justify-center pt-32 lg:pt-36 pb-16 -mt-16">
-      {/* === PHOTO BACKGROUND === */}
-      <div
-        className="absolute inset-0 z-0 bg-center bg-cover bg-no-repeat"
-        style={{
-          backgroundImage: "url('/hero-office.png')",
-          filter: 'brightness(0.34) saturate(0.78) contrast(1.12)',
-        }}
-      />
-
-      {/* === DARK BLUE OVERLAY === */}
-      <div className="absolute inset-0 z-0">
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-[#07153f]/95 via-[#0c2a64]/91 to-[#14408a]/87 animate-mesh"
-          style={{ backgroundSize: '200% 200%' }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060f2f]/82 via-[#0a2460]/56 to-[#1a4b9d]/36" />
-      </div>
-
-      {/* === FLOATING GLOWING ORBS === */}
-      <div className="absolute top-10 right-[10%] w-[300px] h-[300px] bg-blue-500/15 rounded-full blur-[100px] animate-float-slow pointer-events-none" />
-      <div className="absolute bottom-5 left-[5%] w-[350px] h-[350px] bg-teal-500/10 rounded-full blur-[120px] animate-float-medium pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] bg-indigo-500/8 rounded-full blur-[80px] animate-float-fast pointer-events-none" />
-
-      {/* === SUBTLE GRID OVERLAY === */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-        backgroundSize: '50px 50px'
-      }} />
-
-      <div className="container mx-auto px-4 relative z-10 w-full">
-        <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
-
-          {/* === BADGE === */}
-          <motion.div
-            initial={{ opacity: 0, y: 15, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full glass-card text-blue-200 text-sm font-medium mb-6 animate-glow-pulse">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400"></span>
-              </span>
-              {lang === 'uz' ? 'Rasmiy portal' : 'Официальный портал'}
-            </span>
-          </motion.div>
-
-          {/* === MAIN TITLE === */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-3xl md:text-5xl lg:text-6xl font-bold mb-5 tracking-tight text-white leading-[1.15]"
-          >
-            <span className="block mb-1">
-              {lang === 'uz' ? 'Kelajak kasbini' : 'Найдите профессию'}
-            </span>
-            <span className="gradient-text-blue drop-shadow-sm">
-              {lang === 'uz' ? 'biz bilan toping' : 'будущего с нами'}
-            </span>
-          </motion.h1>
-
-          {/* === SUBTITLE === */}
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-base md:text-lg text-slate-300/90 mb-10 max-w-2xl font-light leading-relaxed"
-          >
-            {lang === 'uz' ? (
-              <>
-                Eng so&apos;nggi vakansiyalar va malakali mutaxassislar bazasi. <br className="hidden md:block" />
-                O&apos;z karyerangizni bugun boshlang.
-              </>
-            ) : (
-              'База новейших вакансий и квалифицированных специалистов. Начните свою карьеру сегодня.'
-            )}
-          </motion.p>
-
-          {/* === SEARCH BOX === */}
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-4xl glass-card p-2.5 rounded-2xl md:rounded-full shadow-2xl shadow-blue-500/20 mb-10 group hover:shadow-blue-500/30 transition-all duration-500"
-          >
-            <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center gap-2">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
-                <Input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t.hero.searchPlaceholder}
-                  className="pl-14 h-12 md:h-14 w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-400 text-white text-base"
-                />
+    <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+      <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-bl from-teal-50/80 via-blue-50/40 to-transparent pointer-events-none" />
+      <div className="container relative mx-auto px-4 py-12 sm:px-6 md:py-20">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-800">
+              <Globe2 className="h-3.5 w-3.5" />
+              {ru ? 'Работа по всему Узбекистану' : 'O‘zbekiston bo‘ylab ish imkoniyatlari'}
+            </div>
+            <h1 className="max-w-2xl text-[40px] font-semibold leading-[1.1] tracking-[-0.045em] text-slate-950 sm:text-5xl xl:text-[64px]">
+              {ru ? 'Ваша следующая' : 'Yangi ishingiz.'}<br />
+              <span className="text-blue-600">{ru ? 'работа — здесь.' : 'Yangi imkoniyatlar.'}</span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
+              {ru ? 'Найдите подходящую вакансию рядом с вами или в другом регионе. Выберите работу, которая подходит именно вам.' : 'O‘zingizga mos ishni yaqin atrofda yoki boshqa hududda toping. Keyingi qadamingizni biz bilan boshlang.'}
+            </p>
+            <form onSubmit={search} className="mt-8 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/40">
+              <div className="flex items-center gap-3 px-3">
+                <Search className="h-5 w-5 shrink-0 text-slate-400" />
+                <label htmlFor="home-search" className="sr-only">{ru ? 'Профессия или компания' : 'Kasb yoki kompaniya'}</label>
+                <input id="home-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={ru ? 'Профессия, должность или компания' : 'Kasb, lavozim yoki kompaniya'} className="h-12 w-full min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
               </div>
-
-              <div className="hidden md:block w-px h-7 bg-white/10" />
-
-              <div className="relative w-full md:w-[260px]">
-                <div className="absolute left-5 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                  <MapPin className="w-5 h-5 text-slate-400" />
+              <div className="flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row">
+                <div className="flex min-w-0 flex-1 items-center gap-3 px-3">
+                  <MapPin className="h-5 w-5 shrink-0 text-slate-400" />
+                  <label htmlFor="home-region" className="sr-only">{ru ? 'Регион' : 'Hudud'}</label>
+                  <select id="home-region" value={region} onChange={e => setRegion(e.target.value)} className="h-11 w-full min-w-0 bg-white text-sm text-slate-700 outline-none">
+                    <option value="all">{ru ? 'Весь Узбекистан' : 'Butun O‘zbekiston'}</option>
+                    {regions.map(r => <option key={r.id} value={r.id}>{ru ? r.name_ru || r.name_uz : r.name_uz}</option>)}
+                  </select>
                 </div>
-                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger className="pl-14 pr-10 h-12 md:h-14 border-0 bg-transparent focus:ring-0 text-left text-base text-slate-300 font-medium hover:bg-white/5 transition-colors">
-                    <SelectValue placeholder={lang === 'uz' ? 'Viloyatni tanlang' : 'Выберите регион'} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/10 text-slate-200">
-                    <SelectItem value="all">{lang === 'uz' ? 'Barcha viloyatlar' : 'Все регионы'}</SelectItem>
-                    {regions.map((r) => (
-                      <SelectItem key={r.id} value={r.id.toString()}>
-                        {lang === 'uz' ? r.name_uz : r.name_ru}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <button type="submit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                  {ru ? 'Найти работу' : 'Ish topish'} <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
-
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full md:w-auto h-12 md:h-14 px-8 rounded-xl md:rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-bold text-base shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.02]"
-              >
-                {lang === 'uz' ? 'Qidirish' : 'Поиск'}
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
             </form>
-          </motion.div>
-
-          {/* === QUICK ACTIONS === */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.35 }}
-            className="flex flex-wrap items-center justify-center gap-3 mb-10"
-          >
-            {/* Telegram bot — with YANGI corner badge */}
-            <Link href="https://t.me/ishdasizbot" target="_blank" rel="noopener noreferrer" className="group relative">
-              <Button className="h-10 px-5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/20 text-white font-medium transition-all duration-300 shadow-lg shadow-blue-600/20 group-hover:shadow-blue-500/30 group-hover:scale-105">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                {lang === 'uz' ? 'Telegram bot' : 'Telegram бот'}
-              </Button>
-              {/* Superscript "YANGI" badge */}
-              <span className="absolute -top-1.5 -right-1.5 px-2 py-0.5 text-[9px] font-extrabold uppercase text-white rounded-md animate-badge-sweep leading-none shadow-lg shadow-blue-600/30 z-10 tracking-wide">
-                YANGI
-              </span>
-            </Link>
-
-            {/* Map search — green */}
-            <Link href="/map">
-              <Button className="h-10 px-5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-400/20 text-white font-medium transition-all duration-300 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 hover:scale-105">
-                <MapPin className="w-4 h-4 mr-2" />
-                {lang === 'uz' ? 'Xaritada izlash' : 'Поиск на карте'}
-              </Button>
-            </Link>
-          </motion.div>
-
-          {/* === STATS — white text, no borders, clean === */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="grid grid-cols-3 gap-6 md:gap-10 w-full max-w-2xl"
-          >
-            {[
-              { value: stats.totalJobs, label: lang === 'uz' ? 'Vakansiyalar' : 'Вакансии' },
-              { value: stats.totalResumes, label: lang === 'uz' ? 'Rezyumelar' : 'Резюме' },
-              { value: stats.totalUsers, label: lang === 'uz' ? 'Foydalanuvchilar' : 'Пользователи' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 + i * 0.08 }}
-                className="text-center"
-              >
-                <span className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 flex items-center justify-center">
-                  <FlipCounter value={stat.value} suffix="+" />
-                </span>
-                <span className="text-white/50 text-[10px] md:text-xs uppercase tracking-widest font-medium">
-                  {stat.label}
-                </span>
-              </motion.div>
-            ))}
-          </motion.div>
-
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span>{ru ? 'Популярные запросы:' : 'Mashhur qidiruvlar:'}</span>
+              {(ru ? ['Продавец', 'Водитель', 'Бухгалтер'] : ['Sotuvchi', 'Haydovchi', 'Buxgalter']).map(term =>
+                <Link key={term} href={`/jobs?q=${encodeURIComponent(term)}`} className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600 hover:bg-blue-50 hover:text-blue-700">{term}</Link>)}
+            </div>
+          </div>
+          <div className="hidden lg:block">
+            <div className="rounded-3xl border border-slate-200/80 bg-white/80 p-6 shadow-xl shadow-blue-100/40">
+              <div className="mb-5 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-900">{ru ? 'Новые возможности' : 'Yangi imkoniyatlar'}</span>
+                <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700">{ru ? 'По всей стране' : 'Butun mamlakat'}</span>
+              </div>
+              {jobs.slice(0, 2).map(job => <Link key={job.id} href={`/jobs/${job.id}`} className="mb-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-300">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Briefcase className="h-5 w-5" /></div>
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-2 text-sm font-semibold text-slate-900">{ru ? job.title_ru || job.title_uz : job.title_uz || job.title_ru}</div>
+                  <div className="mt-1 truncate text-xs text-slate-500">{job.company_name}</div>
+                  <div className="mt-2 text-xs font-semibold text-teal-700">{formatSalary(job.salary_min, job.salary_max, lang)}</div>
+                </div>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" />
+              </Link>)}
+              {jobs.length === 0 && <div className="rounded-2xl bg-blue-50 p-6"><Briefcase className="mb-4 h-8 w-8 text-blue-600" /><p className="font-medium text-slate-800">{ru ? 'Найдите свой следующий шаг' : 'Keyingi qadamingizni toping'}</p><p className="mt-2 text-sm leading-6 text-slate-600">{ru ? 'Ищите вакансии по профессии, региону и условиям работы.' : 'Kasb, hudud va ish sharoiti bo‘yicha vakansiyalarni qidiring.'}</p></div>}
+              <Link href="/map" className="mt-5 flex items-center justify-between rounded-2xl bg-teal-50 px-4 py-4 text-sm font-medium text-teal-800">
+                <span className="flex items-center gap-2"><MapPin className="h-4 w-4" />{ru ? 'Найти работу на карте' : 'Xaritada ish topish'}</span><ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+        {stats && <div className="mt-10 grid max-w-2xl grid-cols-3 gap-4 border-t border-slate-200 pt-6 md:mt-12">
+          {[stats.totalJobs, stats.totalResumes, stats.totalEmployers].map((value, i) => <div key={labels[i]}>
+            <div className="text-2xl font-semibold tracking-tight text-slate-900">{value === null ? '—' : value.toLocaleString('ru-RU').replace(/\u00a0/g, ' ')}</div>
+            <div className="mt-1 text-xs leading-5 text-slate-500">{labels[i]}</div>
+          </div>)}
+        </div>}
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          {[{ role: 'seeker' as const, icon: FileText, title: ru ? 'Пусть работа найдёт вас' : 'Ish sizni topsin', text: ru ? 'Создайте резюме и расскажите о своих навыках.' : 'Rezyume yarating va ko‘nikmalaringizni ko‘rsating.', action: ru ? 'Создать резюме' : 'Rezyume yaratish' },
+            { role: 'employer' as const, icon: Building2, title: ru ? 'Найдите людей для своей команды' : 'Jamoangiz uchun xodim toping', text: ru ? 'Разместите вакансию и получайте отклики.' : 'Vakansiya joylang va nomzodlardan arizalar oling.', action: ru ? 'Разместить вакансию' : 'Vakansiya joylash' }].map(item => <button key={item.role} onClick={() => start(item.role)} className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/50">
+              <item.icon className="h-6 w-6 shrink-0 text-blue-600" />
+              <div className="flex-1"><div className="text-sm font-semibold text-slate-900">{item.title}</div><div className="mt-1 text-xs leading-5 text-slate-500">{item.text}</div><div className="mt-2 text-xs font-semibold text-blue-600">{item.action}</div></div>
+              <ArrowUpRight className="h-5 w-5 shrink-0 text-slate-400 group-hover:text-blue-600" />
+            </button>)}
         </div>
       </div>
     </section>

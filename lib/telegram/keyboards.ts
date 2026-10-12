@@ -1,3 +1,4 @@
+import {employerJobState} from './owned-jobs';
 /**
  * Telegram Bot Keyboards - Complete Resume Flow
  * All inline keyboards for resume creation and job search
@@ -43,20 +44,20 @@ interface CategoryItem {
 // Data Constants
 // ============================================
 const REGIONS = [
-    { id: 1, name_uz: 'Toshkent shahri', name_ru: 'Ташкент' },
-    { id: 2, name_uz: 'Toshkent viloyati', name_ru: 'Ташкентская область' },
-    { id: 3, name_uz: 'Andijon viloyati', name_ru: 'Андижанская область' },
-    { id: 4, name_uz: 'Buxoro viloyati', name_ru: 'Бухарская область' },
-    { id: 5, name_uz: "Farg'ona viloyati", name_ru: 'Ферганская область' },
-    { id: 6, name_uz: 'Jizzax viloyati', name_ru: 'Джизакская область' },
-    { id: 7, name_uz: 'Xorazm viloyati', name_ru: 'Хорезмская область' },
-    { id: 8, name_uz: 'Namangan viloyati', name_ru: 'Наманганская область' },
-    { id: 9, name_uz: 'Navoiy viloyati', name_ru: 'Навоийская область' },
-    { id: 10, name_uz: 'Qashqadaryo viloyati', name_ru: 'Кашкадарьинская область' },
-    { id: 11, name_uz: 'Samarqand viloyati', name_ru: 'Самаркандская область' },
-    { id: 12, name_uz: 'Sirdaryo viloyati', name_ru: 'Сырдарьинская область' },
-    { id: 13, name_uz: 'Surxondaryo viloyati', name_ru: 'Сурхандарьинская область' },
-    { id: 14, name_uz: "Qoraqalpog'iston Respublikasi", name_ru: 'Республика Каракалпакстан' }
+    { id: 22, name_uz: 'Toshkent shahri', name_ru: 'Ташкент' },
+    { id: 17, name_uz: 'Toshkent viloyati', name_ru: 'Ташкентская область' },
+    { id: 12, name_uz: 'Andijon viloyati', name_ru: 'Андижанская область' },
+    { id: 9, name_uz: 'Buxoro viloyati', name_ru: 'Бухарская область' },
+    { id: 13, name_uz: "Farg'ona viloyati", name_ru: 'Ферганская область' },
+    { id: 19, name_uz: 'Jizzax viloyati', name_ru: 'Джизакская область' },
+    { id: 16, name_uz: 'Xorazm viloyati', name_ru: 'Хорезмская область' },
+    { id: 21, name_uz: 'Namangan viloyati', name_ru: 'Наманганская область' },
+    { id: 11, name_uz: 'Navoiy viloyati', name_ru: 'Навоийская область' },
+    { id: 18, name_uz: 'Qashqadaryo viloyati', name_ru: 'Кашкадарьинская область' },
+    { id: 10, name_uz: 'Samarqand viloyati', name_ru: 'Самаркандская область' },
+    { id: 15, name_uz: 'Sirdaryo viloyati', name_ru: 'Сырдарьинская область' },
+    { id: 14, name_uz: 'Surxondaryo viloyati', name_ru: 'Сурхандарьинская область' },
+    { id: 8, name_uz: "Qoraqalpog'iston Respublikasi", name_ru: 'Республика Каракалпакстан' }
 ];
 
 const CATEGORIES = [
@@ -277,13 +278,13 @@ export function backKeyboard(lang: BotLang, backAction: string): object {
 export function backCancelKeyboard(lang: BotLang, backAction: string): object {
     return createInlineKeyboard([
         [{ text: lang === 'uz' ? '⬅️ Orqaga' : '⬅️ Назад', callback_data: `back:${backAction}` }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
 export function cancelInlineKeyboard(lang: BotLang): object {
     return createInlineKeyboard([
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -317,6 +318,14 @@ export function phoneRequestKeyboard(lang: BotLang): object {
     return createReplyKeyboard([
         [{ text: lang === 'uz' ? '📱 Telefon raqamni yuborish' : '📱 Отправить номер телефона', request_contact: true }]
     ], { one_time: true });
+}
+
+export function phoneManualConfirmKeyboard(lang: BotLang): object {
+    return createInlineKeyboard([
+        [{ text: lang === 'uz' ? '✅ Tasdiqlash' : '✅ Подтвердить', callback_data: 'authphone:confirm' }],
+        [{ text: lang === 'uz' ? '✏️ Qayta kiritish' : '✏️ Ввести заново', callback_data: 'authphone:retry' }],
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
+    ]);
 }
 
 // ============================================
@@ -902,62 +911,39 @@ export function roleSwitchConfirmKeyboard(lang: BotLang): object {
     ]);
 }
 
-export function employerVacanciesKeyboard(
-    lang: BotLang,
-    jobs: Array<{ id: string; title_uz?: string; title_ru?: string; title?: string | null; status?: string | null; is_active?: boolean | null }>
-): object {
-    const rows: InlineButton[][] = jobs.map(job => {
-        const title = lang === 'uz'
-            ? (job.title_uz || job.title_ru || job.title || 'Vakansiya')
-            : (job.title_ru || job.title_uz || job.title || 'Вакансия');
-        const status = String(job.status || '').toLowerCase();
-        const hasStatus = status.length > 0;
-        const hasActiveFlag = typeof job.is_active === 'boolean';
-        const isPaused = job.is_active === false && (status === 'inactive' || status === 'paused' || status === 'on_hold');
-        const isFilled = status === 'filled' || status === 'closed' || status === 'archived';
-        const sticker = (!hasStatus && !hasActiveFlag) ? '⚪️' : (isFilled ? '🔴' : (isPaused ? '🟡' : '🟢'));
-        return [{ text: `${sticker} ${title}`, callback_data: `jobview:${job.id}` }];
-    });
-    rows.push([{ text: lang === 'uz' ? '⬅️ Orqaga' : '⬅️ Назад', callback_data: 'menu:main' }]);
-    return createInlineKeyboard(rows);
+export function employerVacanciesKeyboard(lang:BotLang,jobs:any[],options:{archived?:boolean;page?:number;hasMore?:boolean}={}):object{
+ const archived=options.archived===true,page=options.page??0,scope=archived?'archived':'current';
+ const rows:InlineButton[][]=jobs.map(job=>{
+  const title=String(lang==='uz'?(job.title_uz||job.title_ru||job.title||'Vakansiya'):(job.title_ru||job.title_uz||job.title||'Вакансия'));
+  const state=employerJobState(job),sticker=state.isArchived?'📦':state.isSourceUnavailable?'⛔':state.isUnknown?'⚪️':state.isFilled?'🔴':state.isPaused?'🟡':'🟢';
+  return [{text:sticker+' '+Array.from(title).slice(0,80).join(''),callback_data:'jobview:'+job.id}];
+ });
+ const pages:InlineButton[]=[];
+ if(page>0)pages.push({text:lang==='ru'?'← Назад':'← Oldingi',callback_data:'employerjobs:'+scope+':'+(page-1)});
+ if(options.hasMore)pages.push({text:lang==='ru'?'Далее →':'Keyingi →',callback_data:'employerjobs:'+scope+':'+(page+1)});
+ if(pages.length)rows.push(pages);
+ rows.push([{text:archived?(lang==='ru'?'📋 Мои вакансии':'📋 Mening vakansiyalarim'):(lang==='ru'?'📦 Архив вакансий':'📦 Vakansiyalar arxivi'),callback_data:'employerjobs:'+(archived?'current':'archived')+':0'}]);
+ rows.push([{text:lang==='uz'?'🏠 Menyu':'🏠 Меню',callback_data:'menu:main'}]);return createInlineKeyboard(rows);
 }
-
-export function employerJobViewKeyboard(
-    lang: BotLang,
-    jobId: string,
-    options: { isPaused?: boolean; isFilled?: boolean } = {}
-): object {
-    const isPaused = options.isPaused === true;
-    const isFilled = options.isFilled === true;
-    const rows: InlineButton[][] = [];
-    if (isPaused) {
-        rows.push([{ text: lang === 'uz' ? '🟢 Faollashtirish' : '🟢 Активировать', callback_data: `jobactivate:${jobId}` }]);
-    } else if (!isFilled) {
-        rows.push([{ text: lang === 'uz' ? '🔎 Ishchi topish' : '🔎 Найти кандидатов', callback_data: `matchjob:${jobId}` }]);
-    }
-    if (!isFilled) {
-        rows.push([{ text: lang === 'uz' ? '✅ Xodim topildi' : '✅ Сотрудник найден', callback_data: `jobclose:confirm:${jobId}` }]);
-    }
-    rows.push([{ text: lang === 'uz' ? "🗑️ Vakansiyani o'chirish" : '🗑️ Удалить вакансию', callback_data: `jobdelete:confirm:${jobId}` }]);
-    rows.push([{ text: lang === 'uz' ? '🏠 Menyu' : '🏠 Меню', callback_data: 'menu:main' }]);
-    return createInlineKeyboard(rows);
+export function employerJobViewKeyboard(lang:BotLang,jobId:string,options:{isPaused?:boolean;isFilled?:boolean;isArchived?:boolean;canActivate?:boolean}={}):object{
+ const rows:InlineButton[][]=[];
+ if(options.isArchived)rows.push([{text:lang==='ru'?'♻️ Вернуть в черновики':'♻️ Qoralamaga qaytarish',callback_data:'jobrestore:confirm:'+jobId}]);
+ else{
+  if((options.isPaused||options.isFilled)&&options.canActivate!==false)rows.push([{text:lang==='uz'?'🟢 E’lon qilish':'🟢 Опубликовать',callback_data:'jobactivate:'+jobId}]);
+  else if(!options.isFilled&&!options.isPaused)rows.push([{text:lang==='uz'?'🔎 Ishchi topish':'🔎 Найти кандидатов',callback_data:'matchjob:'+jobId}]);
+  if(!options.isFilled)rows.push([{text:lang==='uz'?'✅ Xodim topildi':'✅ Сотрудник найден',callback_data:'jobclose:confirm:'+jobId}]);
+  rows.push([{text:lang==='uz'?'📦 Arxivga o‘tkazish':'📦 В архив',callback_data:'jobdelete:confirm:'+jobId}]);
+ }
+ rows.push([{text:lang==='ru'?'📋 К списку вакансий':'📋 Vakansiyalar ro‘yxati',callback_data:'employerjobs:'+(options.isArchived?'archived':'current')+':0'}]);rows.push([{text:lang==='uz'?'🏠 Menyu':'🏠 Меню',callback_data:'menu:main'}]);return createInlineKeyboard(rows);
 }
-
-export function jobDeleteConfirmKeyboard(lang: BotLang, jobId: string): object {
-    return createInlineKeyboard([
-        [
-            { text: lang === 'uz' ? "вњ… Ha, o'chirish" : 'вњ… Р”Р°, СѓРґР°Р»РёС‚СЊ', callback_data: `jobdelete:yes:${jobId}` },
-            { text: lang === 'uz' ? "вќЊ Yo'q" : 'вќЊ РќРµС‚', callback_data: `jobdelete:no:${jobId}` }
-        ]
-    ]);
+export function jobRestoreConfirmKeyboard(lang:BotLang,jobId:string):object{
+ return createInlineKeyboard([[{text:lang==='ru'?'✅ Вернуть в черновики':'✅ Qoralamaga qaytarish',callback_data:'jobrestore:yes:'+jobId}],[{text:lang==='ru'?'Отмена':'Bekor qilish',callback_data:'jobrestore:no:'+jobId}]]);
 }
-
-export function jobCloseReasonKeyboard(lang: BotLang, jobId: string): object {
-    return createInlineKeyboard([
-        [{ text: lang === 'uz' ? 'вњ… Xodim topildi' : 'вњ… РЎРѕС‚СЂСѓРґРЅРёРє РЅР°Р№РґРµРЅ', callback_data: `jobclose:reason_hired:${jobId}` }],
-        [{ text: lang === 'uz' ? "вЏё Vaqtincha to'xtatish" : 'вЏё Р’СЂРµРјРµРЅРЅРѕ РїСЂРёРѕСЃС‚Р°РЅРѕРІРёС‚СЊ', callback_data: `jobclose:reason_paused:${jobId}` }],
-        [{ text: lang === 'uz' ? 'в¬…пёЏ Orqaga' : 'в¬…пёЏ РќР°Р·Р°Рґ', callback_data: `jobclose:back:${jobId}` }]
-    ]);
+export function jobDeleteConfirmKeyboard(lang:BotLang,jobId:string):object{
+ return createInlineKeyboard([[{text:lang==='ru'?'📦 Перевести в архив':'📦 Arxivga o‘tkazish',callback_data:'jobdelete:yes:'+jobId}],[{text:lang==='ru'?'Отмена':'Bekor qilish',callback_data:'jobdelete:no:'+jobId}]]);
+}
+export function jobCloseReasonKeyboard(lang:BotLang,jobId:string):object{
+ return createInlineKeyboard([[{text:lang==='ru'?'✅ Сотрудник найден':'✅ Xodim topildi',callback_data:'jobclose:reason_hired:'+jobId}],[{text:lang==='ru'?'⏸️ Временно приостановить':'⏸️ Vaqtincha to‘xtatish',callback_data:'jobclose:reason_paused:'+jobId}],[{text:lang==='ru'?'Отмена':'Bekor qilish',callback_data:'jobclose:back:'+jobId}]]);
 }
 
 export function confirmJobCloseKeyboard(lang: BotLang, jobId: string, reason: 'hired' | 'paused' = 'hired'): object {
@@ -971,19 +957,22 @@ export function confirmJobCloseKeyboard(lang: BotLang, jobId: string, reason: 'h
 
 export function employerApplicationsKeyboard(
     lang: BotLang,
-    applications: Array<{ id: string; applicant?: string | null; jobTitle?: string | null; isUnread?: boolean }>
+    applications: Array<{ id: string; applicant?: string | null; jobTitle?: string | null; isUnread?: boolean }>,
+    paging: { page?: number; nextId?: string } = {}
 ): object {
-    const rows: InlineButton[][] = applications.map(app => {
+    const rows: InlineButton[][] = applications.slice(0, 10).map(app => {
         const name = app.applicant || (lang === 'uz' ? 'Nomzod' : 'Кандидат');
         const jobTitle = app.jobTitle || (lang === 'uz' ? 'Vakansiya' : 'Вакансия');
         const mark = app.isUnread ? '🆕 ' : '';
-        return [{ text: `${mark}${name} — ${jobTitle}`, callback_data: `appview:${app.id}` }];
+        return [{ text: Array.from(`${mark}${name} — ${jobTitle}`).slice(0, 80).join(''), callback_data: `appview:${app.id}` }];
     });
+    if (paging.nextId && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(paging.nextId)) rows.push([{ text: lang === 'ru' ? 'Далее →' : 'Keyingi →', callback_data: 'apps:next:' + paging.nextId }]);
+    if ((paging.page || 0) > 0) rows.push([{ text: lang === 'ru' ? 'К первой странице' : 'Birinchi sahifaga', callback_data: 'apps:list' }]);
     rows.push([{ text: lang === 'uz' ? '⬅️ Orqaga' : '⬅️ Назад', callback_data: 'menu:main' }]);
     return createInlineKeyboard(rows);
 }
 
-export function applicationViewKeyboard(lang: BotLang, applicationId?: string, status?: string): object {
+export function applicationViewKeyboard(lang: BotLang, applicationId?: string, status?: string, hasResume = false): object {
     const rows: InlineButton[][] = [];
     const s = status || 'pending';
     if (applicationId && (s === 'pending' || s === 'reviewed')) {
@@ -1006,6 +995,7 @@ export function applicationViewKeyboard(lang: BotLang, applicationId?: string, s
             { text: lang === 'uz' ? '🚀 Ishga olish' : '🚀 Принять на работу', callback_data: `appdecision:hire:${applicationId}` }
         ]);
     }
+    if (hasResume && applicationId && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(applicationId)) rows.push([{ text: lang === 'uz' ? '📄 To‘liq rezyume' : '📄 Полное резюме', url: 'https://ishdasiz.uz/profile/employer/applications/'+applicationId+'/resume' }]);
     rows.push([{ text: lang === 'uz' ? '⬅️ Orqaga' : '⬅️ Назад', callback_data: 'apps:list' }]);
     return createInlineKeyboard(rows);
 }
@@ -1056,17 +1046,20 @@ export function appFlowSkipKeyboard(lang: BotLang): object {
 
 export function seekerApplicationsListKeyboard(
     lang: BotLang,
-    applications: Array<{ id: string; jobTitle?: string | null; status?: string | null }>
+    applications: Array<{ id: string; jobTitle?: string | null; status?: string | null }>,
+    paging: { page?: number; nextId?: string } = {}
 ): object {
     const statusIcons: Record<string, string> = {
         pending: '🟡', reviewed: '👁️', interview_set: '📅',
         accepted: '✅', rejected: '❌', hired: '🚀'
     };
-    const rows: InlineButton[][] = applications.map((app) => {
+    const rows: InlineButton[][] = applications.slice(0, 10).map((app) => {
         const icon = statusIcons[app.status || 'pending'] || '🟡';
         const title = app.jobTitle || (lang === 'uz' ? 'Vakansiya' : 'Вакансия');
-        return [{ text: `${icon} ${title}`, callback_data: `seekerapp:view:${app.id}` }];
+        return [{ text: Array.from(`${icon} ${title}`).slice(0, 80).join(''), callback_data: `seekerapp:view:${app.id}` }];
     });
+    if (paging.nextId && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(paging.nextId)) rows.push([{ text: lang === 'ru' ? 'Далее →' : 'Keyingi →', callback_data: 'seekerapps:next:' + paging.nextId }]);
+    if ((paging.page || 0) > 0) rows.push([{ text: lang === 'ru' ? 'К первой странице' : 'Birinchi sahifaga', callback_data: 'seekerapps:list' }]);
     rows.push([{ text: lang === 'uz' ? '🏠 Menyu' : '🏠 Меню', callback_data: 'menu:main' }]);
     return createInlineKeyboard(rows);
 }
@@ -1086,10 +1079,10 @@ export function employerDashboardKeyboard(lang: BotLang): object {
     ]);
 }
 
-export function autoMatchNotificationKeyboard(lang: BotLang, jobId: string, matchId: string): object {
+export function autoMatchNotificationKeyboard(lang: BotLang, matchId: string): object {
     return createInlineKeyboard([
-        [{ text: lang === 'uz' ? '📋 Vakansiyani ko\'rish' : '📋 Посмотреть вакансию', callback_data: `automatch:view:${jobId}:${matchId}` }],
-        [{ text: lang === 'uz' ? '✅ Ariza yuborish' : '✅ Откликнуться', callback_data: `automatch:apply:${jobId}:${matchId}` }],
+        [{ text: lang === 'uz' ? '📋 Vakansiyani ko\'rish' : '📋 Посмотреть вакансию', callback_data: `automatch:view:${matchId}` }],
+        [{ text: lang === 'uz' ? '✅ Ariza yuborish' : '✅ Откликнуться', callback_data: `automatch:apply:${matchId}` }],
         [{ text: lang === 'uz' ? '❌ Qiziq emas' : '❌ Не интересно', callback_data: `automatch:skip:${matchId}` }]
     ]);
 }
@@ -1119,22 +1112,31 @@ export function offerSentResultKeyboard(lang: BotLang, hasMoreCandidates: boolea
 
 export function seekerOffersKeyboard(
     lang: BotLang,
-    offers: Array<{ id: string; title?: string | null; company?: string | null; isUnread?: boolean }>
+    offers: Array<{ id: string; title?: string | null; company?: string | null; isUnread?: boolean }>,
+    pagination: { page: number; hasNext: boolean } = { page: 0, hasNext: false }
 ): object {
     const rows: InlineButton[][] = offers.map((offer) => {
         const title = offer.title || (lang === 'uz' ? 'Vakansiya' : 'Вакансия');
         const company = offer.company || (lang === 'uz' ? 'Tashkilot' : 'Компания');
         const mark = offer.isUnread ? '📩 ' : '✉️ ';
-        return [{ text: `${mark}${title} — ${company}`, callback_data: `offer:view:${offer.id}` }];
+        return [{ text: Array.from(`${mark}${title}${offer.company ? ` — ${company}` : ''}`).slice(0, 90).join(''), callback_data: `offer:view:${offer.id}` }];
     });
+    const navigation: InlineButton[] = [];
+    if (pagination.page > 0) navigation.push({ text: lang === 'ru' ? '⬅️ Назад' : '⬅️ Oldingi', callback_data: `offer:page:${pagination.page - 1}` });
+    if (pagination.hasNext) navigation.push({ text: lang === 'ru' ? 'Далее ➡️' : 'Keyingi ➡️', callback_data: `offer:page:${pagination.page + 1}` });
+    if (navigation.length) rows.push(navigation);
     rows.push([{ text: lang === 'uz' ? '🏠 Menyu' : '🏠 Меню', callback_data: 'menu:main' }]);
     return createInlineKeyboard(rows);
 }
 
-export function seekerOfferViewKeyboard(lang: BotLang, offerId: string, jobId?: string | null): object {
+export function seekerOfferViewKeyboard(lang: BotLang, offerId: string, jobId?: string | null, canApply = false): object {
     void offerId;
     void jobId;
     const rows: InlineButton[][] = [];
+    if (jobId && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(jobId)) {
+        if (canApply) rows.push([{ text: lang === 'ru' ? '✅ Откликнуться' : '✅ Ariza yuborish', callback_data: `apply:${jobId}` }]);
+        rows.push([{ text: lang === 'ru' ? 'Открыть вакансию ↗' : 'Vakansiyani ochish ↗', url: `https://ishdasiz.uz/jobs/${jobId}` }]);
+    }
     rows.push([{ text: lang === 'uz' ? '⬅️ Takliflarga qaytish' : '⬅️ Назад к приглашениям', callback_data: 'offer:list' }]);
     rows.push([{ text: lang === 'uz' ? '🏠 Menyu' : '🏠 Меню', callback_data: 'menu:main' }]);
     return createInlineKeyboard(rows);
@@ -1170,7 +1172,7 @@ export function subscriptionFrequencyKeyboard(lang: BotLang): object {
         [{ text: lang === 'uz' ? 'Darhol' : 'Мгновенно', callback_data: 'subs:freq:instant' }],
         [{ text: lang === 'uz' ? 'Kunlik' : 'Ежедневно', callback_data: 'subs:freq:daily' }],
         [{ text: lang === 'uz' ? '⬅️ Orqaga' : '⬅️ Назад', callback_data: 'settings:subscriptions' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1178,7 +1180,7 @@ export function subscriptionGeoKeyboard(lang: BotLang): object {
     return createInlineKeyboard([
         [{ text: lang === 'uz' ? "Ha, joylashuv bo'yicha" : 'Да, по локации', callback_data: 'subs:geo:yes' }],
         [{ text: lang === 'uz' ? "Yo'q, o'zim tanlayman" : 'Нет, выберу сам', callback_data: 'subs:geo:no' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1189,7 +1191,7 @@ export function employmentTypeKeyboard(lang: BotLang): object {
         [{ text: lang === 'uz' ? 'Shartnoma' : 'Договор', callback_data: 'employment:contract' }],
         [{ text: lang === 'uz' ? 'Amaliyot' : 'Стажировка', callback_data: 'employment:internship' }],
         [{ text: lang === 'uz' ? 'Hammasi' : 'Все', callback_data: 'employment:all' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1199,7 +1201,7 @@ export function workModeKeyboard(lang: BotLang): object {
         [{ text: lang === 'uz' ? 'Masofaviy' : 'Удаленно', callback_data: 'workmode:remote' }],
         [{ text: lang === 'uz' ? 'Gibrid' : 'Гибрид', callback_data: 'workmode:hybrid' }],
         [{ text: lang === 'uz' ? 'Hammasi' : 'Все', callback_data: 'workmode:all' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1208,7 +1210,7 @@ export function workingDaysKeyboard(lang: BotLang): object {
         [{ text: lang === 'uz' ? '5 kunlik' : '5-дневка', callback_data: 'workingdays:2' }],
         [{ text: lang === 'uz' ? '6 kunlik' : '6-дневка', callback_data: 'workingdays:1' }],
         [{ text: lang === 'uz' ? 'Hammasi' : 'Все', callback_data: 'workingdays:all' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1385,7 +1387,7 @@ export function salaryMaxKeyboard(lang: BotLang): object {
         ],
         [{ text: lang === 'uz' ? 'Maksimalsiz' : 'Без максимума', callback_data: 'salarymax:all' }],
         [{ text: lang === 'uz' ? '⬅️ Orqaga' : '⬅️ Назад', callback_data: 'back:salary' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1518,7 +1520,7 @@ export function resumeEditKeyboard(lang: BotLang): object {
             { text: lang === 'uz' ? "🎓 O‘qigan joy" : '🎓 Место учебы', callback_data: 'resumeedit:education_place' }
         ],
         [{ text: lang === 'uz' ? '🏠 Bosh menyu' : '🏠 Главное меню', callback_data: 'menu:main' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1529,7 +1531,7 @@ export function aiJobPreviewKeyboard(lang: BotLang): object {
             { text: lang === 'uz' ? 'Qayta' : 'Повторить', callback_data: 'ai:job:retry' }
         ],
         [{ text: lang === 'uz' ? "O'zim to'ldiraman" : 'Заполню сам', callback_data: 'ai:job:cancel' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1540,7 +1542,7 @@ export function aiResumePreviewKeyboard(lang: BotLang): object {
             { text: lang === 'uz' ? 'Qayta' : 'Повторить', callback_data: 'ai:resume:retry' }
         ],
         [{ text: lang === 'uz' ? "O'zim to'ldiraman" : 'Заполню сам', callback_data: 'ai:resume:cancel' }],
-        [{ text: lang === 'uz' ? 'Bekor qilish' : 'Отмена', callback_data: 'cancel' }]
+        [{ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отмена', callback_data: 'cancel' }]
     ]);
 }
 
@@ -1627,7 +1629,7 @@ export function employerMainMenuKeyboard(lang: BotLang): object {
             { text: lang === 'uz' ? '📨 Arizalar' : '📨 Отклики' }
         ],
         [
-            { text: lang === 'uz' ? '📊 Dashboard' : '📊 Dashboard' }
+            { text: lang === 'uz' ? '📊 Kompaniya statistikasi' : '📊 Статистика компании' }
         ],
         [
             { text: lang === 'uz' ? '⚙️ Sozlamalar' : '⚙️ Настройки' },
@@ -1638,7 +1640,7 @@ export function employerMainMenuKeyboard(lang: BotLang): object {
 
 export function employerJobsKeyboard(
     lang: BotLang,
-    jobs: Array<{ id: string; title_uz?: string; title_ru?: string; title?: string | null; status?: string | null; is_active?: boolean | null }>
+    jobs: Array<{ id: string; title_uz?: string | null; title_ru?: string | null; title?: string | null; status?: string | null; is_active?: boolean | null }>
 ): object {
     const rows: InlineButton[][] = jobs.map(job => {
         const title = lang === 'uz'
@@ -1792,15 +1794,30 @@ export function resumeSearchOnlyKeyboard(lang: BotLang): object {
 
 export function resumeListKeyboard(
     lang: BotLang,
-    resumes: Array<{ id: string; title?: string | null; created_at?: string | null }>
+    resumes: Array<{ id: string; title?: string | null; status?: string | null; is_public?: boolean | null }>,
+    paging: { scope?: 'current' | 'archive' | 'search'; page?: number; nextId?: string } = {}
 ): object {
-    const rows: InlineButton[][] = resumes.map(r => {
-        const title = r.title || (lang === 'uz' ? 'Rezyume' : 'Резюме');
-        return [{ text: `🟢 ${title}`, callback_data: `resume_view:${r.id}` }];
+    const scope=paging.scope||'current';
+    const rows:InlineButton[][]=resumes.slice(0,10).map(row=>{
+        const icon=row.status==='archived'?'⚪':row.status==='active'?row.is_public?'🟢':'🔒':'🟡';
+        const title=row.title||(lang==='ru'?'Резюме':'Rezyume');
+        return [{text:Array.from(icon+' '+title).slice(0,80).join(''),callback_data:(scope==='search'?'resume_search:':'resume_view:')+row.id}];
     });
-    rows.push([{ text: lang === 'uz' ? "🧾 Yangi rezyume qo'shish" : '🧾 Добавить новое резюме', callback_data: 'resume_new' }]);
-    rows.push([{ text: lang === 'uz' ? '🏠 Bosh menyu' : '🏠 Главное меню', callback_data: 'menu:main' }]);
+    if(paging.nextId&&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(paging.nextId))rows.push([{text:lang==='ru'?'Далее →':'Keyingi →',callback_data:'resumepage:'+scope+':'+paging.nextId}]);
+    if((paging.page||0)>0)rows.push([{text:lang==='ru'?'К первой странице':'Birinchi sahifaga',callback_data:'resumepage:'+scope}]);
+    rows.push([{text:lang==='ru'?'🧾 Добавить новое резюме':'🧾 Yangi rezyume qo‘shish',callback_data:'resume_new'}]);
+    rows.push([{text:scope==='archive'||scope==='search'?(lang==='ru'?'Мои резюме':'Mening rezyumelarim'):(lang==='ru'?'Архив резюме':'Rezyumelar arxivi'),callback_data:'resumepage:'+(scope==='archive'||scope==='search'?'current':'archive')}]);
+    rows.push([{text:lang==='ru'?'🏠 Главное меню':'🏠 Bosh menyu',callback_data:'menu:main'}]);
     return createInlineKeyboard(rows);
+}
+
+export function resumeReturnKeyboard(lang: BotLang): object {
+    return createInlineKeyboard([[{text:lang==='ru'?'Мои резюме':'Mening rezyumelarim',callback_data:'resumepage:current'}],[{text:lang==='ru'?'🏠 Меню':'🏠 Menyu',callback_data:'menu:main'}]]);
+}
+
+export function confirmResumeActionKeyboard(lang: BotLang, action: string): object {
+    if(!['archive','restore','publish','hide'].includes(action))return resumeReturnKeyboard(lang);
+    return createInlineKeyboard([[{text:lang==='ru'?'✅ Подтвердить':'✅ Tasdiqlash',callback_data:action==='archive'?'resume:confirm_delete':'resume:confirm_'+action}],[{text:lang==='ru'?'Отмена':'Bekor qilish',callback_data:'resume:cancel_action'}]]);
 }
 
 export function helpSupportKeyboard(lang: BotLang): object {
@@ -1816,22 +1833,22 @@ export function helpSupportKeyboard(lang: BotLang): object {
     ]);
 }
 
-export function resumeOptionsKeyboard(lang: BotLang): object {
-    return createInlineKeyboard([
-        [{ text: lang === 'uz' ? '🔎 Ish qidirish' : '🔎 Найти работу', callback_data: 'action:search' }],
-        [{ text: lang === 'uz' ? "✏️ Ma'lumotlarni yangilash" : '✏️ Обновить данные', callback_data: 'resume:update' }],
-        [{ text: lang === 'uz' ? "🗑️ O'chirish" : '🗑️ Удалить', callback_data: 'resume:delete_confirm' }],
-        [{ text: lang === 'uz' ? '🏠 Bosh menyu' : '🏠 Главное меню', callback_data: 'menu:main' }]
-    ]);
+export function resumeOptionsKeyboard(lang: BotLang, resume: { status?: string | null; is_public?: boolean | null; found_job?: boolean } = {status:'active',is_public:true}): object {
+    const rows:InlineButton[][]=[];
+    if(resume.status==='archived')rows.push([{text:lang==='ru'?'↩️ Восстановить в черновики':'↩️ Qoralamaga tiklash',callback_data:'resume:restore_confirm'}]);
+    else {
+        if(resume.status==='active')rows.push([{text:lang==='ru'?'🔎 Найти работу':'🔎 Ish qidirish',callback_data:'action:search'}]);
+        rows.push([{text:lang==='ru'?'✏️ Обновить данные':'✏️ Ma’lumotlarni yangilash',callback_data:'resume:update'}]);
+        rows.push([{text:resume.status==='active'&&resume.is_public&&!resume.found_job?(lang==='ru'?'🔒 Скрыть из поиска':'🔒 Qidiruvdan yashirish'):(lang==='ru'?'📣 Опубликовать':'📣 E’lon qilish'),callback_data:resume.status==='active'&&resume.is_public&&!resume.found_job?'resume:hide_confirm':'resume:publish_confirm'}]);
+        rows.push([{text:lang==='ru'?'🗃️ В архив':'🗃️ Arxivga',callback_data:'resume:delete_confirm'}]);
+    }
+    rows.push([{text:lang==='ru'?'Мои резюме':'Mening rezyumelarim',callback_data:'resumepage:current'}]);
+    rows.push([{text:lang==='ru'?'🏠 Главное меню':'🏠 Bosh menyu',callback_data:'menu:main'}]);
+    return createInlineKeyboard(rows);
 }
 
 export function confirmResumeDeleteKeyboard(lang: BotLang): object {
-    return createInlineKeyboard([
-        [
-            { text: lang === 'uz' ? "🗑️ Ha, o'chirish" : '🗑️ Да, удалить', callback_data: 'resume:confirm_delete' },
-            { text: lang === 'uz' ? "❌ Yo'q" : '❌ Нет', callback_data: 'resume:cancel_delete' }
-        ]
-    ]);
+    return confirmResumeActionKeyboard(lang,'archive');
 }
 
 export function regionFallbackKeyboard(lang: BotLang): object {

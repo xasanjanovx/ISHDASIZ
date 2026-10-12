@@ -1,9 +1,9 @@
 /**
  * Unified AI Search Endpoint
- * 
+ *
  * Serves both website and Telegram bot
  * Features: Moderation, Rate Limiting, Caching, Smart/Eco modes, Fallback
- * 
+ *
  * POST /api/ai/search
  * Body: { query, userId?, platform?, lang? }
  */
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         region_name, district_name,
         employment_type, source_url
       `)
-            .eq('is_active', true)
+            .eq('ishdasiz_job_available', true)
             .eq('status', 'active')
             .order('created_at', { ascending: false })
             .limit(15);

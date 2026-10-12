@@ -121,7 +121,7 @@ export function EmployerAuth() {
 
             {/* Notice */}
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-amber-700">
                     {lang === 'ru'
                         ? 'После регистрации вы сможете верифицировать компанию через OneID или ERI.'
@@ -131,7 +131,7 @@ export function EmployerAuth() {
 
             {/* Phone Input */}
             <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label htmlFor="employer-login-phone" className="text-sm font-medium text-slate-700">
                     {lang === 'ru' ? 'Номер телефона' : 'Telefon raqami'}
                 </Label>
                 <div className="relative">
@@ -140,6 +140,8 @@ export function EmployerAuth() {
                         <span>+998</span>
                     </div>
                     <Input
+                        id="employer-login-phone"
+                        autoComplete="tel-national"
                         type="tel"
                         value={phone}
                         onChange={handlePhoneChange}

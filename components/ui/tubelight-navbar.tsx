@@ -19,18 +19,13 @@ interface NavBarProps {
 }
 
 export function NavBar({ items, className, activeTab, onTabChange }: NavBarProps) {
-  const [currentTab, setCurrentTab] = React.useState(activeTab || items[0]?.name)
+  const [selectedTab, setCurrentTab] = React.useState<string>()
+  const currentTab = activeTab ?? (items.some(item => item.name === selectedTab) ? selectedTab : items[0]?.name)
 
   const handleClick = (name: string) => {
     setCurrentTab(name)
     onTabChange?.(name)
   }
-
-  React.useEffect(() => {
-    if (activeTab) {
-      setCurrentTab(activeTab)
-    }
-  }, [activeTab])
 
   return (
     <div className={cn("flex items-center gap-2", className)}>

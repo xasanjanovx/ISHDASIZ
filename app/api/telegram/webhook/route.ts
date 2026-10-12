@@ -1,62 +1,32 @@
-/**
- * Telegram Webhook Handler
- * Receives updates from Telegram Bot API
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { telegramBot } from '@/lib/telegram/telegram-bot';
+import { timingSafeEqual } from 'crypto';
 
-// Verify webhook request is from Telegram
-function verifyRequest(request: NextRequest): boolean {
-    // Optional: verify secret token in header
-    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-    if (secret) {
-        const headerSecret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
-        if (headerSecret !== secret) {
-            console.warn('Invalid webhook secret');
-            return false;
-        }
-    }
-    return true;
-}
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    const incoming = request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '';
+    if (!secret || Buffer.byteLength(incoming) !== Buffer.byteLength(secret)
+        || !timingSafeEqual(Buffer.from(incoming), Buffer.from(secret))) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!process.env.TELEGRAM_BOT_TOKEN) return NextResponse.json({ error: 'Bot not configured' }, { status: 503 });
+    const update = await request.json().catch(() => null);
+    if (!update || !Number.isSafeInteger(update.update_id)) {
+        return NextResponse.json({ error: 'Invalid update' }, { status: 400 });
+    }
     try {
-        // Verify request
-        if (!verifyRequest(request)) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        // Check bot token is configured
-        if (!process.env.TELEGRAM_BOT_TOKEN) {
-            console.error('TELEGRAM_BOT_TOKEN is not configured');
-            return NextResponse.json({ error: 'Bot not configured' }, { status: 500 });
-        }
-
-        // Parse update
-        const update = await request.json();
-        console.log('📨 Telegram update:', JSON.stringify(update, null, 2));
-
-        // Handle update asynchronously (don't block response)
-        // Process in background but don't await to respond quickly
-        telegramBot.handleUpdate(update).catch(err => {
-            console.error('Bot handler error:', err);
-        });
-
-        // Always return 200 OK to Telegram
+        const { telegramBot } = await import('@/lib/telegram/telegram-bot');
+        // Serverless hosts can freeze work after a response. Complete handling first.
+        await telegramBot.handleUpdate(update);
         return NextResponse.json({ ok: true });
-
-    } catch (error) {
-        console.error('Webhook error:', error);
-        // Return 200 anyway to prevent Telegram from retrying
-        return NextResponse.json({ ok: true });
+    } catch {
+        console.error('Telegram webhook processing failed');
+        return NextResponse.json({ error: 'Update processing failed' }, { status: 503 });
     }
 }
 
-// Telegram may send GET to verify webhook
 export async function GET() {
-    return NextResponse.json({
-        status: 'Telegram Bot Webhook Active',
-        bot: 'ishdasizbot'
-    });
+    return NextResponse.json({ configured: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_WEBHOOK_SECRET) });
 }

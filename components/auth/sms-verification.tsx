@@ -18,7 +18,9 @@ export function SmsVerification() {
     const [code, setCode] = useState(['', '', '', '', '']);
     const [isLoading, setIsLoading] = useState(false);
     const [timer, setTimer] = useState(60);
-    const [canResend, setCanResend] = useState(false);
+    const canResend = timer === 0;
+    const [needsRestoration, setNeedsRestoration] = useState(false);
+    const requestLock = useRef(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     // Timer countdown
@@ -28,8 +30,6 @@ export function SmsVerification() {
                 setTimer((prev) => prev - 1);
             }, 1000);
             return () => clearInterval(interval);
-        } else {
-            setCanResend(true);
         }
     }, [timer]);
 
@@ -70,7 +70,8 @@ export function SmsVerification() {
 
     const handleVerify = async () => {
         const fullCode = code.join('');
-        if (fullCode.length !== 5) return;
+        if (fullCode.length !== 5 || requestLock.current) return;
+        requestLock.current = true;
 
         setIsLoading(true);
         const fullPhone = `+998${phoneNumber.replace(/\D/g, '')}`;
@@ -91,11 +92,12 @@ export function SmsVerification() {
                 return;
             }
 
+            if (data.needsRestoration) { setNeedsRestoration(true); return; }
             // OTP verified successfully
             toast.success(lang === 'ru' ? 'Код подтверждён!' : 'Kod tasdiqlandi!');
 
             // Check if user needs to create password or this is a password reset
-            if (isNewUser || isPasswordReset || !data.user?.password_hash) {
+            if (isNewUser || isPasswordReset || !data.hasPassword) {
                 // Go to password creation step
                 setStep('password_create');
             } else {
@@ -112,12 +114,15 @@ export function SmsVerification() {
             console.error(err);
             toast.error(lang === 'ru' ? 'Ошибка проверки' : 'Tekshirishda xatolik');
             setIsLoading(false);
+        } finally {
+            requestLock.current = false;
+            setIsLoading(false);
         }
     };
 
     const handleResend = async () => {
-        setTimer(60);
-        setCanResend(false);
+        if (!canResend || isLoading) return;
+        setIsLoading(true);
 
         const fullPhone = `+998${phoneNumber.replace(/\D/g, '')}`;
 
@@ -133,6 +138,9 @@ export function SmsVerification() {
             if (!res.ok) {
                 toast.error(data.error || 'Resend failed');
             } else {
+                setTimer(60);
+                setCode(['', '', '', '', '']);
+                inputRefs.current[0]?.focus();
                 toast.success(lang === 'ru' ? 'SMS отправлен снова' : 'SMS qayta yuborildi');
                 // In dev mode, show the code
                 if (data.dev_code) {
@@ -141,6 +149,8 @@ export function SmsVerification() {
             }
         } catch (err) {
             toast.error('Network error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -158,6 +168,25 @@ export function SmsVerification() {
         return lang === 'ru' ? 'Введите код' : 'Kodni kiriting';
     };
 
+    if (needsRestoration) return <div className="space-y-5">
+        <h2 className="text-xl font-semibold">{lang==='ru'?'Восстановить аккаунт?':'Akkaunt tiklansinmi?'}</h2>
+        <p className="text-slate-600">{lang==='ru'?'Номер подтверждён. Ваши профили и переписка сохранятся, а вакансии и резюме вернутся к прежним настройкам видимости.':'Raqam tasdiqlandi. Profillar va yozishmalar saqlanadi, vakansiyalar va rezyumelarning oldingi ko‘rinish sozlamalari qaytadi.'}</p>
+        <Button disabled={isLoading} onClick={async()=>{
+            if(requestLock.current)return;
+            requestLock.current=true;setIsLoading(true);
+            try {
+                const role=userRole==='seeker'?'job_seeker':'employer';
+                const response=await fetch('/api/auth/restore-account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:true,role})});
+                const data=await response.json();
+                if(!response.ok) { toast.error(lang==='ru'?'Восстановление не выполнено. Если код истёк, получите новый SMS.':'Tiklash bajarilmadi. Kod muddati tugagan bo‘lsa, yangi SMS oling.');return; }
+                if(isPasswordReset || !data.hasPassword) { setStep('password_create');return; }
+                login(data.user);closeModal();router.push(data.user.active_role==='employer'?'/profile/employer':'/profile/job-seeker');
+            } catch { toast.error(lang==='ru'?'Ошибка соединения. Попробуйте ещё раз.':'Ulanishda xatolik. Qayta urinib ko‘ring.'); }
+            finally {requestLock.current=false;setIsLoading(false);}
+        }}>{isLoading?(lang==='ru'?'Восстанавливаем…':'Tiklanmoqda…'):(lang==='ru'?'Подтвердить восстановление':'Tiklashni tasdiqlash')}</Button>
+        <Button variant="outline" disabled={isLoading} onClick={closeModal}>{lang==='ru'?'Оставить аккаунт закрытым':'Akkauntni yopiq qoldirish'}</Button>
+        <Button variant="ghost" disabled={isLoading} onClick={()=>{setNeedsRestoration(false);setCode(['','','','','']);}}>{lang==='ru'?'Получить новый код':'Yangi kod olish'}</Button>
+    </div>;
     return (
         <div className="space-y-6">
             {/* Header */}

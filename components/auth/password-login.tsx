@@ -29,6 +29,7 @@ export function PasswordLogin() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+    const [needsRestoration, setNeedsRestoration] = useState(false);
 
     const fullPhone = `+998${phoneNumber.replace(/\D/g, '')}`;
     const formattedPhone = `+998 ${phoneNumber}`;
@@ -49,6 +50,7 @@ export function PasswordLogin() {
             const data = await res.json();
 
             if (!res.ok) {
+                setNeedsRestoration(data.needsRestoration === true);
                 if (data.locked) {
                     setError(data.error);
                     setAttemptsRemaining(0);
@@ -145,6 +147,15 @@ export function PasswordLogin() {
 
     return (
         <div className="space-y-5">
+            {needsRestoration && <Button variant="outline" disabled={isLoading} onClick={async()=>{
+                setIsLoading(true);setError('');
+                try {
+                    const response=await fetch('/api/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:fullPhone})});
+                    if(!response.ok) throw new Error('SMS failed');
+                    setIsPasswordReset(false);setStep('sms');
+                } catch { setError(lang==='ru'?'Не удалось отправить SMS. Попробуйте ещё раз.':'SMS yuborib bo‘lmadi. Qayta urinib ko‘ring.'); }
+                finally {setIsLoading(false);}
+            }}>{lang==='ru'?'Восстановить аккаунт по SMS':'Akkauntni SMS orqali tiklash'}</Button>}
             {/* Header */}
             <div className="text-center space-y-2">
                 <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg shadow-sky-500/30">
@@ -161,7 +172,7 @@ export function PasswordLogin() {
             {/* Error Message */}
             {error && (
                 <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                     <div>
                         <p className="text-sm text-red-700">{error}</p>
                         {attemptsRemaining !== null && attemptsRemaining > 0 && (

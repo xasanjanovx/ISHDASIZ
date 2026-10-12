@@ -113,34 +113,40 @@ export function applyTelegramTheme() {
     }
 }
 
-export async function authenticateWithTelegram(): Promise<{
-    success: boolean;
-    user?: any;
-    error?: string;
-}> {
+export type TelegramAuthResult = { success: true; user: TelegramAccount } | { success: false; error: 'link' | 'closed' | 'expired' | 'conflict' | 'unavailable' | 'cancelled' };
+export interface TelegramAccount {
+    id: string; phone: string; active_role: 'job_seeker' | 'employer';
+    has_job_seeker_profile: boolean; has_employer_profile: boolean;
+    full_name?: string; company_name?: string; is_verified?: boolean;
+}
+export async function authenticateWithTelegram(signal?: AbortSignal): Promise<TelegramAuthResult> {
     const initData = getTelegramInitData();
-    if (!initData) {
-        return { success: false, error: 'Not in Telegram WebApp' };
-    }
-
+    if (!initData) return { success: false, error: 'unavailable' };
     try {
         const response = await fetch('/api/telegram/webapp-auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData })
+            method: 'POST', cache: 'no-store', credentials: 'same-origin', signal,
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData }),
         });
-
         const data = await response.json();
-
-        if (!response.ok) {
-            return { success: false, error: data.error || 'Auth failed' };
+        if (signal?.aborted) return { success: false, error: 'cancelled' };
+        if (!response.ok) return { success: false, error: data?.account_conflict ? 'conflict' : data?.requires_link ? 'link' : data?.needsRestoration ? 'closed' : response.status === 401 ? 'expired' : 'unavailable' };
+        const user = data?.user;
+        if (data?.success !== true || !user || typeof user.id !== 'string' || !user.id || typeof user.phone !== 'string'
+            || !['job_seeker', 'employer'].includes(user.active_role) || typeof user.has_job_seeker_profile !== 'boolean' || typeof user.has_employer_profile !== 'boolean') {
+            return { success: false, error: 'unavailable' };
         }
-
-        return { success: true, user: data.user };
-    } catch (error) {
-        console.error('Telegram auth error:', error);
-        return { success: false, error: 'Network error' };
+        return { success: true, user };
+    } catch {
+        return { success: false, error: signal?.aborted ? 'cancelled' : 'unavailable' };
     }
+}
+
+// The SDK script is async; subscribe to its load event as well as the initial snapshot.
+export function subscribeTelegram(listener: () => void) {
+    const script = document.querySelector('script[src="https://telegram.org/js/telegram-web-app.js"]');
+    script?.addEventListener('load', listener);
+    window.addEventListener('pageshow', listener);
+    return () => { script?.removeEventListener('load', listener); window.removeEventListener('pageshow', listener); };
 }
 
 export function initTelegramWebApp() {

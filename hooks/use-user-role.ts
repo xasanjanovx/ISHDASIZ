@@ -1,60 +1,9 @@
 'use client';
-
-import { useState, useEffect, useCallback } from 'react';
-
+import { useSyncExternalStore } from 'react';
+import { createBrowserPreferenceStore } from '@/lib/browser-preference-store';
 export type UserRole = 'employer' | 'seeker' | null;
-
-const STORAGE_KEY = 'ishdasiz_user_role';
-
-interface UseUserRoleReturn {
-    role: UserRole;
-    setRole: (role: UserRole) => void;
-    clearRole: () => void;
-    isLoading: boolean;
-}
-
-/**
- * Hook to manage user role selection stored in localStorage
- * Handles hydration safely by returning loading state initially
- */
-export function useUserRole(): UseUserRoleReturn {
-    const [role, setRoleState] = useState<UserRole>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Read from localStorage on mount (client-side only)
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored === 'employer' || stored === 'seeker') {
-                setRoleState(stored);
-            }
-        } catch (e) {
-            console.warn('Failed to read user role from localStorage:', e);
-        }
-        setIsLoading(false);
-    }, []);
-
-    const setRole = useCallback((newRole: UserRole) => {
-        try {
-            if (newRole) {
-                localStorage.setItem(STORAGE_KEY, newRole);
-            } else {
-                localStorage.removeItem(STORAGE_KEY);
-            }
-            setRoleState(newRole);
-        } catch (e) {
-            console.warn('Failed to save user role to localStorage:', e);
-        }
-    }, []);
-
-    const clearRole = useCallback(() => {
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-            setRoleState(null);
-        } catch (e) {
-            console.warn('Failed to clear user role from localStorage:', e);
-        }
-    }, []);
-
-    return { role, setRole, clearRole, isLoading };
+const roles = createBrowserPreferenceStore<UserRole>('ishdasiz_user_role', null, value => value === 'employer' || value === 'seeker' ? value : null, value => value || 'null');
+export function useUserRole() {
+  const snapshot = useSyncExternalStore(roles.subscribe, roles.getSnapshot, roles.getServerSnapshot);
+  return { role: snapshot.value, isLoading: !snapshot.ready, setRole: (role: UserRole) => role === null ? roles.clear() : roles.update(() => role), clearRole: roles.clear };
 }

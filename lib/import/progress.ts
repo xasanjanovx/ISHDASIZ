@@ -1,0 +1,10 @@
+export type ImportProgress={id:string;state:'running'|'completed'|'failed'|'abandoned';phase:'list'|'details'|'verify'|'done';started_at:string;completed_at:string|null;total:number|null;listed:number;processed:number;failed:number;verified:number;new_imported:number;updated:number;skipped_closed:number;next_page:number;verify_page:number;last_error:string|null;next_retry_at:string|null;busy:boolean};
+const uuid=(value:unknown)=>typeof value==='string'&&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value);
+const stamp=(value:unknown)=>typeof value==='string'&&Number.isFinite(Date.parse(value));
+export function importProgress(value:any):ImportProgress{
+ if(!value||!uuid(value.id)||!['running','completed','failed','abandoned'].includes(value.state)||!['list','details','verify','done'].includes(value.phase)||typeof value.busy!=='boolean'||!stamp(value.started_at)||value.completed_at!==null&&!stamp(value.completed_at)||value.next_retry_at!==null&&!stamp(value.next_retry_at))throw new Error('Import progress unavailable');
+ for(const key of ['listed','processed','failed','verified','new_imported','updated','skipped_closed','next_page','verify_page'])if(!Number.isSafeInteger(value[key])||value[key]<0||value[key]>100000)throw new Error('Import progress unavailable');
+ if(value.total!==null&&(!Number.isSafeInteger(value.total)||value.total<0||value.total>100000)||value.last_error!==null&&!['source_unavailable','detail_unavailable','snapshot_changed','snapshot_expired','write_failed','permission_changed','invalid_data','request_timeout'].includes(value.last_error)||value.processed+value.failed>value.listed||value.verified>value.listed||value.new_imported+value.updated+value.skipped_closed>value.processed||value.total!==null&&value.listed>value.total||value.next_page<1||value.verify_page<1)throw new Error('Import progress unavailable');
+ const keys='id,state,phase,started_at,completed_at,total,listed,processed,failed,verified,new_imported,updated,skipped_closed,next_page,verify_page,last_error,next_retry_at,busy'.split(',');
+ return Object.fromEntries(keys.map(key=>[key,value[key]])) as ImportProgress;
+}

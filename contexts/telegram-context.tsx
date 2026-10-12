@@ -1,94 +1,52 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import {
-    isTelegramWebApp,
-    initTelegramWebApp,
-    authenticateWithTelegram,
-    getTelegramWebApp
-} from '@/lib/telegram-webapp';
-import { useAuth } from '@/contexts/auth-context';
+import { isTelegramWebApp, initTelegramWebApp, getTelegramWebApp, subscribeTelegram, type TelegramAuthResult } from '@/lib/telegram-webapp';
+import { useUserAuth } from '@/contexts/user-auth-context';
 
-interface TelegramContextType {
-    isTelegram: boolean;
-    user: any;
-    isLoading: boolean;
-}
-
-const TelegramContext = createContext<TelegramContextType>({
-    isTelegram: false,
-    user: null,
-    isLoading: true
-});
-
+type TelegramError = Exclude<TelegramAuthResult, { success: true }>['error'] | null;
+const TelegramContext = createContext({ isTelegram: false, user: null as ReturnType<typeof useUserAuth>['user'], isLoading: false, error: null as TelegramError, retry: () => {} });
 export const useTelegram = () => useContext(TelegramContext);
 
 export function TelegramProvider({ children }: { children: React.ReactNode }) {
-    const [isTelegram, setIsTelegram] = useState(false);
-    const [user, setUser] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const router = useRouter();
-    const pathname = usePathname();
-    const { signIn } = useAuth(); // Assuming auth context has a manual sign-in mechanism or we just sync session
+    const isTelegram = useSyncExternalStore(subscribeTelegram, isTelegramWebApp, () => false);
+    const { user, isLoading: restoring, loginWithTelegram } = useUserAuth();
+    const [state, setState] = useState<{ loading: boolean; error: TelegramError }>({ loading: false, error: null });
+    const [attempt, setAttempt] = useState(0);
+    const attempted = useRef(false), mounted = useRef(false), generation = useRef(0);
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+    const router = useRouter(), pathname = usePathname();
+    const retry = useCallback(() => { attempted.current = false; setAttempt(value => value + 1); }, []);
 
-    useEffect(() => {
-        // Detect Telegram environment
-        if (isTelegramWebApp()) {
-            setIsTelegram(true);
-            initTelegramWebApp();
-
-            // Handle Authentication
-            authenticateWithTelegram().then((result) => {
-                if (result.success && result.user) {
-                    setUser(result.user);
-                    // Here you might want to sync with your main app auth state if needed
-                    // e.g., set cookie, update global auth context
-                }
-                setIsLoading(false);
-            });
-
-            // Setup Theme
-            const webApp = getTelegramWebApp();
-            if (webApp) {
-                // Ensure header color matches app
-                webApp.setHeaderColor(webApp.themeParams.bg_color || '#ffffff');
-                webApp.setBackgroundColor(webApp.themeParams.bg_color || '#ffffff');
-            }
-
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Handle Native Back Button
     useEffect(() => {
         if (!isTelegram) return;
+        try {
+            initTelegramWebApp();
+            const app = getTelegramWebApp(); app?.setHeaderColor('#ffffff'); app?.setBackgroundColor('#f8fafc');
+        } catch { /* An unsupported native method must not prevent ordinary navigation. */ }
+    }, [isTelegram]);
 
-        const webApp = getTelegramWebApp();
-        if (!webApp) return;
+    useEffect(() => {
+        if (!isTelegram || restoring || user || attempted.current) return;
+        const controller = new AbortController(), revision = ++generation.current; let cancelled = false;
+        queueMicrotask(async () => {
+            if (cancelled || attempted.current) return;
+            attempted.current = true; setState({ loading: true, error: null });
+            const result = await loginWithTelegram(controller.signal);
+            if (!mounted.current || revision !== generation.current) return;
+            setState({ loading: false, error: result.success || result.error === 'cancelled' ? null : result.error });
+        });
+        return () => { cancelled = true; controller.abort(); };
+    }, [isTelegram, restoring, user, attempt, loginWithTelegram]);
 
-        const handleBack = () => {
-            router.back();
-        };
-
-        if (pathname !== '/') {
-            webApp.BackButton.show();
-            webApp.BackButton.onClick(handleBack);
-        } else {
-            webApp.BackButton.hide();
-        }
-
-        return () => {
-            webApp.BackButton.offClick(handleBack);
-        };
+    useEffect(() => {
+        if (!isTelegram) return;
+        const app = getTelegramWebApp(); if (!app) return;
+        const back = () => router.back();
+        try { if (pathname !== '/') { app.BackButton.show(); app.BackButton.onClick(back); } else app.BackButton.hide(); } catch { /* Native navigation is optional. */ }
+        return () => { try { app.BackButton.offClick(back); app.BackButton.hide(); } catch { /* Native navigation is optional. */ } };
     }, [isTelegram, pathname, router]);
 
-    return (
-        <TelegramContext.Provider value={{ isTelegram, user, isLoading }}>
-            <div className={isTelegram ? 'telegram-app' : ''}>
-                {children}
-            </div>
-        </TelegramContext.Provider>
-    );
+    return <TelegramContext.Provider value={{ isTelegram, user, isLoading: isTelegram && !user && (restoring || state.loading), error: user ? null : state.error, retry }}><div className={isTelegram ? 'telegram-app' : ''}>{children}</div></TelegramContext.Provider>;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { Button } from '@/components/ui/button';
 import { NavBar } from '@/components/ui/tubelight-navbar';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,8 @@ import {
 import { Menu, Home, Briefcase, BarChart3, LogIn, User, Settings, LogOut, Building2, Shield, Eye, FileText, MessageCircle } from '@/components/ui/icons';
 import { useAuthModal } from '@/contexts/auth-modal-context';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { useNotificationCounts } from '@/hooks/use-notification-counts';
+
 
 const languageLabels = {
   uz: "O'ZB",
@@ -39,157 +40,12 @@ export default function Header() {
   const router = useRouter();
   const { openModal } = useAuthModal();
 
-  const [activeTab, setActiveTab] = useState('Bosh sahifa');
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [unreadApplications, setUnreadApplications] = useState(0);
-
-  // Check if admin is logged in
+  const activeTab = pathname === '/' ? (lang === 'uz' ? 'Bosh sahifa' : 'Главная')
+    : pathname.startsWith('/jobs') ? (lang === 'uz' ? 'Vakansiyalar' : 'Вакансии')
+    : pathname.startsWith('/resumes') ? (lang === 'uz' ? 'Rezyumelar' : 'Резюме') : '';
+  const { messages: unreadMessages, applications: unreadApplications } = useNotificationCounts(user?.id, user?.active_role || 'job_seeker');
   const isAdmin = !!adminUser && !!adminProfile;
 
-  // Fetch unread counts
-  useEffect(() => {
-    const fetchCounts = async () => {
-      if (!user?.id) return;
-
-      try {
-        // First get user's conversations with role info
-        const { data: userConvs } = await supabase
-          .from('conversations')
-          .select('id, user1_id, user2_id, user1_role, user2_role')
-          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-
-        if (userConvs && userConvs.length > 0) {
-          // Filter conversations by active role
-          // If I am 'employer', I only want to count messages in chats where I am acting as employer
-          const filteredIds = userConvs
-            .filter(c => {
-              const myRole = c.user1_id === user.id ? c.user1_role : c.user2_role;
-              // If role is defined in DB, it MUST match my active role
-              // If role is NOT defined (legacy), we include it to be safe (or could exclude, but inclusion is safer/default)
-              if (myRole && user.active_role && myRole !== user.active_role) {
-                return false;
-              }
-              return true;
-            })
-            .map(c => c.id);
-
-          if (filteredIds.length === 0) {
-            setUnreadMessages(0);
-            return;
-          }
-
-          // Count unread messages in filtered conversations
-          const { count: msgCount } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .in('conversation_id', filteredIds)
-            .eq('is_read', false)
-            .neq('sender_id', user.id);
-
-          setUnreadMessages(msgCount || 0);
-        } else {
-          setUnreadMessages(0);
-        }
-      } catch (err) {
-        console.error('Error fetching unread counts', err);
-      }
-    };
-
-    const fetchAppCounts = async () => {
-      if (!user?.id) return;
-      try {
-        if (user.active_role === 'employer') {
-          // For employers: count pending applications on their jobs
-          const { data: myJobs } = await supabase
-            .from('jobs')
-            .select('id')
-            .eq('created_by', user.id);
-
-          if (myJobs && myJobs.length > 0) {
-            const jobIds = myJobs.map(j => j.id);
-            const { count: appCount } = await supabase
-              .from('job_applications')
-              .select('*', { count: 'exact', head: true })
-              .in('job_id', jobIds)
-              .eq('status', 'pending');
-            setUnreadApplications(appCount || 0);
-          }
-        } else {
-          // For job seekers: count applications with status changes that HAVEN'T been seen yet
-          try {
-            const { count: appCount, error } = await supabase
-              .from('job_applications')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id)
-              .in('status', ['viewed', 'accepted', 'rejected'])
-              .eq('is_seen_by_job_seeker', false); // Only count unseen updates
-
-            if (error && error.code === '42703') {
-              // Fallback if column doesn't exist yet - old behavior
-              const { count: fallbackCount } = await supabase
-                .from('job_applications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .in('status', ['viewed', 'accepted']);
-              setUnreadApplications(fallbackCount || 0);
-            } else {
-              setUnreadApplications(appCount || 0);
-            }
-          } catch (e) {
-            setUnreadApplications(0);
-          }
-        }
-      } catch (e) { console.error('Error fetching app counts', e) }
-    };
-
-    fetchCounts();
-    fetchAppCounts();
-
-    // Listen for messagesRead custom event from chat pages
-    const handleMessagesRead = () => {
-      console.log('messagesRead event received, refreshing counts');
-      fetchCounts();
-    };
-    window.addEventListener('messagesRead', handleMessagesRead);
-
-    // Listen for applicationsRead custom event from applications page
-    const handleApplicationsRead = () => {
-      console.log('applicationsRead event received, refreshing counts');
-      fetchAppCounts();
-    };
-    window.addEventListener('applicationsRead', handleApplicationsRead);
-
-    // Subscribe to realtime changes if user is logged in
-    let msgSub: any = null;
-    if (user?.id) {
-      msgSub = supabase
-        .channel('public:messages')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'messages',
-          },
-          () => {
-            fetchCounts();
-          }
-        )
-        .subscribe();
-    }
-
-    return () => {
-      window.removeEventListener('messagesRead', handleMessagesRead);
-      window.removeEventListener('applicationsRead', handleApplicationsRead);
-      if (msgSub) msgSub.unsubscribe();
-    };
-  }, [user?.id, user?.active_role]);
-
-  useEffect(() => {
-    if (pathname === '/') setActiveTab(lang === 'uz' ? 'Bosh sahifa' : 'Главная');
-    else if (pathname === '/jobs') setActiveTab(lang === 'uz' ? 'Vakansiyalar' : 'Вакансии');
-    else if (pathname === '/resumes') setActiveTab(lang === 'uz' ? 'Rezyumelar' : 'Резюме');
-  }, [pathname, lang]);
   // ... (navItems logic unchanged)
 
   // ... (render logic)
@@ -285,9 +141,9 @@ export default function Header() {
     else setLang('uz');
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
+  const handleLogout = async () => {
+    try { await logout(); }
+    catch { toast.error(lang === 'ru' ? 'Не удалось выйти. Попробуйте ещё раз.' : 'Chiqib bo‘lmadi. Qayta urinib ko‘ring.'); }
   };
 
   const handleAdminLogout = async () => {
@@ -310,7 +166,7 @@ export default function Header() {
   };
 
   // Admin Menu Component
-  const AdminMenu = () => (
+  const renderAdminMenu = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -383,7 +239,7 @@ export default function Header() {
   );
 
   // Regular User Menu Component
-  const UserMenu = () => {
+  const renderUserMenu = () => {
     const canSwitch = user?.has_job_seeker_profile && user?.has_employer_profile;
     const otherRole = user?.active_role === 'job_seeker' ? 'employer' : 'job_seeker';
     const otherRolePath = otherRole === 'employer' ? '/profile/employer' : '/profile/job-seeker';
@@ -495,27 +351,19 @@ export default function Header() {
     );
   };
 
-  const isHome = pathname === '/';
+  const isHome = false;
 
   if (isTelegram) {
     return null;
   }
 
   return (
-    <header className={`absolute top-0 left-0 right-0 z-50 w-full border-b transition-[background-color,box-shadow,backdrop-filter,border-color] duration-200 ${isHome ? 'bg-transparent border-transparent shadow-none' : 'bg-white/90 backdrop-blur-xl border-slate-200/80 shadow-lg shadow-slate-900/5'}`}>
+    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-lg">
       <div className={`${isHome ? '' : ''}`}>
         <div className="container mx-auto">
-          <div className="flex items-center justify-between h-18 py-3 px-4 sm:px-6">
+          <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
             <Link href="/" className="flex items-center group pl-0 no-tap-highlight select-none outline-none focus-visible:outline-none focus-visible:ring-0">
-              <Image
-                src="/ishda1.webp"
-                alt="ISHDA Logo"
-                width={140}
-                height={48}
-                className="select-none pointer-events-none"
-                style={{ width: 'auto', height: '48px', display: 'block', filter: isHome ? 'invert(1) hue-rotate(180deg) brightness(1.2)' : 'none' }}
-                priority
-              />
+              <span className="inline-flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white"><Briefcase className="h-5 w-5" /></span><span className="text-lg font-extrabold tracking-tight text-slate-950">ISHDA<span className="text-blue-600">SIZ</span></span></span>
             </Link>
 
             <div className={`hidden lg:flex items-center justify-center flex-1`}>
@@ -540,7 +388,7 @@ export default function Header() {
 
               {/* Priority: Admin > User > Login Button */}
               {isAdmin ? (
-                <AdminMenu />
+                renderAdminMenu()
               ) : isLoading ? (
                 <div className="w-9 h-9 rounded-full bg-slate-100 animate-pulse" />
               ) : isAuthenticated && user ? (
@@ -559,7 +407,7 @@ export default function Header() {
                       )}
                     </Button>
                   </Link>
-                  <UserMenu />
+                  {renderUserMenu()}
                 </div>
               ) : (
                 <Button
@@ -590,11 +438,13 @@ export default function Header() {
 
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className={`h-8 w-8 rounded-lg ${isHome ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'}`}>
+                  <Button aria-label={lang === 'ru' ? 'Открыть меню' : 'Menyuni ochish'} variant="ghost" size="icon" className={`h-8 w-8 rounded-lg ${isHome ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'}`}>
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-72 bg-white border-slate-200/80">
+                  <SheetTitle className="sr-only">{lang === 'ru' ? 'Меню' : 'Menyu'}</SheetTitle>
+                  <SheetDescription className="sr-only">{lang === 'ru' ? 'Разделы сайта и вход в аккаунт' : 'Sayt bo‘limlari va akkauntga kirish'}</SheetDescription>
                   <nav className="flex flex-col gap-2 mt-8">
                     {/* Admin info (if logged in as admin) */}
                     {isAdmin && (

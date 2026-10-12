@@ -1,268 +1,113 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { PageLoading } from '@/components/layout/page-loading';
 import { useLanguage } from '@/contexts/language-context';
 import { useSession } from '@/lib/contexts/session-context';
+import { chatResponseSchema, type ChatMessage } from '@/lib/ai/chat-contract';
 import { AIJobCard } from '@/components/ai/ai-job-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, User, Loader2, MapPin } from '@/components/ui/icons';
-import Image from 'next/image';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  jobs?: any[];
-}
+import { Send, Loader2, MapPin, Sparkles, RotateCcw } from '@/components/ui/icons';
 
 export default function AISearchPage() {
-  const { lang, t } = useLanguage();
-  const { sessionId, profile, updateProfile, userLocation, requestLocation } = useSession();
+  return <Suspense fallback={<PageLoading />}><ReadyConversation /></Suspense>;
+}
+function ReadyConversation() {
+  const { ready, sessionId, messages } = useSession();
   const searchParams = useSearchParams();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [initialQuery, setInitialQuery] = useState(() => searchParams.get('q')?.trim().slice(0, 2000) || '');
+  const consumeQuery = useCallback(() => setInitialQuery(''), []);
+  return ready ? <Conversation key={sessionId} initialQuery={messages.length ? '' : initialQuery} consumeQuery={consumeQuery} /> : <PageLoading />;
+}
+function Conversation({ initialQuery, consumeQuery }: { initialQuery: string; consumeQuery: () => void }) {
+  const { lang, t } = useLanguage();
+  const { messages, profile, updateProfile, setMessages, userLocation, requestLocation, resetSession } = useSession();
+  const [input, setInput] = useState(initialQuery);
+  const [pending, setPending] = useState<{ query: string; history: ChatMessage[] } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const initialQueryProcessed = useRef(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState(false);
+  const [geo, setGeo] = useState<'idle' | 'loading' | 'error'>('idle');
+  const active = useRef<AbortController | null>(null), alive = useRef(false), initialProcessed = useRef(false);
+  const log = useRef<HTMLDivElement>(null);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; active.current?.abort(); }; }, []);
+  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages, pending, loading]);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const performSearch = useCallback(async (query: string, history: Message[]) => {
-    setLoading(true);
+  const send = useCallback(async (query: string, history: ChatMessage[]) => {
+    if (active.current || !query.trim()) return;
+    const controller = new AbortController(); active.current = controller;
+    setLoading(true); setError(false); setPending({ query, history });
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
+      const response = await fetch('/api/chat', { method: 'POST', cache: 'no-store', credentials: 'same-origin', signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: query,
-          session_id: sessionId,
-          messages: history.map(m => ({ role: m.role, content: m.content })),
-          user_location: userLocation
-        }),
+        body: JSON.stringify({ message: query, messages: history.slice(-20).map(({ role, content }) => ({ role, content })), profile, user_location: userLocation, lang }),
       });
-      const data = await response.json();
-
-      if (data.response) {
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: data.response, jobs: data.jobs }
-        ]);
-
-        // Update profile from server
-        if (data.profile) {
-          updateProfile(data.profile);
-        }
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: lang === 'uz' ? 'Xatolik yuz berdi. Iltimos qayta urinib ko\'ring.' : 'Произошла ошибка. Попробуйте еще раз.' }
-      ]);
+      if (!response.ok) throw new Error('Search unavailable');
+      const result = chatResponseSchema.safeParse(await response.json());
+      if (!result.success) throw new Error('Invalid search response');
+      if (!alive.current || controller.signal.aborted) return;
+      setMessages([...history, { role: 'user', content: query }, { role: 'assistant', content: result.data.response, jobs: result.data.jobs }]);
+      updateProfile(result.data.profile); setPending(null);
+      setInput(current => current.trim() === query ? '' : current);
+    } catch {
+      if (alive.current && !controller.signal.aborted) setError(true);
     } finally {
-      setLoading(false);
+      if (active.current === controller) active.current = null;
+      if (alive.current && !controller.signal.aborted) setLoading(false);
     }
-  }, [lang, sessionId, updateProfile, userLocation]);
+  }, [lang, profile, userLocation, setMessages, updateProfile]);
 
-  // Auto-send query from URL params
   useEffect(() => {
-    const q = searchParams.get('q');
-    if (q && !initialQueryProcessed.current) {
-      initialQueryProcessed.current = true;
-      setInput(q);
-      const userMsg: Message = { role: 'user', content: q };
-      setMessages([userMsg]);
-      performSearch(q, []);
-      setInput('');
+    // Start only after the tab session is ready. Cleanup cancels Strict Mode's first scheduled pass.
+    let cancelled = false;
+    if (initialQuery && !initialProcessed.current) {
+      queueMicrotask(() => {
+        if (cancelled || initialProcessed.current) return;
+        initialProcessed.current = true;
+        consumeQuery();
+        void send(initialQuery, messages);
+      });
     }
-  }, [searchParams, performSearch]);
+    return () => { cancelled = true; };
+  }, [initialQuery, messages, send, consumeQuery]);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
-
-    const userMessage = input.trim();
-    const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
-    setInput('');
-    setMessages(newMessages);
-    performSearch(userMessage, messages);
-  };
-
-  const handleRequestLocation = async () => {
-    setGeoLoading(true);
+  const locate = async () => {
+    if (geo === 'loading') return;
+    setGeo('loading');
     const location = await requestLocation();
-    setGeoLoading(false);
-
-    if (location) {
-      // Add system message about location
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: `📍 Joylashuvingiz aniqlandi! Endi yaqiningizda ish qidirish uchun soha yozing.` }
-      ]);
-    } else {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: `Joylashuvni aniqlab bo'lmadi. Brauzer sozlamalarini tekshiring.` }
-      ]);
-    }
+    if (alive.current) setGeo(location ? 'idle' : 'error');
   };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="bg-indigo-900 text-white py-8 relative overflow-hidden flex-shrink-0">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl opacity-20 translate-x-1/2 -translate-y-1/2"></div>
+  const question = lang === 'ru' ? 'Какую работу ищете?' : 'Qanday ish qidiryapsiz?';
+  const displayMessages: ChatMessage[] = pending ? [...messages, { role: 'user', content: pending.query }] : messages;
+  return <section className="min-h-[calc(100dvh-4rem)] bg-gradient-to-b from-blue-50 via-slate-50 to-white px-4 py-7 md:py-10" aria-label={t.ai.title}>
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800"><Sparkles className="h-3.5 w-3.5" />{lang === 'ru' ? 'Работа по всему Узбекистану' : 'Butun O‘zbekiston bo‘ylab ish'}</div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{t.ai.title}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">{lang === 'ru' ? 'Расскажите о навыках, городе и желаемой зарплате. Поможем подобрать вакансии.' : 'Ko‘nikmalar, hudud va kerakli maoshni yozing. Mos vakansiyalarni topishga yordam beramiz.'}</p>
         </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black flex items-center gap-3 text-white">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-              <Image src="/ai-sparkle.png" alt="AI" width={24} height={24} className="w-6 h-6" />
-            </div>
-            {t.ai.title}
-          </h1>
-          <p className="text-indigo-200 mt-2 max-w-xl text-lg">{t.ai.placeholder}</p>
-
-          {/* Location indicator */}
-          {userLocation && (
-            <div className="mt-2 flex items-center gap-2 text-emerald-300 text-sm">
-              <MapPin className="w-4 h-4" />
-              Joylashuv aniqlangan
-            </div>
-          )}
-        </div>
+        <Button variant="outline" size="sm" onClick={resetSession} className="shrink-0 gap-2 bg-white" aria-label={lang === 'ru' ? 'Новый диалог' : 'Yangi suhbat'}><RotateCcw className="h-4 w-4" /><span className="hidden sm:inline">{lang === 'ru' ? 'Новый диалог' : 'Yangi suhbat'}</span></Button>
       </div>
-
-      <div className="container mx-auto px-4 py-6 max-w-4xl flex-1 flex flex-col h-full">
-        <Card className="flex-1 flex flex-col shadow-xl border-slate-200/60 bg-white rounded-3xl overflow-hidden h-[600px]">
-          <CardContent className="p-0 flex flex-col h-full">
-            <ScrollArea ref={scrollRef} className="flex-1 p-6 bg-slate-50/50">
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-20 h-20 bg-white rounded-3xl shadow-lg flex items-center justify-center mb-6 animate-pulse">
-                    <Image src="/ai-sparkle.png" alt="AI" width={48} height={48} className="w-12 h-12" />
-                  </div>
-                  <h2 className="text-2xl font-black text-slate-900 mb-2">
-                    {lang === 'uz' ? 'AI Yordamchiga xush kelibsiz!' : 'Добро пожаловать в AI помощник!'}
-                  </h2>
-                  <p className="text-slate-500 mb-6 max-w-md leading-relaxed">{t.ai.placeholder}</p>
-
-                  {/* Geo button */}
-                  {!userLocation && (
-                    <Button
-                      variant="outline"
-                      className="mb-4 gap-2"
-                      onClick={handleRequestLocation}
-                      disabled={geoLoading}
-                    >
-                      {geoLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <MapPin className="w-4 h-4" />
-                      )}
-                      {lang === 'uz' ? 'Joylashuvni aniqlash' : 'Определить местоположение'}
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                      {msg.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200 mt-1">
-                          <Image src="/ai-sparkle.png" alt="AI" width={16} height={16} className="w-4 h-4 brightness-0 invert" />
-                        </div>
-                      )}
-                      <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-first' : ''}`}>
-                        <div
-                          className={`rounded-2xl px-5 py-3.5 shadow-sm text-sm md:text-base leading-relaxed ${msg.role === 'user'
-                            ? 'bg-indigo-600 text-white rounded-tr-sm'
-                            : 'bg-white text-slate-800 border border-slate-100 rounded-tl-sm'
-                            }`}
-                        >
-                          {msg.content}
-                        </div>
-                        {msg.jobs && msg.jobs.length > 0 && (
-                          <div className="mt-4 space-y-3">
-                            {msg.jobs.map((job) => (
-                              <div key={job.id} className="scale-95 origin-top-left">
-                                <AIJobCard job={job} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      {msg.role === 'user' && (
-                        <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0 mt-1">
-                          <User className="w-4 h-4 text-slate-600" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {loading && (
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
-                        <Image src="/ai-sparkle.png" alt="AI" width={16} height={16} className="w-4 h-4 brightness-0 invert" />
-                      </div>
-                      <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-5 py-3 flex items-center gap-3 shadow-sm">
-                        <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                        <span className="text-slate-500 font-medium text-sm">{t.ai.thinking}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </ScrollArea>
-
-            <div className="p-4 md:p-5 border-t border-slate-100 bg-white">
-              {/* Geo button in input area if not set */}
-              {!userLocation && messages.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mb-2 text-xs text-slate-500 gap-1"
-                  onClick={handleRequestLocation}
-                  disabled={geoLoading}
-                >
-                  <MapPin className="w-3 h-3" />
-                  {lang === 'uz' ? 'Yaqinimda qidirish' : 'Поиск рядом'}
-                </Button>
-              )}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSend();
-                }}
-                className="flex gap-3 relative"
-              >
-                <div className="relative flex-1">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={lang === 'uz' ? 'Qanday ish qidiryapsiz?' : 'Какую работу ищете?'}
-                    className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-indigo-300 rounded-xl pl-4 pr-12 text-base transition-all shadow-sm"
-                    autoFocus
-                  />
-                  <Button
-                    type="submit"
-                    disabled={loading || !input.trim()}
-                    className="absolute right-1 top-1 h-10 w-10 p-0 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg shadow-blue-100/40">
+        <div ref={log} role="log" aria-label={lang === 'ru' ? 'Диалог поиска работы' : 'Ish qidirish suhbati'} aria-live="polite" className="h-[clamp(220px,calc(100dvh-32rem),480px)] space-y-5 sm:h-[clamp(220px,calc(100dvh-24rem),540px)] overflow-y-auto p-4 md:p-6">
+          {displayMessages.length === 0 && <div className="flex h-full flex-col items-center justify-center text-center"><div className="mb-4 rounded-2xl bg-blue-50 p-4 text-blue-600"><Sparkles className="h-7 w-7" /></div><h2 className="text-lg font-semibold text-slate-900">{question}</h2><p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">{lang === 'ru' ? 'Например: «Ищу работу оператором в Ташкенте, знаю Excel». Можно уточнять условия в диалоге.' : 'Masalan: «Toshkentda operatorlik ishini qidiryapman, Excelni bilaman». Suhbatda shartlarni aniqlashtirishingiz mumkin.'}</p></div>}
+          {displayMessages.map((message, index) => <div key={index} className={message.role === 'user' ? 'ml-8 flex justify-end' : 'mr-2'}><div className={message.role === 'user' ? 'max-w-full rounded-2xl rounded-tr-sm bg-blue-600 px-4 py-3 text-sm text-white' : 'w-full rounded-2xl rounded-tl-sm border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-800'}><p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>{message.jobs?.length ? <div className="mt-4 space-y-3">{message.jobs.map(job => <AIJobCard key={job.id} job={job} />)}</div> : null}</div></div>)}
+          {loading && <p role="status" className="flex items-center gap-2 text-sm text-slate-600"><Loader2 className="h-4 w-4 animate-spin text-blue-600" />{t.ai.thinking}</p>}
+        </div>
+        <div className="border-t border-slate-100 p-4 md:p-5">
+          {error && <div role="alert" className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>{lang === 'ru' ? 'Не удалось получить ответ. Ваш запрос сохранён — попробуйте ещё раз.' : 'Javob olinmadi. So‘rovingiz saqlandi — qayta urinib ko‘ring.'}</p><Button variant="outline" size="sm" className="mt-2 bg-white" onClick={() => pending && void send(pending.query, pending.history)}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button></div>}
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            {userLocation ? <span className="flex items-center gap-1.5 text-teal-700"><MapPin className="h-3.5 w-3.5" />{lang === 'ru' ? 'Местоположение определено' : 'Joylashuv aniqlandi'}</span> : <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-600" disabled={geo === 'loading'} onClick={() => void locate()}><MapPin className="h-3.5 w-3.5" />{lang === 'ru' ? 'Поиск рядом' : 'Yaqinimda qidirish'}</Button>}
+            <span>{lang === 'ru' ? 'История сохраняется в этой вкладке' : 'Suhbat shu brauzer oynasida saqlanadi'}</span>
+          </div>
+          {geo === 'error' && <p role="alert" className="mb-3 text-sm text-amber-800">{lang === 'ru' ? 'Не удалось определить местоположение. Проверьте разрешение браузера или укажите город в сообщении.' : 'Joylashuv aniqlanmadi. Brauzer ruxsatini tekshiring yoki hududni xabarda yozing.'}</p>}
+          <form onSubmit={event => { event.preventDefault(); void send(input.trim(), messages); }} className="flex items-center gap-2">
+            <Input aria-label={question} maxLength={2000} value={input} onChange={event => setInput(event.target.value)} placeholder={question} className="h-12 min-w-0 rounded-xl border-slate-200 bg-slate-50 text-base" />
+            <Button type="submit" disabled={loading || !input.trim()} aria-label={lang === 'ru' ? 'Отправить' : 'Yuborish'} className="h-12 w-12 shrink-0 rounded-xl bg-blue-600 p-0 hover:bg-blue-700"><Send className="h-4 w-4" /></Button>
+          </form>
+        </div>
       </div>
     </div>
-  );
+  </section>;
 }

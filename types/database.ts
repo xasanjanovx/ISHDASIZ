@@ -143,8 +143,10 @@ export interface Database {
           id: string;
           full_name: string;
           role: 'super_admin' | 'hokimlik_assistant';
-          district_id: string | null;
+          district_id: number | null;
           created_at: string;
+          disabled_at?: string | null;
+          updated_at?: string | null;
         };
         Insert: Omit<Database['public']['Tables']['admin_profiles']['Row'], 'created_at'>;
         Update: Partial<Database['public']['Tables']['admin_profiles']['Insert']>;

@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
-import { supabase } from '@/lib/supabase';
+import { useNotificationCounts } from '@/hooks/use-notification-counts';
+
 import { cn } from '@/lib/utils';
 import {
     User,
     FileText,
     Send,
     MessageSquare,
+    Mail,
     Settings,
     ChevronRight,
     Star,
@@ -33,6 +35,7 @@ const jobSeekerNav: NavItem[] = [
     { href: '/profile/job-seeker', label_uz: 'Asosiy', label_ru: 'Основное', icon: User },
     { href: '/profile/job-seeker/resumes', label_uz: 'Rezyumelar', label_ru: 'Резюме', icon: FileText },
     { href: '/profile/job-seeker/applications', label_uz: 'Arizalar', label_ru: 'Заявки', icon: Send, countKey: 'applications' },
+    { href: '/profile/job-seeker/offers', label_uz: 'Takliflar', label_ru: 'Приглашения', icon: Mail },
     { href: '/profile/job-seeker/favorites', label_uz: 'Saqlanganlar', label_ru: 'Сохранённые', icon: Star },
     { href: '/profile/job-seeker/history', label_uz: 'Tarix', label_ru: 'История', icon: Clock },
     { href: '/profile/job-seeker/messages', label_uz: 'Xabarlar', label_ru: 'Сообщения', icon: MessageSquare, countKey: 'messages' },
@@ -60,99 +63,7 @@ export function ProfileNav({ userType }: ProfileNavProps) {
     const { user } = useUserAuth();
     const navItems = userType === 'job_seeker' ? jobSeekerNav : employerNav;
 
-    const [counts, setCounts] = useState<{ messages: number; applications: number }>({ messages: 0, applications: 0 });
-
-    useEffect(() => {
-        const fetchCounts = async () => {
-            if (!user?.id) return;
-
-            try {
-                // Get unread messages count
-                // Get unread messages count with role filter
-                const { data: userConvs } = await supabase
-                    .from('conversations')
-                    .select('id, user1_id, user2_id, user1_role, user2_role')
-                    .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-
-                let msgCount = 0;
-                if (userConvs && userConvs.length > 0) {
-                    // Filter conversations by role (using profileType prop which determines context)
-                    const targetRole = userType === 'job_seeker' ? 'job_seeker' : 'employer';
-
-                    const filteredIds = userConvs
-                        .filter(c => {
-                            const myRole = c.user1_id === user.id ? c.user1_role : c.user2_role;
-                            if (myRole && myRole !== targetRole) return false;
-                            return true;
-                        })
-                        .map(c => c.id);
-
-                    if (filteredIds.length > 0) {
-                        const { count } = await supabase
-                            .from('messages')
-                            .select('*', { count: 'exact', head: true })
-                            .in('conversation_id', filteredIds)
-                            .eq('is_read', false)
-                            .neq('sender_id', user.id);
-                        msgCount = count || 0;
-                    }
-                }
-
-                // Get applications count
-                let appCount = 0;
-                if (userType === 'employer') {
-                    const { data: myJobs } = await supabase
-                        .from('jobs')
-                        .select('id')
-                        .eq('created_by', user.id);
-                    if (myJobs && myJobs.length > 0) {
-                        const { count } = await supabase
-                            .from('job_applications')
-                            .select('*', { count: 'exact', head: true })
-                            .in('job_id', myJobs.map(j => j.id))
-                            .eq('status', 'pending');
-                        appCount = count || 0;
-                    }
-                } else {
-                    // Try to use new column, fallback to old logic if fails
-                    try {
-                        const { count, error } = await supabase
-                            .from('job_applications')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('user_id', user.id)
-                            .in('status', ['reviewed', 'interview_set', 'accepted', 'rejected', 'hired', 'viewed', 'invited'])
-                            .eq('is_seen_by_job_seeker', false);
-
-                        if (error && error.code === '42703') throw error; // Column missing
-                        appCount = count || 0;
-                    } catch (e) {
-                        const { count } = await supabase
-                            .from('job_applications')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('user_id', user.id)
-                            .in('status', ['reviewed', 'interview_set', 'accepted', 'rejected', 'hired', 'viewed', 'invited']);
-                        appCount = count || 0;
-                    }
-                }
-
-                setCounts({ messages: msgCount, applications: appCount });
-            } catch (e) {
-                console.error('Error fetching nav counts:', e);
-            }
-        };
-
-        fetchCounts();
-
-        // Listen for updates
-        const handleUpdate = () => fetchCounts();
-        window.addEventListener('messagesRead', handleUpdate);
-        window.addEventListener('applicationsRead', handleUpdate);
-
-        return () => {
-            window.removeEventListener('messagesRead', handleUpdate);
-            window.removeEventListener('applicationsRead', handleUpdate);
-        };
-    }, [user?.id, userType]);
+    const counts = useNotificationCounts(user?.id, userType);
 
     return (
         <nav className="space-y-1">

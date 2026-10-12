@@ -39,7 +39,10 @@ export function getExperienceLabel(value: unknown, years: unknown, lang: AppLang
   const yearsNum = typeof years === 'number' ? years : Number(years);
   if (Number.isFinite(yearsNum) && yearsNum > 0) {
     const rounded = Math.round(yearsNum);
-    return lang === 'uz' ? `${rounded} yil` : `${rounded} лет`;
+    if (lang === 'uz') return `${rounded} yil`;
+    const lastTwo = rounded % 100, last = rounded % 10;
+    const unit = lastTwo >= 11 && lastTwo <= 14 ? 'лет' : last === 1 ? 'год' : last >= 2 && last <= 4 ? 'года' : 'лет';
+    return `${rounded} ${unit}`;
   }
 
   const code = normalizeExperienceCode(value);
