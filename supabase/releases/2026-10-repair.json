@@ -292,6 +292,13 @@
       "requires": [
         "20261012130000_osonish_candidate_refresh.sql"
       ]
+    },
+    {
+      "file": "20261012150000_regional_query_performance.sql",
+      "sha256": "9e6cd80a38b0230c9ead8755ff1ccaa8edbd3fd7222ac9e9b3587fb3354100e4",
+      "requires": [
+        "20261010220000_job_work_mode.sql"
+      ]
     }
   ]
 }
