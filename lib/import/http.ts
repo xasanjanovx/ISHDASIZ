@@ -6,6 +6,7 @@ import {verifyCron} from '@/lib/auth/cron';
 import {getAuthClient} from '@/lib/auth/server';
 import {ImportWorkerError,readOsonishImport,stepOsonishImport} from './osonish-worker';
 import {importProgress,type ImportProgress} from './progress';
+import {continueOsonishImport} from './continue-osonish';
 
 function importKey(request:NextRequest){
  const expected=process.env.IMPORT_API_KEY,incoming=request.headers.get('X-Import-Key')||'';
@@ -33,6 +34,12 @@ async function options(request:NextRequest){
 export async function adminImportGet(request:NextRequest){try{const {client,profile}=await requireAdmin(request,true);return statusResult(await readOsonishImport(client,profile.id));}catch(error){return failure(error);}}
 export async function adminImportPost(request:NextRequest){try{checkSameOrigin(request);const {client,profile}=await requireAdmin(request,true);const input=await options(request);return result(await stepOsonishImport(client,{...input,actorId:profile.id}));}catch(error){return failure(error);}}
 export async function cronImport(request:NextRequest){try{if(!verifyCron(request))throw new AccountError(401,'Unauthorized');return result(await stepOsonishImport(getAuthClient()));}catch(error){return failure(error);}}
+export async function cronContinueImport(request:NextRequest){try{
+ if(!verifyCron(request))throw new AccountError(401,'Unauthorized');
+ const client=getAuthClient();
+ const progress=await continueOsonishImport({read:()=>readOsonishImport(client),step:runId=>stepOsonishImport(client,{runId})});
+ return progress===null?statusResult(null):result(progress);
+}catch(error){return failure(error);}}
 export async function keyImportGet(request:NextRequest){try{importKey(request);return statusResult(await readOsonishImport(getAuthClient()));}catch(error){return failure(error);}}
 export async function keyImportPost(request:NextRequest){try{importKey(request);const input=await options(request);return result(await stepOsonishImport(getAuthClient(),input));}catch(error){return failure(error);}}
 // The old two-request payload/sync protocol cannot prove that all source writes

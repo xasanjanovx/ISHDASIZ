@@ -6,6 +6,7 @@ import {getAuthClient} from '@/lib/auth/server';
 import {ImportWorkerError,readOsonishImport,stepOsonishImport} from '@/lib/import/osonish-worker';
 import * as all from '@/app/api/cron/import-all/route';
 import * as cron from '@/app/api/cron/import-osonish/route';
+import * as continuation from '@/app/api/cron/continue-osonish/route';
 import * as scraper from '@/app/api/scraper/osonish/route';
 import * as admin from '@/app/api/admin/import/route';
 import * as legacy from '@/app/api/import/jobs/route';
@@ -25,6 +26,17 @@ test('both cron names share one bounded worker and pending or busy work never cl
 });
 test('missing or incorrect cron credentials are rejected before creating a privileged client',async()=>{
  for(const authorized of [false,true]){delete process.env.CRON_SECRET;expect((await cron.GET(request('/api/cron/import',undefined,authorized))).status).toBe(401);}expect(getAuthClient).not.toHaveBeenCalled();expect(stepOsonishImport).not.toHaveBeenCalled();
+});
+
+test('continuation authenticates before reading privileged state and never creates a fresh run',async()=>{
+ expect(continuation.maxDuration).toBe(300);
+ expect((await continuation.GET(request('/api/cron/continue-osonish',undefined,false))).status).toBe(401);
+ expect(getAuthClient).not.toHaveBeenCalled();expect(readOsonishImport).not.toHaveBeenCalled();
+ (readOsonishImport as jest.Mock).mockResolvedValue(null);
+ expect((await continuation.GET(request('/api/cron/continue-osonish'))).status).toBe(200);expect(stepOsonishImport).not.toHaveBeenCalled();
+ (readOsonishImport as jest.Mock).mockResolvedValue(progress());
+ await continuation.GET(request('/api/cron/continue-osonish'));
+ expect(stepOsonishImport).toHaveBeenCalledTimes(1);expect(stepOsonishImport).toHaveBeenCalledWith(client,{runId:id});
 });
 test('key API and retired payload/sync routes require a configured secret before any privileged work',async()=>{
  for(const route of [scraper,legacy,sync])expect((await route.POST(request('/api/import',{},false))).status).toBe(401);delete process.env.IMPORT_API_KEY;expect((await scraper.GET(request('/api/import'))).status).toBe(401);expect(getAuthClient).not.toHaveBeenCalled();expect(stepOsonishImport).not.toHaveBeenCalled();

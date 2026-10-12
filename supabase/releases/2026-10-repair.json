@@ -277,6 +277,14 @@
       "requires": [
         "20261012103000_public_catalog_count_index.sql"
       ]
+    },
+    {
+      "file": "20261012130000_osonish_candidate_refresh.sql",
+      "sha256": "d0100a2262eedd66e1e6ade5175f59896b8c534ca4ffc1961a07ba5070c1c9aa",
+      "requires": [
+        "20261009100000_osonish_import_worker.sql",
+        "20261009130000_vacancy_import_versions.sql"
+      ]
     }
   ]
 }

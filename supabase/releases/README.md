@@ -2,7 +2,7 @@
 
 Набор предназначен для существующей базы проекта с таблицами старой версии до апреля 2026. Это не установка с нуля. 10 октября 2026 выполнен аудит метаданных действующей базы через SQL Editor: 19 записей истории без повторов, новые функции отсутствуют. Полный отчёт: ../../docs/production-readiness-2026-10-10.md.
 
-`2026-10-repair.json` задаёт точный порядок 38 миграций, зависимости и SHA-256 каждого файла. При подготовке исходного выпуска десять файлов получили уникальные 14-значные номера; прежние имена сохранены в `previousFilename`. Содержимое функций не менялось при переименовании.
+`2026-10-repair.json` задаёт точный порядок 39 миграций, зависимости и SHA-256 каждого файла. Первые 38 уже применены; новый файл 20261012130000 требует отдельной проверки истории. При подготовке исходного выпуска десять файлов получили уникальные 14-значные номера; прежние имена сохранены в `previousFilename`. Содержимое функций не менялось при переименовании.
 
 Старая папка `supabase/migrations` содержит повторяющиеся номера и диагностические SQL. Нельзя выпускать её целиком через `db push` без сверки истории. Исторические файлы не переименованы: такое изменение может повторно запустить уже выполненный SQL.
 
@@ -16,7 +16,7 @@ npm run release:db:check
 npm run release:db:prepare
 ```
 
-Последняя команда создаёт в `.tmp/database-release/` отдельную папку с 38 проверенными миграциями, manifest, этим описанием, `audit.sql`, операционными SQL расписания и отчётом готовности. Она не читает `.env`, не подключается к Supabase, не применяет SQL и не изменяет историю миграций. Повреждённый или не включённый в manifest файл останавливает подготовку. Экспорт временный, его можно повторить из исходников.
+Последняя команда создаёт в `.tmp/database-release/` отдельную папку с 39 проверенными миграциями, manifest, этим описанием, `audit.sql`, операционными SQL расписания и отчётом готовности. Она не читает `.env`, не подключается к Supabase, не применяет SQL и не изменяет историю миграций. Повреждённый или не включённый в manifest файл останавливает подготовку. Экспорт временный, его можно повторить из исходников.
 
 ## Перед применением на сервере
 
@@ -62,7 +62,7 @@ npm run release:db:prepare
 
 Первая миграция 20261006080000_channel_prerequisites.sql создаёт отсутствующие в действующей базе sync_events, channel_posts и sync_worker_locks, сразу закрывая их для браузерных ролей. Повтор сохраняет квитанции и аренды, не заменяет новую реализацию блокировки и не устанавливает устаревшие триггеры. Отсутствующий post_to_channel добавляется последующей миграцией как NULL; bigint региона резюме сохраняется. Полный набор проверен на таком синтетическом варианте схемы.
 
-Операционные install/activate/pause-channel-schedule.sql из supabase/operations идут отдельно от 38 миграций. Установка создаёт выключенное задание Supabase Cron; активация требует Vault и согласованного выпуска сайта/базы. Частое расписание удалено из Vercel Hobby, где оно не поддерживается. Порядок и реальные результаты аудита — в docs/production-readiness-2026-10-10.md (в экспорте production-readiness.md).
+Операционные install/activate/pause-channel-schedule.sql из supabase/operations идут отдельно от 39 миграций. Установка создаёт выключенное задание Supabase Cron; активация требует Vault и согласованного выпуска сайта/базы. Частое расписание удалено из Vercel Hobby, где оно не поддерживается. Порядок и реальные результаты аудита — в docs/production-readiness-2026-10-10.md (в экспорте production-readiness.md).
 
 
 ### Локальная копия перед применением
@@ -79,4 +79,10 @@ A covering partial index supports public catalog counters. The homepage uses one
 
 Validation: 71 database tests including 726 legacy source/publication/owner combinations and account close/restore, seven homepage tests, TypeScript and production build pass. Native restoration retained all vacancy visibility and aggregate results. The native public RLS count took ~28 ms and the new home aggregate ~59 ms; these local measurements do not predict host timing. Live read-only checks after VACUUM (ANALYZE) jobs passed: home aggregate ~820 ms (24,666 available vacancies), category/district aggregate ~355 ms, full statistics ~2,370 ms including network. Public role timeout and the free service plan were not raised.
 
-The site follow-up is [PR #2](https://github.com/xasanjanovx/ISHDASIZ/pull/2); verify its actual Production deployment and rendered homepage after merge. The bot webhook is configured at https://ishdasiz.uz/api/telegram/webhook with max_connections=1 and pending updates preserved. User SMS/bot checks and channel schedule activation remain separate release gates.
+The site follow-up [PR #2](https://github.com/xasanjanovx/ISHDASIZ/pull/2) is merged and deployed: main 1635848 is Ready in Production and its rendered homepage contains six real cards and 24,666 vacancies. The bot webhook is configured at https://ishdasiz.uz/api/telegram/webhook with max_connections=1 and pending updates preserved. User SMS/bot checks and channel schedule activation remain separate release gates.
+
+## Candidate import follow-up (prepared)
+
+The live source changes totals during enumeration. Migration 20261012130000 introduces a v2 candidate queue rather than treating public pagination as a full snapshot. Existing v1 runs remain compatible. Current list IDs and valid existing imported source IDs receive explicit detail checks; overlap and total drift are accepted, malformed IDs and page bounds are rejected. Only confirmed active/filled/404 outcomes change individual job availability. Publication choices, manual fields, applications and closed accounts remain protected. Late arrivals outside the queue are untouched. Unavailable cards are retried and recorded as errors without preventing the remaining checks; the final run is failed if any details remain unavailable.
+
+Daily Vercel cron starts the run. The protected continuation endpoint never creates a run, pins its ID, and stops for a live lease, delayed retry, no progress, terminal status, eight steps or its request budget. Supabase operations `install/activate/pause-import-schedule.sql` are independent of channel publication. Install is inactive and sends no HTTP. Activate only after the migration/site deploy, extension availability, Vault configuration and an authenticated Production check. This new migration and schedule are not yet applied.
