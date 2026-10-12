@@ -8,32 +8,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Send, Fingerprint, Info, Loader2 } from '@/components/ui/icons';
 import { toast } from 'sonner';
+import { formatUzPhoneInput } from '@/lib/phone-input';
 
 export function JobSeekerAuth() {
     const { setStep, phoneNumber, setPhoneNumber, setIsNewUser } = useAuthModal();
     const { lang } = useLanguage();
-    const [phone, setPhone] = useState(phoneNumber);
+    const [phone, setPhone] = useState(() => formatUzPhoneInput(phoneNumber));
     const [isLoading, setIsLoading] = useState(false);
 
-    const formatPhone = (value: string) => {
-        const digits = value.replace(/\D/g, '');
-        const limited = digits.slice(0, 9);
-
-        let formatted = '';
-        if (limited.length > 0) formatted += limited.slice(0, 2);
-        if (limited.length > 2) formatted += ' ' + limited.slice(2, 5);
-        if (limited.length > 5) formatted += '-' + limited.slice(5, 7);
-        if (limited.length > 7) formatted += '-' + limited.slice(7, 9);
-
-        return formatted;
-    };
-
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const formatted = formatPhone(e.target.value);
+        const formatted = formatUzPhoneInput(e.target.value);
         setPhone(formatted);
     };
 
     const handleContinue = async () => {
+        if (isLoading) return;
         if (phone.replace(/\D/g, '').length === 9) {
             setIsLoading(true);
             const fullPhone = `+998${phone.replace(/\D/g, '')}`;
@@ -48,8 +37,14 @@ export function JobSeekerAuth() {
 
                 const checkData = await checkRes.json();
 
+                if (!checkRes.ok || typeof checkData.exists !== 'boolean'
+                    || typeof checkData.hasPassword !== 'boolean' || typeof checkData.locked !== 'boolean') {
+                    toast.error(checkData.error || (lang === 'ru' ? 'Не удалось проверить аккаунт. Попробуйте ещё раз.' : 'Akkauntni tekshirib bo‘lmadi. Qayta urinib ko‘ring.'));
+                    return;
+                }
+
                 if (checkData.locked) {
-                    toast.error(checkData.message);
+                    toast.error(lang === 'ru' ? 'Слишком много попыток входа. Попробуйте позже.' : 'Kirishga urinishlar juda ko‘p. Keyinroq urinib ko‘ring.');
                     setIsLoading(false);
                     return;
                 }
@@ -97,7 +92,7 @@ export function JobSeekerAuth() {
     const isPhoneValid = phone.replace(/\D/g, '').length === 9;
 
     return (
-        <div className="space-y-4">
+        <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void handleContinue(); }}>
             {/* Header */}
             <div className="text-center space-y-1">
                 <h2 className="text-xl font-bold text-slate-900">
@@ -143,7 +138,7 @@ export function JobSeekerAuth() {
 
             {/* Continue Button */}
             <Button
-                onClick={handleContinue}
+                type="submit"
                 disabled={!isPhoneValid || isLoading}
                 className={`
                     w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300
@@ -181,6 +176,7 @@ export function JobSeekerAuth() {
             {/* OneID - Recommended */}
             <div className="space-y-2">
                 <Button
+                    type="button"
                     variant="outline"
                     className="w-full h-12 rounded-xl border-sky-200 bg-sky-50 hover:bg-sky-100 hover:border-sky-300 transition-all group"
                     onClick={() => toast.info(lang === 'ru' ? 'OneID в разработке' : 'OneID ishlab chiqilmoqda')}
@@ -198,6 +194,6 @@ export function JobSeekerAuth() {
                     </div>
                 </Button>
             </div>
-        </div>
+        </form>
     );
 }
