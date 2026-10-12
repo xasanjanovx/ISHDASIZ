@@ -2,7 +2,7 @@
 
 Набор предназначен для существующей базы проекта с таблицами старой версии до апреля 2026. Это не установка с нуля. 10 октября 2026 выполнен аудит метаданных действующей базы через SQL Editor: 19 записей истории без повторов, новые функции отсутствуют. Полный отчёт: ../../docs/production-readiness-2026-10-10.md.
 
-`2026-10-repair.json` задаёт точный порядок 40 миграций, зависимости и SHA-256 каждого файла. Первые 39 уже применены (58 исторических версий); новый файл 20261012143000 требует отдельной проверки истории. При подготовке исходного выпуска десять файлов получили уникальные 14-значные номера; прежние имена сохранены в `previousFilename`. Содержимое функций не менялось при переименовании.
+`2026-10-repair.json` задаёт точный порядок 40 миграций, зависимости и SHA-256 каждого файла. Все 40 уже применены (59 исторических версий); не повторять их или старый пакет. При подготовке исходного выпуска десять файлов получили уникальные 14-значные номера; прежние имена сохранены в `previousFilename`. Содержимое функций не менялось при переименовании.
 
 Старая папка `supabase/migrations` содержит повторяющиеся номера и диагностические SQL. Нельзя выпускать её целиком через `db push` без сверки истории. Исторические файлы не переименованы: такое изменение может повторно запустить уже выполненный SQL.
 
@@ -71,7 +71,7 @@ npm run release:db:prepare
 
 ## Production follow-up — 12 October 2026
 
-The initial 33 migrations were applied atomically and site PR #1 deployed. Five performance migrations through 20261012113500 and the candidate protocol 20261012130000 are applied in Production (58 historical versions in total). Do not replay already applied migrations or the old atomic bundle. Confirm live history before any further change.
+The initial 33 migrations were applied atomically and site PR #1 deployed. Five performance migrations through 20261012113500, the candidate protocol 20261012130000 and queue retention 20261012143000 are applied in Production (59 historical versions in total). Do not replay already applied migrations or the old atomic bundle. Confirm live history before any further change.
 
 The final public vacancy predicate is a parsed SQL RETURN expression with SECURITY INVOKER, allowing scalar conditions to inline. Existing SECURITY DEFINER helpers retain private owner checks. The restrictive account policy skips those lookups only for ownerless imports. Function signatures, grants and publication rules remain compatible. Intermediate follow-ups remain in history because they were applied while diagnosing the live instance.
 
@@ -87,9 +87,9 @@ The live source changes totals during enumeration. Migration 20261012130000 intr
 
 Daily Vercel cron starts the run. The protected continuation endpoint never creates a run, pins its ID, and stops for a live lease, delayed retry, no progress, terminal status, eight steps or its request budget. Supabase operations `install/activate/pause-import-schedule.sql` are independent of channel publication. Install is inactive and sends no HTTP. This migration is applied and PR #3 deployed as main 74d74f9 in ishdasiz-hp69. pg_cron/pg_net and the matching Vault credential are configured; import continuation is active every five minutes. Telegram publication remains disabled. The first live candidate queue has 48,038 IDs and is still being processed; its progress continued after the local runner and manual Production request ended.
 
-## Queue retention and refresh cadence (prepared)
+## Queue retention and refresh cadence (applied)
 
-Migration 20261012143000 is additive and has not been applied. It archives the exact safe progress projection of at most one terminal v2 run per acquired lease after seven days, then removes only that run's temporary item rows. Checkpoints, request IDs, run history, counters and business records remain. Live, recent and v1 queues are preserved; retries of old request IDs still return the original terminal result. The archival helper and cached summaries remain private.
+Migration 20261012143000 was applied at 13:06:55 UTC on 12 October with an exact history check. Postflight confirmed 59 versions, the private helper and the unchanged active import schedule. The live run retained all 48,038 candidates and continued processing without errors. The migration archives the exact safe progress projection of at most one terminal v2 run per acquired lease after seven days, then removes only that run's temporary item rows. Checkpoints, request IDs, run history, counters and business records remain. Live, recent and v1 queues are preserved; retries of old request IDs still return the original terminal result. The archival helper and cached summaries remain private.
 
 Public-list candidates always receive detail checks, including reappearing vacancies. Existing active/unchecked imported IDs are checked daily. Known IDs with a confirmed filled/removed result less than seven days old can wait until the next weekly check if absent from today's list; no absence cleanup occurs. This reduces repeated work after the initial refresh. Applying this migration does not shrink the existing live queue.
 
