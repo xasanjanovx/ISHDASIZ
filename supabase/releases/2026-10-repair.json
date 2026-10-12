@@ -241,6 +241,14 @@
       "requires": [
         "20261010210000_chat_actions.sql"
       ]
+    },
+    {
+      "file": "20261012093000_public_query_performance.sql",
+      "sha256": "1a9519984673441ee48a48524c17fe1fa4fb40a47b6d7b94519d9f33be80343c",
+      "requires": [
+        "20261009090000_public_job_availability.sql",
+        "20261009110000_public_statistics.sql"
+      ]
     }
   ]
 }

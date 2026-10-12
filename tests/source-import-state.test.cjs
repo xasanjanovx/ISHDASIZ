@@ -219,6 +219,31 @@ test('three consecutive source errors stop safely, while confirmed item writes r
 
 
 const publicStatistics=async()=>(await db.query('SELECT ishdasiz_public_statistics() AS r')).rows[0].r;
+
+test('optimized public visibility preserves every source/publication/owner combination and aggregate permissions',async()=>{
+ await db.query('INSERT INTO users(id,password_hash,phone,closed_at) VALUES($1,$2,$3,null),($4,$2,$5,now()) ON CONFLICT(id) DO UPDATE SET closed_at=excluded.closed_at',[A,'synthetic','+998901111111',B,'+998902222222']);
+ // Reconstruct legacy orphan/closed-owner rows; current write guards reject them.
+ await db.exec(`ALTER TABLE employer_profiles DISABLE TRIGGER ishdasiz_guard_closed_account;
+ ALTER TABLE jobs DISABLE TRIGGER ishdasiz_guard_closed_account;
+ INSERT INTO employer_profiles(id,user_id) VALUES('${ID(9001)}','${A}'),('${ID(9002)}','${B}'),('${ID(9003)}',null),('${ID(9004)}','${ID(9999)}');
+ INSERT INTO jobs(id,source_status,status,is_active,employer_id,user_id,created_by,description_uz,raw_source_json)
+ SELECT gen_random_uuid(),s,p,true,o.employer,o.owner,o.creator,repeat('synthetic ',1000),jsonb_build_object('body',repeat('synthetic ',1000))
+ FROM unnest(ARRAY[null,'active','filled','removed_at_source','archived','deleted','inactive','paused','on_hold','closed','unknown']) s
+ CROSS JOIN unnest(ARRAY[null,'active','published','open','draft','archived']) p
+ CROSS JOIN (VALUES(null::uuid,null::uuid,null::uuid),(null,'${A}','${B}'),(null,'${B}','${A}'),(null,null,'${A}'),(null,null,'${B}'),(null,'${ID(9999)}',null),('${ID(9001)}','${B}',null),('${ID(9002)}','${A}',null),('${ID(9003)}','${A}',null),('${ID(9004)}','${A}',null),('${ID(9005)}','${A}',null)) o(employer,owner,creator);
+ ALTER TABLE employer_profiles ENABLE TRIGGER ishdasiz_guard_closed_account;
+ ALTER TABLE jobs ENABLE TRIGGER ishdasiz_guard_closed_account;
+ CREATE TEMP TABLE prior_visibility AS SELECT id,ishdasiz_job_available(j) visible FROM jobs j;`);
+ const oldStats=await publicStatistics();delete oldStats.asOf;const oldCounts=await publicCounts();
+ await db.exec(read('20261012093000_public_query_performance.sql'));
+ assert.equal((await db.query('SELECT count(*)::integer n FROM jobs j JOIN prior_visibility b USING(id) WHERE b.visible IS DISTINCT FROM ishdasiz_job_available(j)')).rows[0].n,0);
+ for(const role of ['anon','authenticated','service_role']){await db.exec('SET ROLE '+role);try{
+  const stats=await publicStatistics();delete stats.asOf;assert.deepEqual(stats,oldStats);assert.deepEqual(await publicCounts(),oldCounts);
+ }finally{await db.exec('RESET ROLE');}}
+ await db.exec(read('20261012093000_public_query_performance.sql'));assert.deepEqual(await publicCounts(),oldCounts);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM jobs')).rows[0].n,726);
+ await db.exec('DROP TABLE prior_visibility');
+});
 test('public statistics count every visible vacancy beyond a REST page and aggregate private applications without returning rows',async()=>{
  await db.exec("INSERT INTO jobs(id,views_count,region_id,district_id,category_id,employment_type) SELECT ('10000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,2,22,100,'20000000-0000-4000-8000-000000000001','full_time' FROM generate_series(1,1205) n");await db.query('INSERT INTO job_applications(job_id,status,user_id,full_name,phone,message) VALUES($1,$2,$3,$4,$5,$6)',[ID(1),'pending',U,'Private candidate','private phone','private message']);
  await db.exec('SET ROLE anon');let result;try{result=await publicStatistics();await assert.rejects(db.query('SELECT * FROM job_applications'),e=>e.code==='42501');}finally{await db.exec('RESET ROLE');}
