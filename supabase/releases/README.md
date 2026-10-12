@@ -2,7 +2,7 @@
 
 Набор предназначен для существующей базы проекта с таблицами старой версии до апреля 2026. Это не установка с нуля. 10 октября 2026 выполнен аудит метаданных действующей базы через SQL Editor: 19 записей истории без повторов, новые функции отсутствуют. Полный отчёт: ../../docs/production-readiness-2026-10-10.md.
 
-`2026-10-repair.json` задаёт точный порядок 36 миграций, зависимости и SHA-256 каждого файла. Десять новых, ещё не опубликованных файлов получили уникальные 14-значные номера; прежние имена сохранены в `previousFilename`. Содержимое функций не менялось при переименовании.
+`2026-10-repair.json` задаёт точный порядок 38 миграций, зависимости и SHA-256 каждого файла. Десять новых, ещё не опубликованных файлов получили уникальные 14-значные номера; прежние имена сохранены в `previousFilename`. Содержимое функций не менялось при переименовании.
 
 Старая папка `supabase/migrations` содержит повторяющиеся номера и диагностические SQL. Нельзя выпускать её целиком через `db push` без сверки истории. Исторические файлы не переименованы: такое изменение может повторно запустить уже выполненный SQL.
 
@@ -16,7 +16,7 @@ npm run release:db:check
 npm run release:db:prepare
 ```
 
-Последняя команда создаёт в `.tmp/database-release/` отдельную папку с 36 проверенными миграциями, manifest, этим описанием, `audit.sql`, операционными SQL расписания и отчётом готовности. Она не читает `.env`, не подключается к Supabase, не применяет SQL и не изменяет историю миграций. Повреждённый или не включённый в manifest файл останавливает подготовку. Экспорт временный, его можно повторить из исходников.
+Последняя команда создаёт в `.tmp/database-release/` отдельную папку с 38 проверенными миграциями, manifest, этим описанием, `audit.sql`, операционными SQL расписания и отчётом готовности. Она не читает `.env`, не подключается к Supabase, не применяет SQL и не изменяет историю миграций. Повреждённый или не включённый в manifest файл останавливает подготовку. Экспорт временный, его можно повторить из исходников.
 
 ## Перед применением на сервере
 
@@ -42,12 +42,12 @@ npm run release:db:prepare
 
 Миграция 20261010200000_catalog_resume_detail.sql включена в текущий набор. Она закрывает анонимное чтение полной строки resumes и предоставляет служебный RPC с проверкой аккаунта, эпохи сеанса, работодателя/владельца и текущей публичной доступности документа. Краткие карточки каталога остаются доступны через серверный поиск.
 
-Выпускать вместе с обновлённой страницей /resumes/[id], GET /api/resumes/[id] и серверным счётчиком резюме на главной. Старая страница напрямую читает resumes и после миграции перестанет работать. Без функции новая страница сообщает временную недоступность и не обходит проверку доступом к таблице. Полные резюме исключены из sitemap, поскольку требуют аккаунт. Проверки тестируют весь набор из 36 миграций на старой синтетической схеме; аудит реальной базы остаётся обязательным.
+Выпускать вместе с обновлённой страницей /resumes/[id], GET /api/resumes/[id] и серверным счётчиком резюме на главной. Старая страница напрямую читает resumes и после миграции перестанет работать. Без функции новая страница сообщает временную недоступность и не обходит проверку доступом к таблице. Полные резюме исключены из sitemap, поскольку требуют аккаунт. Проверки тестируют весь набор из 38 миграций на старой синтетической схеме; аудит реальной базы остаётся обязательным.
 
 
 ### Переписка и повтор отправки
 
-Миграция 20261010210000_chat_actions.sql включена перед обновлением форматов работы в набор из 36 файлов. Служебный RPC атомарно проверяет аккаунт/эпоху сеанса, роли, участников и состояние собеседника перед записью. UUID сообщения служит идентификатором повтора: одинаковый запрос не создаёт вторую запись, изменённый или чужой запрос отклоняется. Истории и предпочтения скрытия не удаляются.
+Миграция 20261010210000_chat_actions.sql включена перед обновлением форматов работы в набор из 38 файлов. Служебный RPC атомарно проверяет аккаунт/эпоху сеанса, роли, участников и состояние собеседника перед записью. UUID сообщения служит идентификатором повтора: одинаковый запрос не создаёт вторую запись, изменённый или чужой запрос отклоняется. Истории и предпочтения скрытия не удаляются.
 
 Обновить вместе с API /api/account/chat и /api/account/chat/[id], Conversation и ChatList. Новая отправка требует request_id; прочтение/восстановление требуют role; скрытие передаёт role в URL. Прежние клиенты без этих полей получают 400 и должны перезагрузить страницу. Без RPC новый сервер сообщает временную недоступность и не делает прямые записи. Уже сохранённое сообщение можно повторно подтвердить при закрытом собеседнике, но новую запись сделать нельзя. Старая история остаётся доступна авторизованному участнику; закрывший свой аккаунт пользователь должен сначала восстановить вход.
 
@@ -62,7 +62,7 @@ npm run release:db:prepare
 
 Первая миграция 20261006080000_channel_prerequisites.sql создаёт отсутствующие в действующей базе sync_events, channel_posts и sync_worker_locks, сразу закрывая их для браузерных ролей. Повтор сохраняет квитанции и аренды, не заменяет новую реализацию блокировки и не устанавливает устаревшие триггеры. Отсутствующий post_to_channel добавляется последующей миграцией как NULL; bigint региона резюме сохраняется. Полный набор проверен на таком синтетическом варианте схемы.
 
-Операционные install/activate/pause-channel-schedule.sql из supabase/operations идут отдельно от 36 миграций. Установка создаёт выключенное задание Supabase Cron; активация требует Vault и согласованного выпуска сайта/базы. Частое расписание удалено из Vercel Hobby, где оно не поддерживается. Порядок и реальные результаты аудита — в docs/production-readiness-2026-10-10.md (в экспорте production-readiness.md).
+Операционные install/activate/pause-channel-schedule.sql из supabase/operations идут отдельно от 38 миграций. Установка создаёт выключенное задание Supabase Cron; активация требует Vault и согласованного выпуска сайта/базы. Частое расписание удалено из Vercel Hobby, где оно не поддерживается. Порядок и реальные результаты аудита — в docs/production-readiness-2026-10-10.md (в экспорте production-readiness.md).
 
 
 ### Локальная копия перед применением
@@ -76,3 +76,5 @@ The initial 33 migrations were applied atomically and site PR #1 deployed. Migra
 The first direct-field optimization still exceeded the live Nano instance timeout. Follow-up 20261012094500_public_visibility_fast_path.sql returns before private-table query planning for ownerless imports, including the owner/account helpers used by RLS. Native restored-data checks preserved all visibility and aggregates: statistics/counts ~0.5 seconds and the anon RLS count ~0.85 seconds. 70 database checks, including account close/restore and 726 legacy owner/publication/source combinations, pass. Both follow-ups preserve function signatures, grants and publication rules.
 
 The live plan showed repeated security-definer calls for each row. Follow-up 20261012101500_inline_public_visibility.sql uses a parsed SQL RETURN expression with SECURITY INVOKER and qualified helpers, allowing scalar publication predicates to inline. Private ownership checks remain in the existing security-definer helpers; the restrictive account policy skips owner lookups only for ownerless rows. Native actual-data equivalence passed: anon count ~40 ms, statistics ~70–140 ms, aggregate counts ~35–90 ms. No timeout or service plan was increased.
+
+20261012103000_public_catalog_count_index.sql covers aggregate/category/special-count fields; 20261012113500_public_home_counts.sql combines homepage totals, category counts and special groups in one visible-vacancy scan. The homepage card query no longer requests an exact count, and the prior per-category/special count fan-out is removed. The native restored-data rehearsal includes both migrations and VACUUM (ANALYZE) jobs; aggregate equivalence, the public RLS count and the new anon home aggregate pass. Validate in Production after its existing history through 20261012101500; do not replay prior applied versions.
