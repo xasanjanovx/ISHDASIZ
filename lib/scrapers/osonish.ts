@@ -1,10 +1,10 @@
 /**
  * OsonIsh.uz Scraper v3 - 2-Step List → Detail Pipeline
- * 
+ *
  * Architecture:
  * 1. List API for IDs (fast, per_page=100)
  * 2. Detail API for full data (concurrent, 5 parallel)
- * 
+ *
  * Features:
  * - Full field mapping from detail endpoint
  * - Concurrent requests with rate limiting
@@ -14,6 +14,8 @@
  */
 
 import { OsonishConfigs } from './osonish-config';
+import { parseCoordinate } from '../coordinates';
+import {collectSourceIds,parseSourcePage,type SourcePage} from './source-list';
 
 // ==================== INTERFACES ====================
 
@@ -193,6 +195,9 @@ export interface TransformedVacancy {
 }
 
 export interface ScrapeResult {
+    list_complete: boolean;
+    list_total: number | null;
+    listed_ids: string[];
     vacancies: TransformedVacancy[];
     active_ids: string[];
     removed_ids: string[];
@@ -284,7 +289,8 @@ function hasOsonishAuthHeaders(): boolean {
     );
 }
 
-async function ensureApiBase(): Promise<string> {
+async function ensureApiBase(signal?:AbortSignal): Promise<string> {
+    if(signal?.aborted)throw new Error('Source request cancelled');
     if (API_BASE_RESOLVED) return API_BASE;
 
     const isUsableProbeStatus = (status: number) => {
@@ -296,9 +302,9 @@ async function ensureApiBase(): Promise<string> {
     for (const base of API_BASES) {
         try {
             const probe = `${base}/vacancies?page=1&per_page=1&status=2&sort_key=created_at&sort_type=desc`;
-            let res = await fetchWithRetry(probe, 1, buildOsonishHeaders());
+            let res = await fetchWithRetry(probe, 1, buildOsonishHeaders(),signal);
             if (hasOsonishAuthHeaders() && [401, 403, 404].includes(res.status)) {
-                res = await fetchWithRetry(probe, 1, buildPublicOsonishHeaders());
+                res = await fetchWithRetry(probe, 1, buildPublicOsonishHeaders(),signal);
             }
             if (isUsableProbeStatus(res.status)) {
                 API_BASE = base;
@@ -306,6 +312,7 @@ async function ensureApiBase(): Promise<string> {
                 return API_BASE;
             }
         } catch {
+            if(signal?.aborted)throw new Error('Source request cancelled');
             // ignore and try next base
         }
     }
@@ -322,48 +329,45 @@ function sleep(ms: number): Promise<void> {
 }
 
 // Company contacts cache to avoid duplicate API calls
-const companyContactsCache = new Map<number, { phone?: string; email?: string; website?: string } | null>();
+const companyContactsCache = new Map<number, {at:number;value:{phone?:string;email?:string;website?:string}}>();
 
 /**
  * Fetch company details for fallback contact info (with caching)
  */
-async function fetchCompanyContacts(companyId: number): Promise<{ phone?: string; email?: string; website?: string } | null> {
+export async function fetchCompanyContacts(companyId: number,signal?:AbortSignal): Promise<{ phone?: string; email?: string; website?: string } | null> {
     // Check cache first
-    if (companyContactsCache.has(companyId)) {
-        return companyContactsCache.get(companyId) || null;
-    }
+    const cached=companyContactsCache.get(companyId);
+    if(cached&&Date.now()-cached.at<60000)return cached.value;
 
     try {
-        const base = await ensureApiBase();
+        const base = await ensureApiBase(signal);
         const url = `${base}/companies/${companyId}`;
-        const response = await fetch(url, {
-            headers: buildOsonishHeaders(),
-        });
+        const response = await fetchWithRetry(url,1,buildOsonishHeaders(),signal);
 
         if (!response.ok) {
-            companyContactsCache.set(companyId, null);
             return null;
         }
 
         const json = await response.json();
         const data = json.data;
         if (!data) {
-            companyContactsCache.set(companyId, null);
             return null;
         }
 
         // Extract contacts
         // Priority: Top level phone -> Nested data.phone -> HR phone
-        const phone = data.phone || data.data?.phone || data.hrs?.[0]?.phone;
-        const email = data.mail;
-        const website = data.web_site;
+        const text=(value:unknown)=>typeof value==='string'?value:undefined;
+        const phone = text(data.phone || data.data?.phone || data.hrs?.[0]?.phone);
+        const email = text(data.mail);
+        const website = text(data.web_site);
 
         const result = { phone, email, website };
-        companyContactsCache.set(companyId, result);
+        if(companyContactsCache.size>=256)companyContactsCache.clear();
+        companyContactsCache.set(companyId,{at:Date.now(),value:result});
 
         return result;
     } catch (e) {
-        companyContactsCache.set(companyId, null);
+        if(signal?.aborted)throw new Error('Source request cancelled');
         return null; // Fail silently
     }
 }
@@ -471,7 +475,7 @@ function extractBenefitsFromHtml(html?: string): number[] {
         'ijtimoiy paket': 7 // Boshqa ijtimoiy paketlar mavjud
     };
 
-    // Check roughly if "Ijtimоiy paketlar" or "Qulayliklar" context exists? 
+    // Check roughly if "Ijtimоiy paketlar" or "Qulayliklar" context exists?
     // Actually, just searching for the phrases is safer as they are quite specific using "mavjud" often.
 
     for (const [key, id] of Object.entries(textToId)) {
@@ -635,47 +639,84 @@ function mapExperience(id?: number, configs?: OsonishConfigs): number {
 async function fetchWithRetry(
     url: string,
     retries = MAX_RETRIES,
-    headers: Record<string, string> = buildOsonishHeaders()
+    headers: Record<string, string> = buildOsonishHeaders(),
+    signal?:AbortSignal
 ): Promise<Response> {
     for (let attempt = 1; attempt <= retries; attempt++) {
+        if(signal?.aborted)throw new Error('Source request cancelled');
+        const controller=new AbortController(),abort=()=>controller.abort();
+        signal?.addEventListener('abort',abort,{once:true});
+        const timeout=setTimeout(abort,5000);
         try {
             const response = await fetch(url, {
-                headers
+                headers,signal:controller.signal,cache:'no-store'
             });
+            // Include response-body delivery in the timeout. Returning only the
+            // headers would leave a stalled JSON body running after the worker.
+            if(Number(response.headers.get('content-length'))>4*1024*1024)throw new Error('Source response too large');
+            const bytes=await boundedSourceBody(response,controller.signal);
+            const buffered=new Response([204,205,304].includes(response.status)?null:bytes,{status:response.status,statusText:response.statusText,headers:response.headers});
+            clearTimeout(timeout);signal?.removeEventListener('abort',abort);
 
             // Rate limited - backoff
             if (response.status === 429) {
                 const waitMs = BACKOFF_BASE_MS * Math.pow(2, attempt);
                 console.log(`Rate limited, waiting ${waitMs}ms...`);
-                await sleep(waitMs);
+                await sourceDelay(waitMs,signal);
                 continue;
             }
 
             // Server error - retry
             if (response.status >= 500 && attempt < retries) {
-                await sleep(BACKOFF_BASE_MS * attempt);
+                await sourceDelay(BACKOFF_BASE_MS * attempt,signal);
                 continue;
             }
 
-            return response;
+            return buffered;
         } catch (error) {
+            controller.abort();
+            if(signal?.aborted)throw new Error('Source request cancelled');
             if (attempt === retries) throw error;
-            await sleep(BACKOFF_BASE_MS * attempt);
+            await sourceDelay(BACKOFF_BASE_MS * attempt,signal);
+        } finally {
+            clearTimeout(timeout);signal?.removeEventListener('abort',abort);
         }
     }
     throw new Error('Max retries exceeded');
+}
+async function boundedSourceBody(response:Response,signal:AbortSignal):Promise<Uint8Array>{
+    if(!response.body)return new Uint8Array(0);
+    const reader=response.body.getReader(),chunks:Uint8Array[]=[];let length=0;
+    const cancel=()=>{void reader.cancel().catch(()=>{});};signal.addEventListener('abort',cancel,{once:true});
+    try{
+        for(;;){
+            if(signal.aborted)throw new Error('Source request cancelled');
+            const {done,value}=await reader.read();
+            if(signal.aborted)throw new Error('Source request cancelled');
+            if(done)break;
+            length+=value.byteLength;if(length>4*1024*1024)throw new Error('Source response too large');
+            chunks.push(value);
+        }
+        const bytes=new Uint8Array(length);let offset=0;
+        for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}return bytes;
+    }catch(error){cancel();throw error;}
+    finally{signal.removeEventListener('abort',cancel);reader.releaseLock();}
+}
+function sourceDelay(ms:number,signal?:AbortSignal):Promise<void>{
+    return new Promise((resolve,reject)=>{
+        if(signal?.aborted){reject(new Error('Source request cancelled'));return;}
+        const abort=()=>{clearTimeout(timer);reject(new Error('Source request cancelled'));};
+        const timer=setTimeout(()=>{signal?.removeEventListener('abort',abort);resolve();},ms);
+        signal?.addEventListener('abort',abort,{once:true});
+    });
 }
 
 /**
  * Step 1: Fetch vacancy IDs from list
  */
-export async function fetchVacancyIdList(page: number = 1): Promise<{
-    ids: number[];
-    total: number;
-    lastPage: number;
-}> {
+export async function fetchVacancyIdList(page: number = 1,signal?:AbortSignal): Promise<SourcePage> {
     try {
-        const base = await ensureApiBase();
+        const base = await ensureApiBase(signal);
         const basesToTry = [base, ...API_BASES.filter(b => b !== base)];
 
         let response: Response | null = null;
@@ -683,15 +724,15 @@ export async function fetchVacancyIdList(page: number = 1): Promise<{
             const url = `${candidateBase}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&is_offer=0&sort_key=created_at&sort_type=desc`;
             const fallbackUrl = `${candidateBase}/vacancies?page=${page}&per_page=${PER_PAGE}&status=2&sort_key=created_at&sort_type=desc`;
 
-            response = await fetchWithRetry(url);
+            response = await fetchWithRetry(url,MAX_RETRIES,buildOsonishHeaders(),signal);
             if ([401, 403, 404].includes(response.status) && hasOsonishAuthHeaders()) {
-                response = await fetchWithRetry(url, MAX_RETRIES, buildPublicOsonishHeaders());
+                response = await fetchWithRetry(url, MAX_RETRIES, buildPublicOsonishHeaders(),signal);
             }
             if (!response.ok) {
                 console.warn(`[Scraper] List fetch failed (${response.status}). Retrying without is_offer...`);
-                response = await fetchWithRetry(fallbackUrl);
+                response = await fetchWithRetry(fallbackUrl,MAX_RETRIES,buildOsonishHeaders(),signal);
                 if ([401, 403, 404].includes(response.status) && hasOsonishAuthHeaders()) {
-                    response = await fetchWithRetry(fallbackUrl, MAX_RETRIES, buildPublicOsonishHeaders());
+                    response = await fetchWithRetry(fallbackUrl, MAX_RETRIES, buildPublicOsonishHeaders(),signal);
                 }
             }
 
@@ -704,57 +745,40 @@ export async function fetchVacancyIdList(page: number = 1): Promise<{
 
         if (!response || !response.ok) {
             console.warn(`[Scraper] List fetch failed (all bases) for page ${page}`);
-            return { ids: [], total: 0, lastPage: 0 };
+            throw new Error('Source list unavailable');
         }
 
         const json = await response.json();
         if (json?.error) {
-            console.warn('[Scraper] List fetch blocked:', json.error);
-            return { ids: [], total: 0, lastPage: 0 };
+            console.warn('[Scraper] Source list blocked');
+            throw new Error('Source list unavailable');
         }
-        const dataBlock = json?.data ?? json;
-        const items = dataBlock?.data ?? dataBlock?.items ?? [];
-        const ids = Array.isArray(items) ? items.map((item: OsonishListItem) => item.id) : [];
-        const total = dataBlock?.total ?? dataBlock?.meta?.total ?? 0;
-        const perPage = dataBlock?.per_page ?? dataBlock?.meta?.per_page ?? PER_PAGE;
-        let lastPage = dataBlock?.last_page ?? dataBlock?.meta?.last_page ?? 0;
-        if (!lastPage && total) {
-            lastPage = Math.ceil(Number(total) / Number(perPage || PER_PAGE));
-        }
-        if (!lastPage && ids.length > 0) {
-            lastPage = page;
-        }
-
-        return {
-            ids,
-            total,
-            lastPage
-        };
+        return parseSourcePage(json,page,PER_PAGE);
     } catch (error) {
-        console.error('Error fetching list:', error);
-        return { ids: [], total: 0, lastPage: 0 };
+        console.error('Error fetching source list');
+        throw new Error('Source list unavailable');
     }
 }
 
 /**
  * Step 2: Fetch single vacancy detail
  */
-export async function fetchVacancyDetail(id: number): Promise<{
+export async function fetchVacancyDetail(id: number,signal?:AbortSignal): Promise<{
     success: boolean;
     detail?: OsonishDetail;
     status: number;
     error?: string;
 }> {
-    const base = await ensureApiBase();
+    const base = await ensureApiBase(signal);
     const basesToTry = [base, ...API_BASES.filter(b => b !== base)];
 
     try {
         let response: Response | null = null;
         for (const candidateBase of basesToTry) {
             const url = `${candidateBase}/vacancies/${id}`;
-            response = await fetchWithRetry(url);
+            response = await fetchWithRetry(url,MAX_RETRIES,buildOsonishHeaders(),signal);
             if ([401, 403, 404].includes(response.status) && hasOsonishAuthHeaders()) {
-                response = await fetchWithRetry(url, MAX_RETRIES, buildPublicOsonishHeaders());
+                response = await fetchWithRetry(url, MAX_RETRIES, buildPublicOsonishHeaders(),signal);
             }
             if (![401, 403, 404].includes(response.status)) {
                 API_BASE = candidateBase;
@@ -776,9 +800,13 @@ export async function fetchVacancyDetail(id: number): Promise<{
         }
 
         const json: OsonishDetailResponse = await response.json();
-        return { success: true, detail: json.data, status: 200 };
+        const detail=json.data;
+        const numeric=(value:unknown)=>typeof value==='number'||typeof value==='string'&&/^\d+$/.test(value);
+        if(json.success===false||!detail||Array.isArray(detail)||!numeric(detail.id)||!numeric(detail.status)||Number(detail.id)!==id||!Number.isSafeInteger(Number(detail.status))||Number(detail.status)<0) return {success:false,status:0,error:'Invalid vacancy detail'};
+        return { success: true, detail:{...detail,id,status:Number(detail.status)}, status: 200 };
     } catch (error: any) {
-        return { success: false, status: 0, error: error.message };
+        if(signal?.aborted)throw new Error('Source request cancelled');
+        return { success: false, status: 0, error: 'Source detail unavailable' };
     }
 }
 
@@ -817,7 +845,7 @@ async function fetchDetailsWithConcurrency(
 export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs): TransformedVacancy {
     // Extract contacts
     let contact_phone = normalizePhone(detail.hr?.phone) || normalizePhone(detail.additional_phone);
-    
+
     // HARDCODED FIX: Replace specific old phone number with new one
     if (contact_phone === '+998998588698') {
         contact_phone = '+998998088698';
@@ -898,8 +926,8 @@ export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs)
         address: detail.filial?.address || undefined,
         region_name: detail.filial?.region?.name_uz || detail.filial?.region?.name_ru || detail.filial?.region?.name_en || undefined,
         district_name: detail.filial?.city?.name_uz || detail.filial?.city?.name_ru || detail.filial?.city?.name_en || undefined,
-        latitude: detail.filial?.lat ?? undefined,
-        longitude: detail.filial?.long ?? undefined,
+        latitude: parseCoordinate(detail.filial?.lat, 'latitude'),
+        longitude: parseCoordinate(detail.filial?.long, 'longitude'),
 
         // Contacts
         contact_phone,
@@ -908,7 +936,7 @@ export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs)
         hr_name: detail.hr?.fio || undefined,
         has_contact,
 
-        // Benefits (passed via raw_source_json override or we need to add a benefits field to parsed? 
+        // Benefits (passed via raw_source_json override or we need to add a benefits field to parsed?
         // Currently route.ts uses raw_source_json.benefit_ids.
         // We should update the raw_source_json.benefit_ids to include our extracted ones.
 
@@ -943,7 +971,7 @@ export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs)
 
 /**
  * Main 2-step scraper: List → Detail
- * 
+ *
  * @param maxPages Maximum pages to fetch from list
  * @param onlyWithContacts Only include vacancies with valid contacts
  */
@@ -971,30 +999,10 @@ export async function scrapeOsonishFull(
 
     console.log(`[Scraper] Starting 2-step import (max ${maxPages} pages)...`);
 
-    // Step 1: Collect all IDs from list
-    const allIds: number[] = [];
-    let totalOnSite = 0;
-
-    for (let page = 1; page <= maxPages; page++) {
-        const { ids, total, lastPage } = await fetchVacancyIdList(page);
-
-        if (page === 1) {
-            totalOnSite = total;
-            console.log(`[Scraper] Total vacancies on site: ${total}`);
-            if (lastPage && lastPage > maxPages) {
-                maxPages = lastPage;
-            }
-        }
-
-        if (ids.length === 0) break;
-
-        allIds.push(...ids);
-        console.log(`[Scraper] Page ${page}: ${ids.length} IDs`);
-
-        if (page >= lastPage) break;
-
-        await sleep(200); // Small delay between list pages
-    }
+    // A bounded, complete enumeration is required before any absence-based cleanup.
+    const enumeration=await collectSourceIds(fetchVacancyIdList,maxPages,()=>sleep(200));
+    const allIds=enumeration.ids;
+    if(enumeration.error)debug.errors.push(enumeration.error);
 
     debug.list_items_count = allIds.length;
     console.log(`[Scraper] Collected ${allIds.length} IDs, fetching details...`);
@@ -1052,7 +1060,7 @@ export async function scrapeOsonishFull(
                     transformed.has_contact = !!(transformed.contact_phone || transformed.contact_telegram || transformed.contact_email);
 
                     if (transformed.has_contact) {
-                        debug.vacancies_with_contacts++; // Just a counter, careful not to double count if we change logic
+                        // Count contacts once below after the fallback.
                     }
                 }
             } catch (err) {
@@ -1062,6 +1070,7 @@ export async function scrapeOsonishFull(
 
         // Filter by contact
         if (transformed.has_contact) {
+            debug.vacancies_with_contacts++;
             vacancies.push(transformed);
         } else {
             debug.vacancies_without_contacts++;
@@ -1076,6 +1085,9 @@ export async function scrapeOsonishFull(
     console.log(`[Scraper] Contacts: ${debug.vacancies_with_contacts} with, ${debug.vacancies_without_contacts} without`);
 
     return {
+        list_complete:enumeration.complete,
+        list_total:enumeration.expectedTotal,
+        listed_ids:allIds.map(String),
         vacancies,
         active_ids: activeIds,
         removed_ids: removedIds,

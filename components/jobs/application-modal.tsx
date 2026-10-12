@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { X, FileText, Briefcase, Building2, Plus, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { accountApi, AccountApiError } from '@/lib/account-api';
+import * as Dialog from '@radix-ui/react-dialog';
 
 interface Resume {
     id: string;
@@ -29,119 +30,94 @@ interface ApplicationModalProps {
     isOpen: boolean;
     onClose: () => void;
     job: Job;
+    onSuccess?: () => void;
 }
 
-export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps) {
-    const { lang } = useLanguage();
+export function ApplicationModal(props: ApplicationModalProps) {
     const { user } = useUserAuth();
+    return props.isOpen ? <ApplicationForm key={`${props.job.id}:${user?.id || 'guest'}`} onClose={props.onClose} onSuccess={props.onSuccess} job={props.job} user={user} /> : null;
+}
+
+function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModalProps, 'isOpen'> & { user: ReturnType<typeof useUserAuth>['user'] }) {
+    const { lang } = useLanguage();
     const [resumes, setResumes] = useState<Resume[]>([]);
     const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
     const [phone, setPhone] = useState(user?.phone || '');
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isLoadingResumes, setIsLoadingResumes] = useState(true);
+    const [isLoadingResumes, setIsLoadingResumes] = useState(!!user?.id);
+    const [resumeError, setResumeError] = useState(!user?.id);
+    const [attempt, setAttempt] = useState(0);
+    const submitting = useRef(false);
+    const mounted = useRef(true);
 
-    const loadResumes = useCallback(async () => {
-        setIsLoadingResumes(true);
-        try {
-            if (!user?.id) {
-                setResumes([]);
-                setIsLoadingResumes(false);
-                return;
-            }
-
-            const { data, error } = await supabase
-                .from('resumes')
-                .select('id, title, experience_years, updated_at')
-                .eq('user_id', user.id)
-                .eq('status', 'active')
-                .order('updated_at', { ascending: false });
-
-            if (error) {
-                console.error('Error loading resumes:', error);
-                setResumes([]);
-            } else {
-                setResumes(data || []);
-            }
-        } catch (error) {
-            console.error('Failed to load resumes:', error);
-            setResumes([]);
-        }
-        setIsLoadingResumes(false);
-    }, [user?.id]);
-
-    // Load user's resumes
     useEffect(() => {
-        if (isOpen && user) {
-            loadResumes();
-        }
-    }, [isOpen, user, loadResumes]);
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
+    useEffect(() => {
+        if (!user?.id) return;
+        let cancelled = false;
+        accountApi<{ resumes: Resume[] }>('/api/account/applications/resumes').then(result => {
+            if (!cancelled) { setResumes(result.resumes); setResumeError(false); }
+        }).catch(() => { if (!cancelled) setResumeError(true); })
+          .finally(() => { if (!cancelled) setIsLoadingResumes(false); });
+        return () => { cancelled = true; };
+    }, [user?.id, attempt]);
 
     const handleSubmit = async () => {
-        if (!selectedResumeId) {
-            toast.error(lang === 'ru' ? 'Выберите резюме' : 'Rezyumeni tanlang');
+        if (submitting.current) return;
+        if (!user?.id || !selectedResumeId || !resumes.some(resume => resume.id === selectedResumeId)) {
+            toast.error(lang === 'ru' ? 'Войдите и выберите своё резюме' : 'Kiring va rezyumeni tanlang');
             return;
         }
-        if (!phone.trim()) {
-            toast.error(lang === 'ru' ? 'Введите номер телефона' : 'Telefon raqamini kiriting');
+        const digits = phone.replace(/[\s()+-]/g, '');
+        const normalizedPhone = /^\d{9}$/.test(digits) ? `+998${digits}` : /^998\d{9}$/.test(digits) ? `+${digits}` : null;
+        if (!normalizedPhone) {
+            toast.error(lang === 'ru' ? 'Введите номер Узбекистана: +998 и 9 цифр' : '+998 va 9 raqamdan iborat telefon kiriting');
             return;
         }
-
+        if (message.trim().length > 4000) {
+            toast.error(lang === 'ru' ? 'Сообщение должно быть не длиннее 4000 символов' : 'Xabar 4000 belgidan oshmasin');
+            return;
+        }
+        submitting.current = true;
         setIsLoading(true);
-
         try {
-            // Get user's full name from selected resume or profile
-            const selectedResume = resumes.find(r => r.id === selectedResumeId);
-
-            // Fetch full_name from the resume
-            const { data: resumeData } = await supabase
-                .from('resumes')
-                .select('full_name')
-                .eq('id', selectedResumeId)
-                .single();
-
-            const fullName = resumeData?.full_name || user?.phone || 'Ism kiritilmagan';
-
-            const { error } = await supabase
-                .from('job_applications')
-                .insert({
-                    job_id: job.id,
-                    full_name: fullName,
-                    phone: phone.trim(),
-                    message: message.trim() || null,
-                    resume_id: selectedResumeId,
-                    status: 'pending'
-                });
-
-            if (error) {
-                console.error('Error submitting application:', error);
-                toast.error(lang === 'ru' ? 'Ошибка отправки' : 'Yuborishda xatolik');
-            } else {
-                toast.success(lang === 'ru' ? 'Заявка отправлена!' : 'Ariza yuborildi!');
-                onClose();
-            }
+            await accountApi('/api/account/applications', { method: 'POST', body: JSON.stringify({ job_id: job.id, resume_id: selectedResumeId, phone: normalizedPhone, message: message.trim() }) });
+            if (!mounted.current) return;
+            toast.success(lang === 'ru' ? 'Заявка отправлена!' : 'Ariza yuborildi!');
+            window.dispatchEvent(new Event('applicationsRead'));
+            onSuccess?.();
+            onClose();
         } catch (error) {
-            console.error('Error submitting application:', error);
-            toast.error(lang === 'ru' ? 'Ошибка отправки' : 'Yuborishda xatolik');
+            if (!mounted.current) return;
+            const status = error instanceof AccountApiError ? error.status : 0;
+            toast.error(status === 409
+                ? (lang === 'ru' ? 'Отклик уже отправлен или это ваша вакансия' : 'Ariza allaqachon yuborilgan yoki bu o‘z vakansiyangiz')
+                : status === 401 || status === 403
+                ? (lang === 'ru' ? 'Войдите в профиль соискателя' : 'Ish qidiruvchi profiliga kiring')
+                : status === 404
+                ? (lang === 'ru' ? 'Вакансия или резюме уже недоступны' : 'Vakansiya yoki rezyume endi mavjud emas')
+                : (lang === 'ru' ? 'Не удалось отправить. Попробуйте ещё раз.' : 'Yuborib bo‘lmadi. Qayta urinib ko‘ring.'));
+        } finally {
+            submitting.current = false;
+            if (mounted.current) setIsLoading(false);
         }
-
-        setIsLoading(false);
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div
-                className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-in-right"
-                onClick={e => e.stopPropagation()}
-            >
+        <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl max-w-lg w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto">
+                <Dialog.Description className="sr-only">{job.title}</Dialog.Description>
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                    <h2 className="text-xl font-bold text-slate-900">
+                    <Dialog.Title className="text-xl font-bold text-slate-900">
                         {lang === 'ru' ? 'Заявка на вакансию' : 'Vakansiyaga ariza'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    </Dialog.Title>
+                    <button aria-label={lang === 'ru' ? 'Закрыть' : 'Yopish'} onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>
@@ -149,7 +125,7 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
                 {/* Job Info */}
                 <div className="p-6 bg-slate-50 border-b border-slate-100">
                     <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
                             <Briefcase className="w-5 h-5 text-sky-600" />
                         </div>
                         <div>
@@ -176,6 +152,11 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
                             <div className="flex items-center justify-center py-8">
                                 <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
                             </div>
+                        ) : resumeError ? (
+                            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
+                                {user ? (lang === 'ru' ? 'Не удалось загрузить резюме.' : 'Rezyumeni yuklab bo‘lmadi.') : (lang === 'ru' ? 'Войдите в профиль соискателя.' : 'Ish qidiruvchi profiliga kiring.')}
+                                {user && <Button variant="outline" className="mt-3" onClick={() => { setIsLoadingResumes(true); setAttempt(value => value + 1); }}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button>}
+                            </div>
                         ) : resumes.length === 0 ? (
                             <div className="text-center py-8 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                                 <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -199,7 +180,7 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
                                 {resumes.map((resume) => (
                                     <label
                                         key={resume.id}
-                                        className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedResumeId === resume.id
+                                        className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 ${selectedResumeId === resume.id
                                             ? 'border-sky-500 bg-sky-50'
                                             : 'border-slate-200 hover:border-slate-300'
                                             }`}
@@ -223,9 +204,8 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
                                         <div className="flex-1">
                                             <p className="font-medium text-slate-900">{resume.title}</p>
                                             <p className="text-sm text-slate-500">
-                                                💼 {resume.experience_years} {lang === 'ru' ? 'лет опыта' : 'yil tajriba'} •
-                                                {lang === 'ru' ? ' Обновлено: ' : ' Yangilangan: '}
-                                                {new Date(resume.updated_at).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'uz-UZ')}
+                                                {typeof resume.experience_years==='number' && Number.isFinite(resume.experience_years) ? `💼 ${resume.experience_years} ${lang === 'ru' ? 'лет опыта' : 'yil tajriba'}` : (lang==='ru'?'Опыт не указан':'Tajriba ko‘rsatilmagan')}
+                                                {resume.updated_at && Number.isFinite(Date.parse(resume.updated_at)) && <>{lang === 'ru' ? ' • Обновлено: ' : ' • Yangilangan: '}{new Date(resume.updated_at).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'uz-UZ')}</>}
                                             </p>
                                         </div>
                                     </label>
@@ -243,10 +223,10 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
 
                     {/* Phone */}
                     <div className="space-y-2">
-                        <Label>
+                        <Label htmlFor="application-phone">
                             {lang === 'ru' ? 'Ваш номер телефона' : 'Telefon raqamingiz'} *
                         </Label>
-                        <Input
+                        <Input id="application-phone" type="tel" autoComplete="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="+998 90 123 45 67"
@@ -255,10 +235,10 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
 
                     {/* Message */}
                     <div className="space-y-2">
-                        <Label>
+                        <Label htmlFor="application-message">
                             {lang === 'ru' ? 'Сопроводительное письмо' : "Qo'shimcha xabar"}
                         </Label>
-                        <Textarea
+                        <Textarea id="application-message" maxLength={4000}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             placeholder={lang === 'ru'
@@ -276,7 +256,7 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={isLoading || resumes.length === 0}
+                        disabled={isLoading || isLoadingResumes || resumeError || !selectedResumeId}
                         className="flex-1 bg-sky-500 hover:bg-sky-600 gap-2"
                     >
                         {isLoading ? (
@@ -292,7 +272,8 @@ export function ApplicationModal({ isOpen, onClose, job }: ApplicationModalProps
                         )}
                     </Button>
                 </div>
-            </div>
-        </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
     );
 }

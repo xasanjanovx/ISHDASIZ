@@ -67,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const { data: jobs } = await supabase
         .from('jobs')
         .select('id, updated_at')
-        .eq('status', 'active')
+        .eq('ishdasiz_job_available', true)
         .order('updated_at', { ascending: false });
 
     const jobPages: MetadataRoute.Sitemap = (jobs || []).map((job) => ({
@@ -77,19 +77,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
     }));
 
-    // Fetch active resumes
-    const { data: resumes } = await supabase
-        .from('resumes')
-        .select('id, updated_at')
-        .eq('status', 'active')
-        .order('updated_at', { ascending: false });
-
-    const resumePages: MetadataRoute.Sitemap = (resumes || []).map((resume) => ({
-        url: `${baseUrl}/resumes/${resume.id}`,
-        lastModified: new Date(resume.updated_at),
-        changeFrequency: 'weekly' as const,
-        priority: 0.6,
-    }));
-
-    return [...staticPages, ...jobPages, ...resumePages];
+    // Full CVs require an employer account; only the catalog belongs in the sitemap.
+    return [...staticPages, ...jobPages];
 }

@@ -39,7 +39,7 @@ const accentColors = [
 
 interface CategoriesSectionProps {
   categories: Category[];
-  jobCounts: Record<string, number>;
+  jobCounts: Record<string, number | null>;
 }
 
 export function CategoriesSection({ categories, jobCounts }: CategoriesSectionProps) {
@@ -98,7 +98,7 @@ export function CategoriesSection({ categories, jobCounts }: CategoriesSectionPr
         >
           {categories.map((category, index) => {
             const IconComponent = iconMap[category.icon] || Briefcase;
-            const count = jobCounts[category.id] || 0;
+            const count = jobCounts[category.id] ?? '—';
             const accent = accentColors[index % accentColors.length];
 
             return (

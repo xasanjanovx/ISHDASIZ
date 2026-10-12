@@ -265,10 +265,10 @@ export function mapOsonishCategory(
 
     // Try fuzzy matching (partial string match) with normalized strings
     const strictKeys = Object.keys(STRICT_CATEGORY_MAP);
-    const fuzzyStrictMatch = strictKeys.find(key => {
+    const fuzzyStrictMatch = normalizedInput ? strictKeys.find(key => {
         const normKey = normalizeText(key);
         return normalizedInput.includes(normKey) || normKey.includes(normalizedInput);
-    });
+    }) : undefined;
     if (fuzzyStrictMatch) {
         const key = STRICT_CATEGORY_MAP[fuzzyStrictMatch];
         return {

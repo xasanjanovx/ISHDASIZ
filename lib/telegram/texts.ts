@@ -784,7 +784,7 @@ export const botTexts = {
     },
     employerDashboard: {
         uz: (stats: { activeJobs: number; totalApps: number; pendingApps: number; interviewsToday: number; acceptedApps: number }) =>
-            `<b>📊 | Employer Dashboard</b>\n\n💼 | Faol vakansiyalar: <b>${stats.activeJobs}</b>\n📨 | Jami arizalar: <b>${stats.totalApps}</b>\n🟡 | Kutilayotgan: <b>${stats.pendingApps}</b>\n📅 | Bugungi suhbatlar: <b>${stats.interviewsToday}</b>\n✅ | Qabul qilingan: <b>${stats.acceptedApps}</b>`,
+            `<b>📊 | Ish beruvchi statistikasi</b>\n\n💼 | Faol vakansiyalar: <b>${stats.activeJobs}</b>\n📨 | Jami arizalar: <b>${stats.totalApps}</b>\n🟡 | Kutilayotgan: <b>${stats.pendingApps}</b>\n📅 | Bugungi suhbatlar: <b>${stats.interviewsToday}</b>\n✅ | Qabul qilingan: <b>${stats.acceptedApps}</b>`,
         ru: (stats: { activeJobs: number; totalApps: number; pendingApps: number; interviewsToday: number; acceptedApps: number }) =>
             `<b>📊 | Панель работодателя</b>\n\n💼 | Активные вакансии: <b>${stats.activeJobs}</b>\n📨 | Всего откликов: <b>${stats.totalApps}</b>\n🟡 | Ожидают: <b>${stats.pendingApps}</b>\n📅 | Собеседования сегодня: <b>${stats.interviewsToday}</b>\n✅ | Принятые: <b>${stats.acceptedApps}</b>`
     },
@@ -795,8 +795,8 @@ export const botTexts = {
             `<b>🎯 | Найдена подходящая вакансия!</b>\n\n💼 | <b>${jobTitle}</b>\n🏢 | ${companyName}\n📊 | Совпадение: <b>${matchScore}%</b>\n\n<i>Нажмите кнопку ниже, чтобы посмотреть вакансию.</i>`
     },
     askInterviewDate: {
-        uz: '<b>📅 | Suhbat sanasi va vaqtini kiriting</b>\n<i>Masalan: 15.04.2026 14:00</i>',
-        ru: '<b>📅 | Укажите дату и время собеседования</b>\n<i>Например: 15.04.2026 14:00</i>'
+        uz: '<b>📅 | Suhbat sanasi va vaqtini kiriting</b>\n<i>KK.OO.YYYY SS:DD, O‘zbekiston vaqti (UTC+5)</i>',
+        ru: '<b>📅 | Укажите дату и время собеседования</b>\n<i>ДД.ММ.ГГГГ ЧЧ:ММ, время Узбекистана (UTC+5)</i>'
     },
     askInterviewAddress: {
         uz: '<b>📍 | Suhbat manzilini kiriting</b>\n<i>Masalan: Andijon sh., Bobur ko\'chasi 12</i>\n<i>"O\'tkazib yuborish" tugmasini bosishingiz mumkin.</i>',
@@ -814,17 +814,21 @@ export const botTexts = {
         uz: '<b>📋 | Rad etish sababini yozing (ixtiyoriy)</b>\n<i>"O\'tkazib yuborish" tugmasini bosishingiz mumkin.</i>',
         ru: '<b>📋 | Укажите причину отклонения (необязательно)</b>\n<i>Можно нажать "Пропустить".</i>'
     },
+    applicationHiredEmployer: {
+        uz: '<b>🚀 | Nomzod ishga qabul qilindi.</b>\n<i>Holat nomzodning arizalarida ko‘rinadi.</i>',
+        ru: '<b>🚀 | Кандидат принят на работу.</b>\n<i>Статус доступен кандидату в его откликах.</i>'
+    },
     applicationAcceptedEmployer: {
-        uz: '<b>✅ | Ariza muvaffaqiyatli qabul qilindi.</b>\n<i>Nomzod xabardor qilindi.</i>',
-        ru: '<b>✅ | Отклик успешно принят.</b>\n<i>Кандидат уведомлён.</i>'
+        uz: '<b>✅ | Ariza muvaffaqiyatli qabul qilindi.</b>\n<i>Holat nomzodning arizalarida ko‘rinadi.</i>',
+        ru: '<b>✅ | Отклик успешно принят.</b>\n<i>Статус доступен кандидату в его откликах.</i>'
     },
     applicationRejectedEmployer: {
-        uz: '<b>❌ | Ariza rad etildi.</b>\n<i>Nomzod xabardor qilindi.</i>',
-        ru: '<b>❌ | Отклик отклонён.</b>\n<i>Кандидат уведомлён.</i>'
+        uz: '<b>❌ | Ariza rad etildi.</b>\n<i>Holat nomzodning arizalarida ko‘rinadi.</i>',
+        ru: '<b>❌ | Отклик отклонён.</b>\n<i>Статус доступен кандидату в его откликах.</i>'
     },
     interviewScheduledEmployer: {
-        uz: '<b>📅 | Suhbat muvaffaqiyatli belgilandi.</b>\n<i>Nomzod xabardor qilindi.</i>',
-        ru: '<b>📅 | Собеседование успешно назначено.</b>\n<i>Кандидат уведомлён.</i>'
+        uz: '<b>📅 | Suhbat muvaffaqiyatli belgilandi.</b>\n<i>Holat nomzodning arizalarida ko‘rinadi.</i>',
+        ru: '<b>📅 | Собеседование успешно назначено.</b>\n<i>Статус доступен кандидату в его откликах.</i>'
     },
     interviewInvite: {
         uz: (jobTitle: string, date?: string | null, address?: string | null, phone?: string | null, message?: string | null) => {
@@ -908,7 +912,7 @@ export function formatJobCard(job: any, lang: BotLang, matchScore?: number): str
     const location = [job.region_name, job.district_name].filter(Boolean).join(', ');
     const titleLabel = lang === 'uz' ? 'Lavozim' : 'Должность';
     let card = `<b>💼 | ${titleLabel}: ${escape(title || na)}</b>\n🏢 | ${escape(job.company_name || (lang === 'uz' ? 'Tashkilot' : 'Компания'))}\n💰 | ${salary}`;
-    if (location) card += `\n📍 | ${location}`;
+    if (location) card += `\n📍 | ${escape(location)}`;
     if (matchScore !== undefined) card += `\n\n${botTexts.matchScore[lang](matchScore)}`;
     return card;
 }

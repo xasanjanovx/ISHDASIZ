@@ -1,96 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { ensureProfile, getAuthClient, getPublicUser, normalizePhone, OTP_COOKIE, passwordVersion, readAuthUser, setAuthCookie, verifyAuthToken } from '@/lib/auth/server';
 
 export async function POST(request: NextRequest) {
+    const body = await request.json().catch(() => null);
+    const phone = normalizePhone(body?.phone);
+    const password = body?.password;
+    const role = body?.role;
+    if (!phone || typeof password !== 'string' || password.length < 6 || Buffer.byteLength(password, 'utf8') > 72
+        || !['job_seeker', 'employer'].includes(role)) {
+        return NextResponse.json({ error: 'Telefon, rol yoki parol noto‘g‘ri (6–72 bayt).' }, { status: 400 });
+    }
+    const proof = verifyAuthToken(request.cookies.get(OTP_COOKIE)?.value, 'password');
+    if (!proof || proof.phone !== phone) {
+        return NextResponse.json({ error: 'Avval SMS kodini tasdiqlang.' }, { status: 401 });
+    }
     try {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
-        const { phone, password, role } = await request.json();
-
-        if (!phone || !password) {
-            return NextResponse.json({ error: 'Phone and password are required' }, { status: 400 });
+        const client = getAuthClient();
+        const { data: user, error } = await readAuthUser(client, 'id, phone, is_verified, password_hash', 'id', proof.userId);
+        if (error || !user) return NextResponse.json({ error: 'Foydalanuvchi topilmadi.' }, { status: 404 });
+        if (user.closed_at || user.phone !== phone || proof.passwordVersion !== passwordVersion(user.password_hash, user.session_version)) {
+            return NextResponse.json({ error: 'Tasdiqlash kodi ishlatilgan. Yangi SMS oling.' }, { status: 401 });
         }
-
-        if (password.length < 6) {
-            return NextResponse.json({ error: "Parol kamida 6 ta belgidan iborat bo'lishi kerak" }, { status: 400 });
-        }
-
-        // Hash the password
+        await ensureProfile(client, user, role);
         const passwordHash = await bcrypt.hash(password, 10);
-
-        // Check if user already exists
-        const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('phone', phone)
-            .single();
-
-        if (existingUser) {
-            // Update existing user with password
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({
-                    password_hash: passwordHash,
-                    login_attempts: 0,
-                    locked_until: null
-                })
-                .eq('phone', phone);
-
-            if (updateError) {
-                console.error('Update password error:', updateError);
-                return NextResponse.json({ error: 'Failed to save password' }, { status: 500 });
-            }
-
-            return NextResponse.json({
-                success: true,
-                userId: existingUser.id,
-                message: 'Password created successfully'
-            });
-        }
-
-        // Create new user with password
-        const { data: newUser, error: insertError } = await supabase
-            .from('users')
-            .insert({
-                phone,
-                password_hash: passwordHash,
-                role: role || 'job_seeker',
-                login_attempts: 0
-            })
-            .select('id')
-            .single();
-
-        if (insertError) {
-            console.error('Create user error:', insertError);
-            return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-        }
-
-        // Create profile based on role
-        if (role === 'employer') {
-            await supabase.from('employer_profiles').insert({
-                user_id: newUser.id,
-                company_name: '',
-                is_verified: false
-            });
-        } else {
-            await supabase.from('job_seeker_profiles').insert({
-                user_id: newUser.id,
-                full_name: ''
-            });
-        }
-
-        return NextResponse.json({
-            success: true,
-            userId: newUser.id,
-            message: 'User created with password'
-        });
-
+        const { error: updateError } = await client.from('users').update({ password_hash: passwordHash, login_attempts: 0, locked_until: null })
+            .eq('id', user.id);
+        if (updateError) throw new Error('Could not save password');
+        const response = NextResponse.json({ success: true, userId: user.id, user: await getPublicUser(client, user, role) });
+        response.cookies.delete(OTP_COOKIE);
+        return setAuthCookie(response, { ...user, password_hash: passwordHash });
     } catch (error) {
-        console.error('Create password error:', error);
-        return NextResponse.json({ error: 'Server error' }, { status: 500 });
+        console.error('Create password failed:', error);
+        return NextResponse.json({ error: 'Parolni saqlab bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 500 });
     }
 }

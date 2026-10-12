@@ -1,0 +1,246 @@
+{
+  "release": "2026-10-repair",
+  "format": 1,
+  "baseline": "Existing ISHDASIZ database through April 2026; not a fresh-install schema or proof of live migration history.",
+  "migrations": [
+    {
+      "file": "20261006080000_channel_prerequisites.sql",
+      "sha256": "8cd2c29d8d595310b9b7f489f87d528f298bcf0c95c2d0139e615efc17ce54ac",
+      "requires": []
+    },
+    {
+      "file": "20261006090000_private_chat_and_identity.sql",
+      "sha256": "1064207dea0dd68f596d31a9d5d4734c4c834f16bcaebd148109dd319fb464c4",
+      "requires": [
+        "20261006080000_channel_prerequisites.sql"
+      ],
+      "previousFilename": "20261006_private_chat_and_identity.sql"
+    },
+    {
+      "file": "20261007090000_account_closure.sql",
+      "sha256": "aa9a73360481dce9c5cfcba89035b236688e5ec9d1fad5cfaf2c4b59d7246bd0",
+      "requires": [
+        "20261006090000_private_chat_and_identity.sql"
+      ],
+      "previousFilename": "20261007_account_closure.sql"
+    },
+    {
+      "file": "20261007091000_resume_search_state.sql",
+      "sha256": "b216563be07eb2662ae23d9d9d248626ae6f20590e56177579bc1e8081cd1a44",
+      "requires": [
+        "20261007090000_account_closure.sql"
+      ],
+      "previousFilename": "20261007_resume_search_state.sql"
+    },
+    {
+      "file": "20261007092000_public_resume_search.sql",
+      "sha256": "646560e391bb261a85d18a56190e0cf90c4974e7abfe75d634cabbf421912fe8",
+      "requires": [
+        "20261007091000_resume_search_state.sql"
+      ],
+      "previousFilename": "20261007_public_resume_search.sql"
+    },
+    {
+      "file": "20261007093000_profile_updated_at.sql",
+      "sha256": "0e71429c5ce31dc9f00d19fe1f87f2e15e7cb51995c25f57bcccfdc80b8454b1",
+      "requires": [
+        "20261007092000_public_resume_search.sql"
+      ],
+      "previousFilename": "20261007_profile_updated_at.sql"
+    },
+    {
+      "file": "20261007094000_vacancy_updated_at.sql",
+      "sha256": "d83e217a0a1efd101d9e525b42ee3d2ac96547c9e1f5dfdf072934df3ed7699d",
+      "requires": [
+        "20261007093000_profile_updated_at.sql"
+      ],
+      "previousFilename": "20261007_vacancy_updated_at.sql"
+    },
+    {
+      "file": "20261007095000_vacancy_ai_quota.sql",
+      "sha256": "114a4d99579b64c8af5d0af4d522ce424e2bc1bffed317a9f63d0e7b5cba7ad7",
+      "requires": [
+        "20261007094000_vacancy_updated_at.sql"
+      ],
+      "previousFilename": "20261007_vacancy_ai_quota.sql"
+    },
+    {
+      "file": "20261007100000_saved_jobs_private.sql",
+      "sha256": "357af8b4c6d6bb360a70010d8be9ec56c02d5e57b84d003f18233464dd7d0946",
+      "requires": [
+        "20261007095000_vacancy_ai_quota.sql"
+      ],
+      "previousFilename": "20261007_saved_jobs_private.sql"
+    },
+    {
+      "file": "20261007101000_admin_access.sql",
+      "sha256": "697111eee6a2dbc0d1f0e70e8d299c81bf5b832d0ebb55ad71be167aeb826ba4",
+      "requires": [
+        "20261007100000_saved_jobs_private.sql"
+      ],
+      "previousFilename": "20261007_admin_access.sql"
+    },
+    {
+      "file": "20261007102000_admin_management.sql",
+      "sha256": "ba76ad356302ee3f7b087deea47ae27a035b9d9eac11035a47dae27093311fde",
+      "requires": [
+        "20261007101000_admin_access.sql"
+      ],
+      "previousFilename": "20261007_admin_management.sql"
+    },
+    {
+      "file": "20261009090000_public_job_availability.sql",
+      "sha256": "bc12f12cd43d650f1652860095797562162dee47c78375743e80e3cca46b4f31",
+      "requires": [
+        "20261007102000_admin_management.sql"
+      ]
+    },
+    {
+      "file": "20261009091000_application_submission.sql",
+      "sha256": "454aaae0a63cb10b11df89163f8c5b98211e3b4b97b8368804cd4fe928a846b3",
+      "requires": [
+        "20261009090000_public_job_availability.sql"
+      ]
+    },
+    {
+      "file": "20261009092000_source_import_state.sql",
+      "sha256": "712acfbf365cbd9594ac5461769d52f9a755490c8d962cbcbc5b6f76498012ab",
+      "requires": [
+        "20261009091000_application_submission.sql"
+      ]
+    },
+    {
+      "file": "20261009100000_osonish_import_worker.sql",
+      "sha256": "7f895fbc23d1c5ad17e6ef546a2805e5ad4a84f780b3c31843db63d77fc89ad5",
+      "requires": [
+        "20261009092000_source_import_state.sql"
+      ]
+    },
+    {
+      "file": "20261009110000_public_statistics.sql",
+      "sha256": "e4d79f1d08cc222668b5a82d6ddd96718396cb5878e62a264f3b2de20c91078c",
+      "requires": [
+        "20261009100000_osonish_import_worker.sql"
+      ]
+    },
+    {
+      "file": "20261009120000_private_ai_history.sql",
+      "sha256": "d6b32bebac1430023d0f6bcd4d9a6117c4c077ccbd01f14392aaa81eb124296d",
+      "requires": [
+        "20261009110000_public_statistics.sql"
+      ]
+    },
+    {
+      "file": "20261009130000_vacancy_import_versions.sql",
+      "sha256": "28ea702bc99ca1f3bb2effa502f743a3906241de85c04394b27bc01b6a61dc19",
+      "requires": [
+        "20261009120000_private_ai_history.sql"
+      ]
+    },
+    {
+      "file": "20261009140000_application_actions.sql",
+      "sha256": "6d172caf7b1645445e9b6008b07ad375c14afae8ae384cd7ed47a8239301a4b4",
+      "requires": [
+        "20261009130000_vacancy_import_versions.sql"
+      ]
+    },
+    {
+      "file": "20261009150000_owned_resume_actions.sql",
+      "sha256": "0c5bc83505f14039180b3f2cccd9b1feef55a7d513512b86f879ad8bcdb5d425",
+      "requires": [
+        "20261009140000_application_actions.sql"
+      ]
+    },
+    {
+      "file": "20261010100000_bot_candidates.sql",
+      "sha256": "1e558f116831cecb9d5bee8764664609af1faac123a6513a18b4e8b1922c19e7",
+      "requires": [
+        "20261009150000_owned_resume_actions.sql"
+      ]
+    },
+    {
+      "file": "20261010110000_channel_visibility.sql",
+      "sha256": "e07fd73dc6ebc14d67694c4957a5a614b8cb8c18b100a97487a635fc6dd80bbd",
+      "requires": [
+        "20261010100000_bot_candidates.sql"
+      ]
+    },
+    {
+      "file": "20261010120000_channel_leases.sql",
+      "sha256": "8b3918a5d221741cf17bd925ae598f128e4dafd4f823241c40b7c4536855c37a",
+      "requires": [
+        "20261010110000_channel_visibility.sql"
+      ]
+    },
+    {
+      "file": "20261010130000_channel_deliveries.sql",
+      "sha256": "03a43a69bff40c3eabfb34730c1428345caaa9d1352c92b1fda8c3db12166e37",
+      "requires": [
+        "20261010120000_channel_leases.sql"
+      ]
+    },
+    {
+      "file": "20261010140000_auto_match_actions.sql",
+      "sha256": "6efb0dd1af5fbd43cf60c84ca5ab2368a51a6e107e9e6a0a9ea21f9f21d68539",
+      "requires": [
+        "20261010130000_channel_deliveries.sql"
+      ]
+    },
+    {
+      "file": "20261010150000_public_resume_visibility.sql",
+      "sha256": "1144de633e1d13509ea4a5abfb35efcd2ff274877b0f2a7a0411624dd491811e",
+      "requires": [
+        "20261010140000_auto_match_actions.sql"
+      ]
+    },
+    {
+      "file": "20261010160000_seeker_offers.sql",
+      "sha256": "8374adccbf773a27a54b98babaf2241b61242eaf22a7db71362f9786a3a87970",
+      "requires": [
+        "20261010150000_public_resume_visibility.sql"
+      ]
+    },
+    {
+      "file": "20261010170000_web_application_actions.sql",
+      "sha256": "34f8b68f33d1f613b0e3afec65da67191a2f528ef4aad5c23d93ff5d234bba81",
+      "requires": [
+        "20261010160000_seeker_offers.sql"
+      ]
+    },
+    {
+      "file": "20261010180000_application_resume.sql",
+      "sha256": "c9e012873cdf5f05c133cd5108dc5788707ae750d499a42d27271151d0fa87ab",
+      "requires": [
+        "20261010170000_web_application_actions.sql"
+      ]
+    },
+    {
+      "file": "20261010190000_application_seen.sql",
+      "sha256": "0556dca779d17733c85b8a0200d69c8b7b342b396abcab95ae8cfff87ed8cbe2",
+      "requires": [
+        "20261010180000_application_resume.sql"
+      ]
+    },
+    {
+      "file": "20261010200000_catalog_resume_detail.sql",
+      "sha256": "62518efa0326340d0f40e8ec1211109a08dc74099bf0cca3df36496c4434766e",
+      "requires": [
+        "20261010190000_application_seen.sql"
+      ]
+    },
+    {
+      "file": "20261010210000_chat_actions.sql",
+      "sha256": "3b62b8a144da99b0ee3281c1c98a335e5ff8b1fa5c353c3ca8be0c3de7ae4503",
+      "requires": [
+        "20261010200000_catalog_resume_detail.sql"
+      ]
+    },
+    {
+      "file": "20261010220000_job_work_mode.sql",
+      "sha256": "086f965b52fd45a27f9bea51d1f23a373ab3d5527dd61145cdef830e83884a8f",
+      "requires": [
+        "20261010210000_chat_actions.sql"
+      ]
+    }
+  ]
+}

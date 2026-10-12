@@ -8,6 +8,11 @@ export const APPLICATION_STATUSES = [
 ] as const;
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+const LABELS:Record<ApplicationStatus,[string,string]>={
+ pending:['Yangi','Новый'],reviewed:['Ko‘rib chiqildi','Просмотрен'],interview_set:['Suhbat','Собеседование'],
+ accepted:['Qabul qilindi','Принят'],rejected:['Rad etildi','Отклонён'],hired:['Ishga olindi','Нанят'],
+};
+export function getApplicationStatusLabel(status:ApplicationStatus,lang:'uz'|'ru'){return LABELS[status][lang==='ru'?1:0];}
 
 const LEGACY_STATUS_MAP: Record<string, ApplicationStatus> = {
   pending: 'pending',
@@ -15,6 +20,7 @@ const LEGACY_STATUS_MAP: Record<string, ApplicationStatus> = {
   reviewed: 'reviewed',
   invited: 'interview_set',
   interview: 'interview_set',
+  interviewed: 'interview_set',
   interview_set: 'interview_set',
   accepted: 'accepted',
   rejected: 'rejected',

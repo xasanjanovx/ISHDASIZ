@@ -10,9 +10,10 @@ import { motion } from 'framer-motion';
 
 interface LatestJobsSectionProps {
   jobs: JobWithRelations[];
+  unavailable?: boolean;
 }
 
-export function LatestJobsSection({ jobs }: LatestJobsSectionProps) {
+export function LatestJobsSection({ jobs, unavailable }: LatestJobsSectionProps) {
   const { lang } = useLanguage();
 
   const container = {
@@ -66,6 +67,9 @@ export function LatestJobsSection({ jobs }: LatestJobsSectionProps) {
           </Link>
         </motion.div>
 
+        {jobs.length === 0 && !unavailable && <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          {lang === 'ru' ? 'Новые вакансии скоро появятся. Пока вы можете создать резюме в своём профиле.' : 'Yangi vakansiyalar tez orada paydo bo‘ladi. Hozircha profilingizda rezyume yaratishingiz mumkin.'}
+        </div>}
         <motion.div
           variants={container}
           initial="hidden"

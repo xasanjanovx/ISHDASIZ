@@ -29,7 +29,7 @@ export function PasswordCreate() {
     const canSubmit = isPasswordValid && doPasswordsMatch && confirmPassword.length > 0;
 
     const handleSubmit = async () => {
-        if (!canSubmit) return;
+        if (!canSubmit || isLoading) return;
 
         setIsLoading(true);
         try {
@@ -54,14 +54,7 @@ export function PasswordCreate() {
             toast.success(lang === 'ru' ? 'Пароль создан!' : 'Parol yaratildi!');
 
             // Use login() from context to properly persist session
-            login({
-                id: data.userId,
-                phone: fullPhone,
-                active_role: role,
-                has_job_seeker_profile: role === 'job_seeker',
-                has_employer_profile: role === 'employer',
-                is_verified: true
-            });
+            login(data.user);
 
             closeModal();
 

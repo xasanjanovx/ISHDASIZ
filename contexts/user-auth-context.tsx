@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { accountApi } from '@/lib/account-api';
+import { authenticateWithTelegram, type TelegramAuthResult } from '@/lib/telegram-webapp';
 
 export type UserRole = 'job_seeker' | 'employer';
 
@@ -22,7 +24,9 @@ interface UserAuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (userData: UserProfile) => void;
-    logout: () => void;
+    loginWithTelegram: (signal?: AbortSignal) => Promise<TelegramAuthResult>;
+    logout: () => Promise<void>;
+    closeAccount: () => Promise<void>;
     updateProfile: (data: Partial<UserProfile>) => void;
     switchRole: (role: UserRole) => void;
     canSwitchRole: () => boolean;
@@ -38,53 +42,116 @@ export function UserAuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const authRevision = useRef(0);
+    const telegramRequest = useRef<AbortController | null>(null);
+    const invalidateAuth = useCallback(() => { telegramRequest.current?.abort(); telegramRequest.current = null; return ++authRevision.current; }, []);
+    useEffect(() => () => { telegramRequest.current?.abort(); }, []);
 
-    // Load user from localStorage on mount
+    // The server cookie establishes identity; local storage only remembers the active role.
     useEffect(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                const parsed: UserProfile = JSON.parse(stored);
-                // Check if session expired
-                if (parsed.expires_at && Date.now() < parsed.expires_at) {
-                    setUser(parsed);
-                } else {
-                    // Session expired - clear
-                    localStorage.removeItem(STORAGE_KEY);
-                }
+        let cancelled = false;
+        const revision = authRevision.current;
+        const restore = async () => {
+            try {
+                const response = await fetch('/api/auth/session', { cache: 'no-store' });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!data.user || cancelled || authRevision.current !== revision) return;
+                let activeRole = data.user.active_role;
+                try {
+                    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+                    if (saved?.id === data.user.id &&
+                        ((saved.active_role === 'employer' && data.user.has_employer_profile) ||
+                         (saved.active_role === 'job_seeker' && data.user.has_job_seeker_profile))) {
+                        activeRole = saved.active_role;
+                    }
+                } catch { /* Storage is optional. */ }
+                setUser({ ...data.user, active_role: activeRole, expires_at: data.expiresAt });
+            } catch (error) {
+                console.error('Failed to restore session:', error);
+            } finally {
+                if (!cancelled) setIsLoading(false);
             }
-        } catch (e) {
-            console.error('Failed to load user from storage:', e);
-            localStorage.removeItem(STORAGE_KEY);
-        }
-        setIsLoading(false);
+        };
+        restore();
+        return () => { cancelled = true; };
     }, []);
 
     // Save user to localStorage whenever it changes
     useEffect(() => {
+        if (isLoading) return;
+        try {
         if (user) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
         } else {
             localStorage.removeItem(STORAGE_KEY);
         }
+        } catch { /* Private browsing may disable storage. */ }
+    }, [user, isLoading]);
+
+    // Browser timers have a 32-bit delay limit; expire long sessions in chunks.
+    useEffect(() => {
+        if (!user?.expires_at) return;
+        const { id, expires_at } = user;
+        let timer: ReturnType<typeof setTimeout>;
+        const schedule = () => {
+            timer = setTimeout(() => {
+                if (Date.now() >= expires_at) setUser(current => current?.id === id ? null : current);
+                else schedule();
+            }, Math.min(2_147_483_647, Math.max(0, expires_at - Date.now())));
+        };
+        schedule();
+        return () => clearTimeout(timer);
     }, [user]);
 
     const login = useCallback((userData: UserProfile) => {
+        invalidateAuth();
         const userWithExpiry: UserProfile = {
             ...userData,
+            active_role: userData.active_role || (userData as UserProfile & { role?: UserRole }).role || 'job_seeker',
             expires_at: Date.now() + SESSION_DURATION_MS
         };
         setUser(userWithExpiry);
-    }, []);
+        setIsLoading(false);
+    }, [invalidateAuth]);
 
-    const logout = useCallback(() => {
+    const loginWithTelegram = useCallback(async (signal?: AbortSignal): Promise<TelegramAuthResult> => {
+        const revision = invalidateAuth(), controller = new AbortController();
+        telegramRequest.current = controller;
+        const abort = () => controller.abort();
+        signal?.addEventListener('abort', abort, { once: true });
+        if (signal?.aborted) controller.abort();
+        try {
+            const result = await authenticateWithTelegram(controller.signal);
+            if (controller.signal.aborted || authRevision.current !== revision) return { success: false, error: 'cancelled' };
+            if (result.success) login(result.user);
+            return result;
+        } finally {
+            signal?.removeEventListener('abort', abort);
+            if (telegramRequest.current === controller) telegramRequest.current = null;
+        }
+    }, [invalidateAuth, login]);
+
+    const logout = useCallback(async () => {
+        const revision = invalidateAuth();
+        const response = await fetch('/api/auth/session', { method: 'DELETE', cache: 'no-store', credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Could not end session');
+        if (authRevision.current !== revision) return;
         setUser(null);
         router.push('/');
-    }, [router]);
+    }, [router, invalidateAuth]);
 
     const updateProfile = useCallback((data: Partial<UserProfile>) => {
         setUser(prev => prev ? { ...prev, ...data } : null);
     }, []);
+
+    const closeAccount = useCallback(async () => {
+        const revision = ++authRevision.current;
+        await accountApi('/api/account/closure', { method: 'POST', body: JSON.stringify({ confirm: true }) });
+        if (authRevision.current !== revision) return;
+        setUser(null);
+        router.push('/');
+    }, [router]);
 
     // Check if user can switch to another role
     const canSwitchRole = useCallback(() => {
@@ -118,10 +185,12 @@ export function UserAuthProvider({ children }: { children: React.ReactNode }) {
         <UserAuthContext.Provider
             value={{
                 user,
-                isAuthenticated: !!user && (!user.expires_at || Date.now() < user.expires_at),
+                isAuthenticated: !!user,
                 isLoading,
                 login,
+                loginWithTelegram,
                 logout,
+                closeAccount,
                 updateProfile,
                 switchRole,
                 canSwitchRole,

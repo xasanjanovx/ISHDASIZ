@@ -110,7 +110,7 @@ export function JobSeekerAuth() {
 
             {/* Notice */}
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-amber-700">
                     {lang === 'ru'
                         ? 'Если вы уже зарегистрированы, вы войдёте по паролю. Новые пользователи получат SMS.'
@@ -120,7 +120,7 @@ export function JobSeekerAuth() {
 
             {/* Phone Input */}
             <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label htmlFor="seeker-login-phone" className="text-sm font-medium text-slate-700">
                     {lang === 'ru' ? 'Номер телефона' : 'Telefon raqami'}
                 </Label>
                 <div className="relative">
@@ -129,6 +129,8 @@ export function JobSeekerAuth() {
                         <span>+998</span>
                     </div>
                     <Input
+                        id="seeker-login-phone"
+                        autoComplete="tel-national"
                         type="tel"
                         value={phone}
                         onChange={handlePhoneChange}
@@ -188,9 +190,9 @@ export function JobSeekerAuth() {
                             <Fingerprint className="w-5 h-5 text-white" />
                         </div>
                         <div className="text-left">
-                            <span className="font-semibold text-sm text-slate-900">OneID orqali kirish</span>
+                            <span className="font-semibold text-sm text-slate-900">{lang === 'ru' ? 'Вход через OneID' : 'OneID orqali kirish'}</span>
                             <p className="text-xs text-slate-500">
-                                {lang === 'ru' ? 'Автозаполнение всех данных' : "Barcha ma'lumotlar avtomatik to'ldiriladi"}
+                                {lang === 'ru' ? 'Скоро будет доступен' : 'Tez orada mavjud bo‘ladi'}
                             </p>
                         </div>
                     </div>

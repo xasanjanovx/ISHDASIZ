@@ -127,6 +127,8 @@ export function JobFilters({
     selectedExperience !== 'all' ||
     selectedEducation !== 'all' ||
     selectedGender !== 'all' ||
+    selectedPaymentType !== 'all' || selectedWorkMode !== 'all' || selectedWorkingDays !== 'all' ||
+    ageRange.some(value => value !== undefined) ||
     selectedSpecialCategories.length > 0 ||
     salaryRange[0] > 0 ||
     salaryRange[1] < 20000000;

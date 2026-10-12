@@ -7,6 +7,7 @@ import { MapPin, Clock, ArrowRight } from '@/components/ui/icons';
 import { formatSalary } from '@/lib/constants';
 import { normalizeLocation } from '@/lib/text';
 import { getExperienceLabel } from '@/lib/experience-compat';
+import { resumeSkills } from '@/lib/resume-api';
 
 interface ResumeCardProps {
     resume: any;
@@ -25,8 +26,9 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
 
     let regionName = '';
     let districtName = '';
-    if (resume.districts?.regions) {
-        regionName = lang === 'uz' ? resume.districts.regions.name_uz : resume.districts.regions.name_ru;
+    const region = resume.regions || resume.districts?.regions;
+    if (region) {
+        regionName = lang === 'uz' ? region.name_uz : region.name_ru;
     }
     if (resume.districts) {
         districtName = lang === 'uz' ? resume.districts.name_uz : resume.districts.name_ru;
@@ -40,14 +42,16 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
         resume.experience_years,
         lang === 'uz' ? 'uz' : 'ru'
     );
-    const skillsList = Array.isArray(resume.skills)
-        ? resume.skills
-        : (typeof resume.skills === 'string'
-            ? resume.skills.split(',').map((item: string) => item.trim()).filter(Boolean)
-            : []);
+    const skillsList = resumeSkills(resume.skills);
 
     return (
         <Card
+            role={canOpenDetails ? undefined : 'button'}
+            tabIndex={canOpenDetails ? undefined : 0}
+            aria-label={canOpenDetails ? undefined : `${title}, ${fullName}`}
+            onKeyDown={event => {
+                if (!canOpenDetails && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onRequireEmployerAccess?.(); }
+            }}
             onClick={() => {
                 if (!canOpenDetails) onRequireEmployerAccess?.();
             }}
@@ -56,12 +60,12 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-teal-400 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity" />
 
             {canOpenDetails && (
-                <Link href={`/resumes/${resume.id}`} className="absolute inset-0 z-0" aria-label={title} />
+                <Link href={`/resumes/${resume.id}`} className="absolute inset-0 z-10" aria-label={`${title}, ${fullName}`} />
             )}
 
             <CardContent className="p-4 md:p-5 h-full flex flex-col">
                 <div className="flex items-start gap-3 mb-3">
-                    <div className="relative flex-shrink-0">
+                    <div className="relative shrink-0">
                         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
                             {initial}
                         </div>

@@ -1,80 +1,30 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-
-// Mock the contexts
-jest.mock('@/contexts/language-context', () => ({
-    useLanguage: () => ({
-        lang: 'uz',
-        t: {
-            siteName: 'ISHDASIZ',
-            nav: { home: 'Bosh sahifa', jobs: 'Vakansiyalar', map: 'Xarita' },
-            hero: { title: 'Andijon viloyatida ish toping', searchPlaceholder: 'Kasbingizni kiriting...' },
-            stats: { totalJobs: 'Jami vakansiyalar' },
-        },
-    }),
-    LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-jest.mock('@/contexts/auth-context', () => ({
-    useAuth: () => ({
-        user: null,
-        adminProfile: null,
-        loading: false,
-    }),
-    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-// Mock components that have complex dependencies
-jest.mock('@/components/home/hero-section', () => ({
-    HeroSection: () => <div data-testid="hero-section">Hero Section</div>,
-}));
-
-jest.mock('@/components/home/latest-jobs-section', () => ({
-    LatestJobsSection: ({ jobs }: { jobs: any[] }) => (
-        <div data-testid="latest-jobs-section">
-            Latest Jobs: {jobs.length}
-        </div>
-    ),
-}));
-
-jest.mock('@/components/home/categories-section', () => ({
-    CategoriesSection: () => <div data-testid="categories-section">Categories</div>,
-}));
-
-describe('Homepage', () => {
-    it('renders the hero section', () => {
-        render(
-            <>
-                <div data-testid="hero-section">Hero Section</div>
-                <div data-testid="latest-jobs-section">Latest Jobs</div>
-                <div data-testid="categories-section">Categories</div>
-            </>
-        );
-
-        expect(screen.getByTestId('hero-section')).toBeInTheDocument();
-    });
-
-    it('renders the latest jobs section', () => {
-        render(
-            <>
-                <div data-testid="hero-section">Hero Section</div>
-                <div data-testid="latest-jobs-section">Latest Jobs</div>
-                <div data-testid="categories-section">Categories</div>
-            </>
-        );
-
-        expect(screen.getByTestId('latest-jobs-section')).toBeInTheDocument();
-    });
-
-    it('renders the categories section', () => {
-        render(
-            <>
-                <div data-testid="hero-section">Hero Section</div>
-                <div data-testid="latest-jobs-section">Latest Jobs</div>
-                <div data-testid="categories-section">Categories</div>
-            </>
-        );
-
-        expect(screen.getByTestId('categories-section')).toBeInTheDocument();
-    });
+import { render, screen, fireEvent } from '@testing-library/react';
+import { HeroSection } from '@/components/home/hero-section';
+const mockPush = jest.fn();
+const mockOpen = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('@/contexts/language-context', () => ({ useLanguage: () => ({ lang: 'ru' }) }));
+jest.mock('@/contexts/user-auth-context', () => ({ useUserAuth: () => ({ user: null }) }));
+jest.mock('@/contexts/auth-modal-context', () => ({ useAuthModal: () => ({ openModal: mockOpen, setStep: jest.fn(), setUserRole: jest.fn() }) }));
+beforeEach(() => jest.clearAllMocks());
+it('searches the whole country by default without inventing a region', () => {
+  render(<HeroSection />);
+  fireEvent.click(screen.getByRole('button', { name: 'Найти работу' }));
+  expect(mockPush).toHaveBeenCalledWith('/jobs');
+});
+it('keeps the database region ID and safely encodes the search', () => {
+  render(<HeroSection regions={[{ id: 22, name_uz: 'Toshkent', name_ru: 'Ташкент' }]} />);
+  fireEvent.change(screen.getByLabelText('Профессия или компания'), { target: { value: '  Бухгалтер & кассир  ' } });
+  fireEvent.change(screen.getByLabelText('Регион'), { target: { value: '22' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Найти работу' }));
+  const url = new URL(mockPush.mock.calls[0][0], 'https://example.com');
+  expect(url.searchParams.get('q')).toBe('Бухгалтер & кассир');
+  expect(url.searchParams.get('region')).toBe('22');
+});
+it('uses supplied counts and never doubles the employer count', () => {
+  render(<HeroSection stats={{ totalJobs: 24666, totalResumes: null, totalEmployers: 24 }} />);
+  expect(screen.getByText('24 666')).toBeInTheDocument();
+  expect(screen.getByText('24')).toBeInTheDocument();
+  expect(screen.getByText('—')).toBeInTheDocument();
 });

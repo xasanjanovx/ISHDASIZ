@@ -17,12 +17,14 @@ const iconMap: any = {
 
 interface JobCardProps {
   job: any;
+  compact?: boolean;
 }
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, compact = false }: JobCardProps) {
   const { lang, t } = useLanguage();
 
-  const title = lang === 'uz' ? job.title_uz : job.title_ru;
+  const title = (lang === 'uz' ? job.title_uz || job.title_ru : job.title_ru || job.title_uz)
+    || (lang === 'ru' ? 'Вакансия' : 'Vakansiya');
 
   const rawDescription = lang === 'uz' ? job.description_uz : job.description_ru;
   const description = cleanJobText(rawDescription)
@@ -47,8 +49,8 @@ export function JobCard({ job }: JobCardProps) {
     ? lang === 'uz' ? job.categories.name_uz : job.categories.name_ru
     : '';
 
-  let regionName = job.region_name;
-  let districtName = job.district_name;
+  let regionName = (lang === 'ru' ? job.regions?.name_ru || job.districts?.regions?.name_ru : job.regions?.name_uz || job.districts?.regions?.name_uz) || job.region_name;
+  let districtName = (lang === 'ru' ? job.districts?.name_ru : job.districts?.name_uz) || job.district_name;
 
   if (!regionName && job.districts?.regions) {
     regionName = lang === 'uz' ? job.districts.regions.name_uz : job.districts.regions.name_ru;
@@ -75,9 +77,8 @@ export function JobCard({ job }: JobCardProps) {
   const specialCategories = getActiveSpecialCategories(job);
 
   return (
-    <Card className="group relative hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-slate-200/80 hover:border-blue-300/50 bg-white rounded-xl">
+    <Card className="group relative h-full hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-200 overflow-hidden border-slate-200 hover:border-blue-300 bg-white rounded-2xl">
       {/* Gradient left accent — blue to teal */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-teal-400 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity" />
 
       <Link href={`/jobs/${job.id}`} className="absolute inset-0 z-0" aria-label={title} />
 
@@ -85,22 +86,22 @@ export function JobCard({ job }: JobCardProps) {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-3">
-            <div className="flex items-start gap-3 flex-1">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center text-slate-500 group-hover:text-blue-600 group-hover:from-blue-50 group-hover:to-indigo-50 transition-all duration-300 flex-shrink-0 group-hover:scale-105 shadow-sm">
+            <div className="flex min-w-0 items-start gap-3 flex-1">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center text-slate-500 group-hover:text-blue-600 group-hover:from-blue-50 group-hover:to-indigo-50 transition-all duration-300 shrink-0 group-hover:scale-105 shadow-sm">
                 <IconComponent className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0 pt-0.5">
-                <h3 className="font-bold text-[15px] text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-tight mb-1">
+                <h3 className="font-semibold text-base text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug mb-1">
                   {title}
                 </h3>
                 <div className="flex items-center gap-1.5 text-slate-500">
-                  <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  <Building2 className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-sm line-clamp-1">{job.company_name}</span>
                 </div>
               </div>
             </div>
             {/* Salary badge — green accent */}
-            <div className="hidden md:block text-right flex-shrink-0">
+            <div className={compact ? 'hidden' : 'hidden md:block text-right shrink-0'}>
               <div className="text-sm font-bold text-emerald-700 bg-gradient-to-br from-emerald-50 to-emerald-100/50 px-3 py-1.5 rounded-lg border border-emerald-200/60 shadow-sm">
                 {formatSalary(job.salary_min, job.salary_max, lang)}
               </div>
@@ -118,7 +119,7 @@ export function JobCard({ job }: JobCardProps) {
           <div className="flex flex-wrap items-center gap-1.5 mb-3 text-xs font-medium">
             {locationLabel && (
               <div className="flex items-center gap-1 bg-teal-50/60 text-teal-700 px-2 py-1 rounded-md border border-teal-200/50">
-                <MapPin className="w-3 h-3 flex-shrink-0 text-teal-500" />
+                <MapPin className="w-3 h-3 shrink-0 text-teal-500" />
                 <span>{locationLabel}</span>
               </div>
             )}
@@ -156,7 +157,7 @@ export function JobCard({ job }: JobCardProps) {
           </div>
 
           {/* Mobile salary */}
-          <div className="md:hidden mb-3">
+          <div className={compact ? 'mb-3' : 'md:hidden mb-3'}>
             <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/60">
               {formatSalary(job.salary_min, job.salary_max, lang)}
             </span>
@@ -166,7 +167,7 @@ export function JobCard({ job }: JobCardProps) {
           {specialCategories.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-4 relative z-10">
               {specialCategories.map((cat: any) => (
-                <Link key={cat.key} href={`/jobs?category=${cat.slug}`} onClick={(e) => e.stopPropagation()}>
+                <Link key={cat.key} href={`/jobs?special=${cat.slug}`} onClick={(e) => e.stopPropagation()}>
                   <Badge className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200/50 hover:from-blue-100 hover:to-indigo-100 transition-all py-0.5 px-2.5 font-semibold">
                     {lang === 'ru' ? cat.badge_ru : cat.badge_uz}
                   </Badge>

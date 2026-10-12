@@ -70,16 +70,6 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
-    const showToast = useCallback((type: ToastType, message: string) => {
-        const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        setToasts((prev) => [...prev, { id, type, message }]);
-
-        // Auto-hide after duration
-        setTimeout(() => {
-            hideToast(id);
-        }, TOAST_DURATION);
-    }, []);
-
     const hideToast = useCallback((id: string) => {
         // Start exit animation
         setToasts((prev) =>
@@ -91,6 +81,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             setToasts((prev) => prev.filter((t) => t.id !== id));
         }, 300);
     }, []);
+
+    const showToast = useCallback((type: ToastType, message: string) => {
+        const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        setToasts((prev) => [...prev, { id, type, message }]);
+
+        // Auto-hide after duration
+        setTimeout(() => {
+            hideToast(id);
+        }, TOAST_DURATION);
+    }, [hideToast]);
+
 
     return (
         <ToastContext.Provider value={{ showToast, hideToast }}>

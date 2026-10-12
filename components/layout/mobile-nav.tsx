@@ -31,7 +31,7 @@ export function MobileNav() {
     const getAddLink = () => {
         if (isAdmin) return '/admin/jobs/new';
         if (!isAuthenticated) return null; // Will trigger modal
-        if (user?.active_role === 'employer') return '/admin/jobs/new';
+        if (user?.active_role === 'employer') return '/profile/employer/vacancies/new';
         return '/profile/job-seeker/resumes/new';
     };
 

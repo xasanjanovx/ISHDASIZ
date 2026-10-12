@@ -5,7 +5,7 @@ import { decode } from 'html-entities';
  * Очистка текста вакансии от HTML, лишних пробелов и мусора
  */
 export function cleanJobText(text: string | undefined | null): string {
-    if (!text) return '';
+    if (typeof text !== 'string' || !text) return '';
 
     // 1. Декодируем HTML entities (&nbsp; -> ' ', &amp; -> '&', etc)
     let cleaned = decode(text);
@@ -54,47 +54,4 @@ export function normalizeLocation(name: string | undefined | null): string {
         .trim();
 
     return cleaned;
-}
-
-// ========================================
-// SELF-CHECK в DEV MODE
-// ========================================
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    const testCases = [
-        {
-            input: 'Job description &nbsp; with HTML',
-            expect: 'Job description with HTML',
-        },
-        {
-            input: 'Vazifalar: - -\nTalablar:',
-            expect: 'Vazifalar:\nTalablar:',
-        },
-        {
-            input: 'O\'quv jarayonida&nbsp;va&nbsp;chet tillarni o\'rgatish',
-            expect: "O'quv jarayonida va chet tillarni o'rgatish",
-        },
-        {
-            input: 'Surxondaryo viloyati vil., Qiziriq tumani',
-            expect: 'Surxondaryo viloyati Qiziriq tumani', // vil., удалён полностью
-        },
-        {
-            input: 'Normal description with more than 20 characters here',
-            expect: 'Normal description with more than 20 characters here',
-        },
-    ];
-
-    let passed = 0;
-    for (const tc of testCases) {
-        const result = tc.input.includes('viloyati')
-            ? normalizeLocation(tc.input)
-            : cleanJobText(tc.input);
-        if (result === tc.expect || (tc.expect === null && result === null)) {
-            passed++;
-        } else {
-            console.warn('[cleanJobText SELF-CHECK FAILED]', { input: tc.input, expected: tc.expect, got: result });
-        }
-    }
-    if (passed === testCases.length) {
-        console.debug('[cleanJobText] ✅ All', passed, 'self-checks passed');
-    }
 }

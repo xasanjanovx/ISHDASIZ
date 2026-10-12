@@ -1,3 +1,4 @@
+import { verifyCron } from '@/lib/auth/cron';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -425,6 +426,7 @@ async function syncCategoriesStrict(sourceCategories: OsonishCategory[], dryRun:
 // ==================== MAIN HANDLER ====================
 
 export async function GET(request: NextRequest) {
+    if (!verifyCron(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const startTime = Date.now();
     const { searchParams } = new URL(request.url);
     const dryRun = searchParams.get('dry_run') === '1' || searchParams.get('dryRun') === '1';

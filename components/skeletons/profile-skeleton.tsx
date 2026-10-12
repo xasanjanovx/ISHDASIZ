@@ -9,7 +9,7 @@ export function ProfileSkeleton() {
             <div className="bg-white rounded-xl border p-6">
                 <div className="flex items-start gap-6">
                     {/* Avatar */}
-                    <Skeleton className="h-24 w-24 rounded-full flex-shrink-0" />
+                    <Skeleton className="h-24 w-24 rounded-full shrink-0" />
 
                     <div className="flex-1 space-y-3">
                         {/* Name */}

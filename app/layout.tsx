@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import { LanguageProvider } from '@/contexts/language-context';
 import { AuthProvider } from '@/contexts/auth-context';
 import { UserAuthProvider } from '@/contexts/user-auth-context';
-import { SessionProvider } from '@/lib/contexts/session-context';
+import { UserSessionProvider } from '@/lib/contexts/session-context';
 import Header from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from '@/components/ui/sonner';
@@ -14,6 +14,7 @@ import { AuthModal } from '@/components/auth/auth-modal';
 import { AdminViewBanner } from '@/components/admin/AdminViewBanner';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { TelegramProvider } from '@/contexts/telegram-context';
+import { TelegramNotice } from '@/components/layout/telegram-notice';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -66,13 +67,14 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50`}>
         <AuthProvider>
           <UserAuthProvider>
-            <SessionProvider>
+            <UserSessionProvider>
               <TelegramProvider>
                 <LanguageProvider>
                   <AuthModalProvider>
                     <Header />
                     <AdminViewBanner />
-                    <main className="flex-1 pt-16">
+                    <main className="flex-1 pt-16 pb-20 md:pb-0">
+                      <TelegramNotice />
                       {children}
                     </main>
                     <Footer />
@@ -83,7 +85,7 @@ export default function RootLayout({
                   </AuthModalProvider>
                 </LanguageProvider>
               </TelegramProvider>
-            </SessionProvider>
+            </UserSessionProvider>
           </UserAuthProvider>
         </AuthProvider>
       </body>
