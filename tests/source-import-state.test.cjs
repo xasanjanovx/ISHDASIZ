@@ -222,6 +222,7 @@ const publicStatistics=async()=>(await db.query('SELECT ishdasiz_public_statisti
 
 const refreshClaim=async(patch={})=>{
  await db.exec(read('20261012130000_osonish_candidate_refresh.sql'));
+ await db.exec(read('20261012143000_osonish_queue_retention.sql'));
  const args={actor:null,id:null,request:null,start:false,max:500,...patch};
  return(await db.query('SELECT ishdasiz_claim_osonish_refresh($1,$2,$3,$4,$5) r',[args.actor,args.id,args.request,args.start,args.max])).rows[0].r;
 };
@@ -299,6 +300,89 @@ test('candidate refresh private RPC grants and idempotent schema preserve runs a
   for(const name of ['ishdasiz_claim_osonish_refresh','ishdasiz_osonish_candidates','ishdasiz_osonish_refresh_item','ishdasiz_finish_osonish_refresh'])assert.equal((await db.query("SELECT bool_or(has_function_privilege(current_user,oid,'EXECUTE')) allowed FROM pg_proc WHERE proname=$1",[name])).rows[0].allowed,false);
  }finally{await db.exec('RESET ROLE');}}
  await db.exec('SET ROLE service_role');try{await refreshItem(run,'1','active',payload());await finishRefresh(run);}finally{await db.exec('RESET ROLE');}
+});
+
+test('old terminal queues archive exact progress and preserve jobs, run history and request idempotence',async()=>{
+ const request=ID(800),old=workerRun(await refreshClaim({start:true,request}));await candidates(old,1,['1','2'],2);
+ await refreshItem(old,'1','active',payload());await refreshItem(old,'2','removed');await finishRefresh(old);
+ await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days' WHERE id=$1",[old.id]);
+ const before=(await db.query('SELECT ishdasiz_import_summary($1) r',[old.id])).rows[0].r;
+ const jobs=(await db.query('SELECT * FROM jobs')).rows;
+ const current=workerRun(await refreshClaim({start:true,request:ID(801)}));
+ assert.deepEqual((await db.query('SELECT ishdasiz_import_summary($1) r',[old.id])).rows[0].r,before);
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_items WHERE run_id=$1',[old.id])).rows[0].n,0);
+ assert.deepEqual((await db.query('SELECT * FROM jobs')).rows,jobs);
+ assert.equal((await db.query('SELECT request_id FROM source_import_checkpoints WHERE run_id=$1',[old.id])).rows[0].request_id,request);
+ const replay=await refreshClaim({start:true,request});assert.equal(replay.token,null);assert.deepEqual(replay.progress,before);
+ await yieldRun(current);assert.equal((await refreshClaim({id:current.id})).progress.id,current.id);
+});
+
+test('archival touches one eligible terminal queue per claim, never recent, v1 or running queues',async()=>{
+ const old=[];
+ for(let n=0;n<2;n++){const run=workerRun(await refreshClaim({start:true,request:ID(810+n)}));await candidates(run,1,[String(n+1)],1);await refreshItem(run,String(n+1),'removed');await finishRefresh(run);old.push(run.id);}
+ const recent=workerRun(await refreshClaim({start:true,request:ID(812)}));await candidates(recent,1,['3'],1);await refreshItem(recent,'3','removed');await finishRefresh(recent);
+ const legacy=workerRun(await claim({start:true,request:ID(814)}));await page(legacy,1,['30'],1);await item(legacy,'30','removed');await page(legacy,1,['30'],1,1,true);
+ await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days' WHERE id=$1",[legacy.id]);
+ await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days' WHERE id=ANY($1::uuid[])",[old]);
+ const current=workerRun(await refreshClaim({start:true,request:ID(813)}));
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_checkpoints WHERE archived_progress IS NOT NULL')).rows[0].n,1);
+ await candidates(current,1,['4'],1);await yieldRun(current);
+ await refreshClaim({id:current.id});
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_checkpoints WHERE archived_progress IS NOT NULL')).rows[0].n,2);
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_items WHERE run_id=ANY($1::uuid[])',[[recent.id,current.id,legacy.id]])).rows[0].n,3);
+});
+
+test('archival preserves abandoned summaries and pending retries for diagnosis',async()=>{
+ const run=workerRun(await refreshClaim());await candidates(run,1,['1','2'],2);await refreshItem(run,'1','removed');await yieldRun(run,'source_unavailable',true);
+ await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days',state='abandoned' WHERE id=$1",[run.id]);
+ const before=(await db.query('SELECT ishdasiz_import_summary($1) r',[run.id])).rows[0].r;
+ await refreshClaim({start:true,request:ID(820)});
+ assert.deepEqual((await db.query('SELECT ishdasiz_import_summary($1) r',[run.id])).rows[0].r,before);
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_items WHERE run_id=$1',[run.id])).rows[0].n,0);
+});
+
+test('failed queues retain their exact failed and verified counts after archival',async()=>{
+ const run=workerRun(await refreshClaim());await candidates(run,1,['1','2'],2);await refreshItem(run,'1','removed');
+ for(let n=0;n<3;n++){await db.query('UPDATE source_import_items SET available_at=clock_timestamp() WHERE run_id=$1',[run.id]);await refreshItem(run,'2','retry');}
+ await finishRefresh(run);await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days' WHERE id=$1",[run.id]);
+ const before=(await db.query('SELECT ishdasiz_import_summary($1) r',[run.id])).rows[0].r;
+ await refreshClaim({start:true,request:ID(821)});
+ const after=(await db.query('SELECT ishdasiz_import_summary($1) r',[run.id])).rows[0].r;assert.deepEqual(after,before);assert.equal(after.failed,1);assert.equal(after.verified,1);
+});
+
+test('known active and unchecked imports refresh daily; recently confirmed unavailable IDs wait a week unless listed again',async()=>{
+ await db.exec("INSERT INTO jobs(source,source_id,is_imported,source_status,last_checked_at) VALUES('osonish','1',true,'active',clock_timestamp()),('osonish','2',true,'filled',clock_timestamp()),('osonish','3',true,'removed_at_source',clock_timestamp()),('osonish','4',true,'filled',clock_timestamp()-interval '8 days'),('osonish','5',true,'removed_at_source',null),('osonish','6',true,'unknown',clock_timestamp()),('osonish','7',false,'active',null),('local','8',false,'active',null),('osonish','9',true,null,clock_timestamp())");
+ const run=workerRun(await refreshClaim());await candidates(run,1,['2'],1);
+ const ids=(await db.query('SELECT source_id FROM source_import_items WHERE run_id=$1 ORDER BY source_id',[run.id])).rows.map(r=>r.source_id);
+ assert.deepEqual(ids,['1','2','4','5','6','9']);
+ await refreshItem(run,'2','active',payload('2'));assert.equal((await db.query("SELECT source_status FROM jobs WHERE source_id='2'")).rows[0].source_status,'active');
+ assert.equal((await db.query("SELECT source_status FROM jobs WHERE source_id='3'")).rows[0].source_status,'removed_at_source');
+});
+
+test('archival helper and cached summaries remain private and invalid/busy claims cannot prune',async()=>{
+ const old=workerRun(await refreshClaim({start:true,request:ID(831)}));await candidates(old,1,['9'],1);await refreshItem(old,'9','removed');await finishRefresh(old);
+ const run=workerRun(await refreshClaim({start:true,request:ID(832)}));await candidates(run,1,['1'],1);
+ await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days' WHERE id=$1",[old.id]);
+ for(const role of ['anon','authenticated','service_role']){await db.exec('SET ROLE '+role);try{
+  await assert.rejects(db.query('SELECT ishdasiz_archive_osonish_queue()'),e=>e.code==='42501');
+  await assert.rejects(db.query('SELECT archived_progress FROM source_import_checkpoints'),e=>e.code==='42501');
+ }finally{await db.exec('RESET ROLE');}}
+ assert.equal((await refreshClaim({id:run.id})).token,null);
+ await assert.rejects(refreshClaim({actor:B,start:true,request:ID(830)}),e=>e.code==='42501');
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_items WHERE run_id=$1',[run.id])).rows[0].n,1);
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_items WHERE run_id=$1',[old.id])).rows[0].n,1);
+});
+
+test('a queue cleanup failure rolls back both its cached summary and the new claim',async()=>{
+ const old=workerRun(await refreshClaim());await candidates(old,1,['1'],1);await refreshItem(old,'1','removed');await finishRefresh(old);
+ await db.query("UPDATE source_import_runs SET completed_at=clock_timestamp()-interval '8 days' WHERE id=$1",[old.id]);
+ await db.exec("CREATE FUNCTION test_archive_failure() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'Synthetic cleanup failure';END $$;CREATE TRIGGER test_archive_failure BEFORE DELETE ON source_import_items FOR EACH ROW EXECUTE FUNCTION test_archive_failure();");
+ try{
+  await assert.rejects(refreshClaim({start:true,request:ID(840)}),e=>e.code==='P0001');
+  assert.equal((await db.query('SELECT archived_progress FROM source_import_checkpoints WHERE run_id=$1',[old.id])).rows[0].archived_progress,null);
+  assert.equal((await db.query('SELECT count(*)::int n FROM source_import_items WHERE run_id=$1',[old.id])).rows[0].n,1);
+  assert.equal((await db.query('SELECT count(*)::int n FROM source_import_runs')).rows[0].n,1);
+ }finally{await db.exec('DROP TRIGGER test_archive_failure ON source_import_items;DROP FUNCTION test_archive_failure();');}
 });
 
 test('optimized public visibility preserves every source/publication/owner combination and aggregate permissions',async()=>{
