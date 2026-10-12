@@ -29,10 +29,10 @@ function exportRelease(release) {
   const audit = fs.readFileSync(path.join(root, 'supabase/releases/audit-2026-10.sql'));
   const readme = fs.readFileSync(path.join(root, 'supabase/releases/README.md'));
   const readiness = fs.readFileSync(path.join(root, 'docs/production-readiness-2026-10-10.md'));
-  const operations = ['install', 'activate', 'pause'].map(action => {
-    const name = `${action}-channel-schedule.sql`;
+  const operations = ['channel','import'].flatMap(kind => ['install', 'activate', 'pause'].map(action => {
+    const name = `${action}-${kind}-schedule.sql`;
     return [path.join('operations', name), fs.readFileSync(path.join(root, 'supabase/operations', name))];
-  });
+  }));
   const backupMaterials = [
     ['database-backup.md', fs.readFileSync(path.join(root, 'docs/database-backup.md'))],
     ...['backup-application-database.ps1', 'test-database-backup.ps1'].map(name =>

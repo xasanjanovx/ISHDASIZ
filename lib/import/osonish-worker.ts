@@ -24,7 +24,7 @@ export async function readOsonishImport(client:SupabaseClient,actorId?:string):P
 }
 export async function stepOsonishImport(client:SupabaseClient,options:Options={}):Promise<ImportProgress>{
  if(options.runId!==undefined&&!isUuid(options.runId)||options.start&&(!isUuid(options.requestId))||options.start&&options.runId!==undefined||options.maxPages!==undefined&&(!Number.isSafeInteger(options.maxPages)||options.maxPages<1||options.maxPages>500))throw new AccountError(400,'Проверьте параметры импорта / Import parametrlarini tekshiring');
- const claimed=await rpc(client,'ishdasiz_claim_osonish_import',{p_actor_id:options.actorId??null,p_run_id:options.runId??null,p_request_id:options.requestId??null,p_start:options.start??false,p_max_pages:options.maxPages??500},AbortSignal.timeout(8000));
+ const claimed=await rpc(client,'ishdasiz_claim_osonish_refresh',{p_actor_id:options.actorId??null,p_run_id:options.runId??null,p_request_id:options.requestId??null,p_start:options.start??false,p_max_pages:options.maxPages??500},AbortSignal.timeout(8000));
  let progress=importProgress(claimed?.progress);const token=claimed?.token;
  if(token===null)return progress;
  if(!isUuid(token))throw new WorkerError('invalid_lease');
@@ -34,11 +34,15 @@ export async function stepOsonishImport(client:SupabaseClient,options:Options={}
   let refs:ImportReferences|undefined;
   for(let batch=0;batch<5&&!signal.aborted&&progress.state==='running';batch++){
    const work=await rpc(client,'ishdasiz_osonish_work',args,signal);progress=importProgress(work?.progress);
-   if(progress.phase==='list'||progress.phase==='verify'){
+   const protocol=work?.protocol_version??1;
+   if(protocol!==1&&protocol!==2)throw new WorkerError('invalid_data');
+   if(protocol===2&&progress.phase==='verify'){
+    progress=importProgress(await rpc(client,'ishdasiz_finish_osonish_refresh',args,signal));madeProgress=true;
+   }else if(progress.phase==='list'||progress.phase==='verify'){
     const verify=progress.phase==='verify',page=verify?progress.verify_page:progress.next_page;
     let source;try{source=await fetchVacancyIdList(page,signal);}catch{if(signal.aborted)break;throw new WorkerError('source');}
     if(source.total===null||source.lastPage===null)throw new WorkerError('22023');
-    progress=importProgress(await rpc(client,'ishdasiz_osonish_page',{...args,p_page:page,p_ids:source.ids.map(String),p_total:source.total,p_last_page:source.lastPage,p_verify:verify},signal));
+    progress=importProgress(await rpc(client,protocol===2?'ishdasiz_osonish_candidates':'ishdasiz_osonish_page',{...args,p_page:page,p_ids:source.ids.map(String),p_total:source.total,p_last_page:source.lastPage,...(protocol===1?{p_verify:verify}:{})},signal));
     madeProgress=true;
    }else if(progress.phase==='details'){
     if(!Array.isArray(work.ids)||work.ids.length>50||new Set(work.ids).size!==work.ids.length||work.ids.some((id:any)=>typeof id!=='string'||!/^[1-9]\d*$/.test(id)||!Number.isSafeInteger(Number(id))))throw new WorkerError('invalid_data');
@@ -63,7 +67,7 @@ export async function stepOsonishImport(client:SupabaseClient,options:Options={}
       const outcome=outcomes[index];
       if(outcome.status==='rejected')throw new WorkerError('source');
       const {id,state,payload}=outcome.value;
-      progress=importProgress(await rpc(client,'ishdasiz_osonish_item',{...args,p_source_id:id,p_state:state,p_payload:payload},signal));
+      progress=importProgress(await rpc(client,protocol===2?'ishdasiz_osonish_refresh_item':'ishdasiz_osonish_item',{...args,p_source_id:id,p_state:state,p_payload:payload},signal));
       madeProgress=true;
      }
     }

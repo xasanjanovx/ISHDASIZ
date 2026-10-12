@@ -220,6 +220,87 @@ test('three consecutive source errors stop safely, while confirmed item writes r
 
 const publicStatistics=async()=>(await db.query('SELECT ishdasiz_public_statistics() AS r')).rows[0].r;
 
+const refreshClaim=async(patch={})=>{
+ await db.exec(read('20261012130000_osonish_candidate_refresh.sql'));
+ const args={actor:null,id:null,request:null,start:false,max:500,...patch};
+ return(await db.query('SELECT ishdasiz_claim_osonish_refresh($1,$2,$3,$4,$5) r',[args.actor,args.id,args.request,args.start,args.max])).rows[0].r;
+};
+const candidates=async(run,index,ids,total,last=1)=>(await db.query('SELECT ishdasiz_osonish_candidates($1,$2,$3,$4,$5,$6) r',[run.id,run.token,index,ids,total,last])).rows[0].r;
+const refreshItem=async(run,id,state='filled',body=null)=>(await db.query('SELECT ishdasiz_osonish_refresh_item($1,$2,$3,$4,$5::jsonb) r',[run.id,run.token,id,state,body===null?null:JSON.stringify(body)])).rows[0].r;
+const finishRefresh=async(run)=>(await db.query('SELECT ishdasiz_finish_osonish_refresh($1,$2) r',[run.id,run.token])).rows[0].r;
+
+test('changing candidate totals and overlapping pages refresh each ID once without absence cleanup',async()=>{
+ const run=workerRun(await refreshClaim());
+ let p=await candidates(run,1,['1','2'],4,2);assert.equal(p.total,null);assert.equal(p.listed,2);
+ p=await candidates(run,2,['2','3'],3,2);assert.equal(p.total,3);assert.equal(p.listed,3);assert.equal(p.phase,'details');
+ await assert.rejects(finishRefresh(run),e=>e.code==='40001');
+ for(const id of ['1','2','3'])await refreshItem(run,id,'active',payload(id));
+ assert.equal((await finishRefresh(run)).state,'completed');
+ assert.equal((await db.query('SELECT counters FROM source_import_runs WHERE id=$1',[run.id])).rows[0].counters.absence_cleanup,false);
+ assert.equal((await db.query('SELECT count(*)::int n FROM jobs')).rows[0].n,3);
+});
+
+test('empty public list queues known imports, explicit filled/404 outcomes hide only checked jobs and preserve drafts',async()=>{
+ await db.exec("INSERT INTO jobs(source,source_id,is_imported,status,is_active) VALUES('osonish','1',true,'draft',false),('osonish','2',true,'active',true),('osonish','3',false,'active',true),('osonish','invalid',true,'active',true),('local','4',false,'active',true)");
+ const run=workerRun(await refreshClaim());const p=await candidates(run,1,[],0);assert.equal(p.total,2);assert.equal(p.phase,'details');
+ await refreshItem(run,'1','filled');await refreshItem(run,'2','removed');await finishRefresh(run);
+ const rows=(await db.query('SELECT source_id,source_status,status,is_active FROM jobs ORDER BY source_id')).rows;
+ assert.equal(rows[0].source_status,'filled');assert.equal(rows[0].status,'draft');assert.equal(rows[0].is_active,false);
+ assert.equal(rows[1].source_status,'removed_at_source');for(const row of rows.slice(2))assert.equal(row.source_status,'active');
+});
+
+test('shrinking pagination can end beyond its new last page and truly empty refresh completes without source cleanup',async()=>{
+ let run=workerRun(await refreshClaim());await candidates(run,1,['1'],2,2);await candidates(run,2,[],0,1);await refreshItem(run,'1','removed');await finishRefresh(run);
+ run=workerRun(await refreshClaim({start:true,request:ID(500)}));assert.equal((await candidates(run,1,[],0)).phase,'verify');assert.equal((await finishRefresh(run)).state,'completed');
+});
+
+test('candidate refresh retains v1 checkpoints and fences stale tokens, replayed items and malformed pages',async()=>{
+ const old=workerRun(await claim());await page(old,1,['1'],2,2);await yieldRun(old);
+ const continued=await refreshClaim({id:old.id});assert.equal((await db.query('SELECT protocol_version v FROM source_import_checkpoints WHERE run_id=$1',[old.id])).rows[0].v,1);
+ await assert.rejects(candidates(workerRun(continued),2,['2'],2,2),e=>e.code==='40001');await page(workerRun(continued),2,['2'],2,2);await yieldRun(workerRun(continued),'snapshot_changed',true);
+ let run=workerRun(await refreshClaim({start:true,request:ID(500),max:2}));
+ for(const args of [[1,['1','1'],2,1],[1,['0'],1,1],[1,['9007199254740992'],1,1],[1,['1'],1,3],[1,[],2,2],[2,['1'],1,1]])await assert.rejects(candidates(run,...args),e=>['22023','40001'].includes(e.code));
+ await candidates(run,1,['1'],1);await yieldRun(run);const resumed=workerRun(await refreshClaim({id:run.id}));
+ await assert.rejects(refreshItem(run,'1'),e=>e.code==='40001');await refreshItem(resumed,'1','active',payload());
+ await assert.rejects(refreshItem(resumed,'1','active',payload()),e=>e.code==='40001');await finishRefresh(resumed);await assert.rejects(finishRefresh(resumed),e=>e.code==='40001');
+});
+
+test('candidate refresh protects closed owners, manual content/publication and late arrivals while updating explicit availability',async()=>{
+ const original=await begin(),saved=await merge(original);await finish(original,false);
+ await db.query("UPDATE jobs SET user_id=$1,title_ru='Human edit' WHERE id=$2",[U,saved.id]);await db.query('SELECT ishdasiz_set_account_closed($1,0,true)',[U]);
+ const before=await job(saved.id),run=workerRun(await refreshClaim());await candidates(run,1,[],0);
+ await db.exec("INSERT INTO jobs(source,source_id,is_imported) VALUES('osonish','99',true)");
+ const p=await refreshItem(run,'1','active',payload('1',{title_ru:'Source overwrite'}));assert.equal(p.skipped_closed,1);await finishRefresh(run);
+ const row=await job(saved.id);assert.equal(row.title_ru,'Human edit');assert.equal(row.status,before.status);assert.equal(row.is_active,false);assert.equal(row.source_status,'active');
+ assert.equal((await db.query("SELECT source_status FROM jobs WHERE source_id='99'")).rows[0].source_status,'active');
+ assert.equal((await db.query('SELECT count(*)::int n FROM source_import_visibility_pending')).rows[0].n,0);
+});
+
+test('candidate retry is not disappearance, and missing details leave known availability unchanged on failure',async()=>{
+ await db.exec("INSERT INTO jobs(source,source_id,is_imported) VALUES('osonish','1',true)");
+ const run=workerRun(await refreshClaim());await candidates(run,1,[],0);
+ for(let n=0;n<3;n++){await db.query('UPDATE source_import_items SET available_at=clock_timestamp() WHERE run_id=$1',[run.id]);await refreshItem(run,'1','retry');}
+ assert.equal((await db.query("SELECT source_status FROM jobs WHERE source_id='1'")).rows[0].source_status,'active');
+ assert.equal((await db.query('SELECT state FROM source_import_runs WHERE id=$1',[run.id])).rows[0].state,'running');
+ assert.equal((await finishRefresh(run)).state,'failed');
+});
+
+test('one unavailable candidate does not block checking later cards and final status reports the partial failure',async()=>{
+ const run=workerRun(await refreshClaim());await candidates(run,1,['1','2'],2);
+ for(let n=0;n<3;n++){await db.query('UPDATE source_import_items SET available_at=clock_timestamp() WHERE run_id=$1',[run.id]);await refreshItem(run,'1','retry');}
+ assert.equal((await refreshItem(run,'2','active',payload('2'))).phase,'verify');
+ const result=await finishRefresh(run);assert.equal(result.state,'failed');assert.equal(result.processed,1);assert.equal(result.failed,1);assert.equal(result.last_error,'detail_unavailable');
+});
+
+test('candidate refresh private RPC grants and idempotent schema preserve runs and jobs',async()=>{
+ const run=workerRun(await refreshClaim());await candidates(run,1,['1'],1);await refreshClaim({id:run.id});
+ assert.equal((await db.query('SELECT protocol_version v FROM source_import_checkpoints WHERE run_id=$1',[run.id])).rows[0].v,2);
+ for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);try{
+  for(const name of ['ishdasiz_claim_osonish_refresh','ishdasiz_osonish_candidates','ishdasiz_osonish_refresh_item','ishdasiz_finish_osonish_refresh'])assert.equal((await db.query("SELECT bool_or(has_function_privilege(current_user,oid,'EXECUTE')) allowed FROM pg_proc WHERE proname=$1",[name])).rows[0].allowed,false);
+ }finally{await db.exec('RESET ROLE');}}
+ await db.exec('SET ROLE service_role');try{await refreshItem(run,'1','active',payload());await finishRefresh(run);}finally{await db.exec('RESET ROLE');}
+});
+
 test('optimized public visibility preserves every source/publication/owner combination and aggregate permissions',async()=>{
  await db.query('INSERT INTO users(id,password_hash,phone,closed_at) VALUES($1,$2,$3,null),($4,$2,$5,now()) ON CONFLICT(id) DO UPDATE SET closed_at=excluded.closed_at',[A,'synthetic','+998901111111',B,'+998902222222']);
  // Reconstruct legacy orphan/closed-owner rows; current write guards reject them.
