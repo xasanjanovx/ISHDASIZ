@@ -285,6 +285,13 @@
         "20261009100000_osonish_import_worker.sql",
         "20261009130000_vacancy_import_versions.sql"
       ]
+    },
+    {
+      "file": "20261012143000_osonish_queue_retention.sql",
+      "sha256": "247d8dafe317ced606a8014f5868a678f259e29cf7bb3e3af6ce915581c76bef",
+      "requires": [
+        "20261012130000_osonish_candidate_refresh.sql"
+      ]
     }
   ]
 }
