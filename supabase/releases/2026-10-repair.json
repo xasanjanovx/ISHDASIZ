@@ -249,6 +249,13 @@
         "20261009090000_public_job_availability.sql",
         "20261009110000_public_statistics.sql"
       ]
+    },
+    {
+      "file": "20261012094500_public_visibility_fast_path.sql",
+      "sha256": "e18c6c67a93644b8b7af45a2ff387427c1214a5d7e2787b6051d1d76d0ceeff1",
+      "requires": [
+        "20261012093000_public_query_performance.sql"
+      ]
     }
   ]
 }

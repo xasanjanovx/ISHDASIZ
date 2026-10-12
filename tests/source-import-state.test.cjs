@@ -233,14 +233,17 @@ test('optimized public visibility preserves every source/publication/owner combi
  CROSS JOIN (VALUES(null::uuid,null::uuid,null::uuid),(null,'${A}','${B}'),(null,'${B}','${A}'),(null,null,'${A}'),(null,null,'${B}'),(null,'${ID(9999)}',null),('${ID(9001)}','${B}',null),('${ID(9002)}','${A}',null),('${ID(9003)}','${A}',null),('${ID(9004)}','${A}',null),('${ID(9005)}','${A}',null)) o(employer,owner,creator);
  ALTER TABLE employer_profiles ENABLE TRIGGER ishdasiz_guard_closed_account;
  ALTER TABLE jobs ENABLE TRIGGER ishdasiz_guard_closed_account;
- CREATE TEMP TABLE prior_visibility AS SELECT id,ishdasiz_job_available(j) visible FROM jobs j;`);
+ CREATE TEMP TABLE prior_visibility AS SELECT id,ishdasiz_job_available(j) visible,
+  ishdasiz_job_owner(employer_id,user_id,created_by) owner,
+  ishdasiz_account_open(ishdasiz_job_owner(employer_id,user_id,created_by)) account_open FROM jobs j;`);
  const oldStats=await publicStatistics();delete oldStats.asOf;const oldCounts=await publicCounts();
- await db.exec(read('20261012093000_public_query_performance.sql'));
+ await db.exec(read('20261012093000_public_query_performance.sql'));await db.exec(read('20261012094500_public_visibility_fast_path.sql')); 
  assert.equal((await db.query('SELECT count(*)::integer n FROM jobs j JOIN prior_visibility b USING(id) WHERE b.visible IS DISTINCT FROM ishdasiz_job_available(j)')).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM jobs j JOIN prior_visibility b USING(id) WHERE b.owner IS DISTINCT FROM ishdasiz_job_owner(employer_id,user_id,created_by) OR b.account_open IS DISTINCT FROM ishdasiz_account_open(ishdasiz_job_owner(employer_id,user_id,created_by))')).rows[0].n,0);
  for(const role of ['anon','authenticated','service_role']){await db.exec('SET ROLE '+role);try{
   const stats=await publicStatistics();delete stats.asOf;assert.deepEqual(stats,oldStats);assert.deepEqual(await publicCounts(),oldCounts);
  }finally{await db.exec('RESET ROLE');}}
- await db.exec(read('20261012093000_public_query_performance.sql'));assert.deepEqual(await publicCounts(),oldCounts);
+ await db.exec(read('20261012093000_public_query_performance.sql'));await db.exec(read('20261012094500_public_visibility_fast_path.sql')); assert.deepEqual(await publicCounts(),oldCounts);
  assert.equal((await db.query('SELECT count(*)::integer n FROM jobs')).rows[0].n,726);
  await db.exec('DROP TABLE prior_visibility');
 });

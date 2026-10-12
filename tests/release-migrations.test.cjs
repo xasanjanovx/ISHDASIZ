@@ -137,7 +137,7 @@ test('computed work mode is immutable, invoker-only and executable for public re
 });
 
 test('release manifest covers every prepared migration once, with exact hashes and ordered dependencies', () => {
-  assert.equal(validateRelease().migrations.length, 34);
+  assert.equal(validateRelease().migrations.length, 35);
   const actual = fs.readdirSync(path.join(root, 'supabase/migrations')).filter(n => /^202610.*\.sql$/.test(n)).sort();
   assert.deepEqual(manifest.migrations.map(m => m.file), actual);
   const seen = new Set(), versions = new Set();
