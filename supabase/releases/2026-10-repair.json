@@ -256,6 +256,13 @@
       "requires": [
         "20261012093000_public_query_performance.sql"
       ]
+    },
+    {
+      "file": "20261012101500_inline_public_visibility.sql",
+      "sha256": "0935970185f9974a2f9b95b52685bad1cf694ea5a3449b3f3b13eb9cf186cbad",
+      "requires": [
+        "20261012094500_public_visibility_fast_path.sql"
+      ]
     }
   ]
 }
