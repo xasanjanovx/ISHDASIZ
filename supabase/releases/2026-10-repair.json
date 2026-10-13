@@ -299,6 +299,14 @@
       "requires": [
         "20261010220000_job_work_mode.sql"
       ]
+    },
+    {
+      "file": "20261013100000_catalog_work_mode_cache.sql",
+      "sha256": "324d5a52b167ab767c20b178b31d2e5a09382f53b814666d43e0f88c46345862",
+      "requires": [
+        "20261012150000_regional_query_performance.sql",
+        "20261012101500_inline_public_visibility.sql"
+      ]
     }
   ]
 }

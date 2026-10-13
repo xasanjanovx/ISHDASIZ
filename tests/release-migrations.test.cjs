@@ -92,6 +92,12 @@ test('channel prerequisites are private immediately and preserve existing receip
   } finally { await bootstrap.close(); }
 });
 
+async function storedWorkMode(row) {
+  const id = (await db.query(`INSERT INTO jobs(work_mode,employment_type,raw_source_json)
+    SELECT work_mode,employment_type,raw_source_json FROM jsonb_populate_record(NULL::public.jobs,$1::jsonb) RETURNING id`, [JSON.stringify(row)])).rows[0].id;
+  return (await db.query('SELECT ishdasiz_job_work_mode(j) mode FROM jobs j WHERE id=$1', [id])).rows[0].mode;
+}
+
 test('work-mode computed field recognizes canonical, numeric and localized import labels', async () => {
   const aliases = {
     onsite: [1, '1', 'onsite', 'ON_SITE', 'На месте', 'В офисе', 'Ish joyida'],
@@ -99,14 +105,17 @@ test('work-mode computed field recognizes canonical, numeric and localized impor
     remote: [3, 'remote', 'Fully_remote', 'Удалённая работа', 'MASOFAVIY', 'masofadan ishlash'],
     hybrid: [4, 'hybrid', 'Гибрид (офис + удалённо)', 'Gibrid (ish joyi + masofaviy)'],
   };
-  for (const [mode, values] of Object.entries(aliases)) for (const value of values) {
+  await db.exec('BEGIN');
+  try { for (const [mode, values] of Object.entries(aliases)) for (const value of values) {
     const row = { raw_source_json: { work_mode: value } };
-    assert.equal((await db.query('SELECT ishdasiz_job_work_mode(jsonb_populate_record(NULL::public.jobs,$1::jsonb)) mode', [JSON.stringify(row)])).rows[0].mode, mode, String(value));
+    assert.equal(await storedWorkMode(row), mode, String(value));
   }
+  } finally { await db.exec('ROLLBACK'); }
 });
 
 test('explicit office/hybrid/unknown formats override legacy remote employment type', async () => {
-  for (const [row, expected] of [
+  await db.exec('BEGIN');
+  try { for (const [row, expected] of [
     [{ work_mode: 'onsite', employment_type: 'remote' }, 'onsite'],
     [{ work_mode: 'hybrid', employment_type: 'remote' }, 'hybrid'],
     [{ work_mode: 'not remote', employment_type: 'remote' }, null],
@@ -114,7 +123,8 @@ test('explicit office/hybrid/unknown formats override legacy remote employment t
     [{ work_mode: 'all', raw_source_json: { workplace_type: 'Masofaviy' } }, 'remote'],
     [{ raw_source_json: { work_mode: {}, work_format: 'remote' } }, 'remote'],
     [{ employment_type: 'remote' }, 'remote'],
-  ]) assert.equal((await db.query('SELECT ishdasiz_job_work_mode(jsonb_populate_record(NULL::public.jobs,$1::jsonb)) mode', [JSON.stringify(row)])).rows[0].mode, expected);
+  ]) assert.equal(await storedWorkMode(row), expected);
+  } finally { await db.exec('ROLLBACK'); }
 });
 
 test('public regional searches include remote jobs across office locations and still exclude unavailable jobs', async () => {
@@ -129,15 +139,35 @@ test('public regional searches include remote jobs across office locations and s
 test('computed work mode is immutable, invoker-only and executable for public readers', async () => {
   const p = (await db.query("SELECT prosecdef,provolatile FROM pg_proc WHERE oid='public.ishdasiz_job_work_mode(public.jobs)'::regprocedure")).rows[0];
   assert.equal(p.prosecdef, false); assert.equal(p.provolatile, 'i');
-  for (const role of ['anon', 'authenticated', 'service_role']) {
+  await db.exec('BEGIN');
+  const id = (await db.query("INSERT INTO jobs(work_mode) VALUES('remote') RETURNING id")).rows[0].id;
+  try { for (const role of ['anon', 'authenticated', 'service_role']) {
     await db.exec('SET ROLE ' + role);
-    try { assert.equal((await db.query("SELECT ishdasiz_job_work_mode(jsonb_populate_record(NULL::public.jobs,'{\"work_mode\":\"remote\"}')) mode")).rows[0].mode, 'remote'); }
+    try { assert.equal((await db.query('SELECT ishdasiz_job_work_mode(j) mode FROM jobs j WHERE id=$1',[id])).rows[0].mode, 'remote'); }
     finally { await db.exec('RESET ROLE'); }
   }
+  } finally { await db.exec('RESET ROLE;ROLLBACK'); }
+});
+
+test('cached work-mode updates preserve metadata-only versions and channel work after the full release', async () => {
+  await db.exec('BEGIN;SET ROLE service_role');
+  try {
+    const id=(await db.query("INSERT INTO jobs(work_mode,raw_source_json) VALUES('onsite','{}') RETURNING id")).rows[0].id;
+    const version=async()=>(await db.query('SELECT updated_at::text v FROM jobs WHERE id=$1',[id])).rows[0].v;
+    const events=async()=>(await db.query('SELECT to_jsonb(e) data FROM sync_events e WHERE entity_id=$1 ORDER BY id',[id])).rows;
+    const priorVersion=await version(),priorEvents=await events();
+    await db.query("UPDATE jobs SET views_count=views_count+1,last_checked_at=clock_timestamp(),ishdasiz_catalog_work_mode='remote' WHERE id=$1",[id]);
+    assert.equal(await version(),priorVersion,'Metadata and an overwritten cache forgery must not stale an editor');
+    assert.deepEqual(await events(),priorEvents,'Metadata-only checks must not enqueue Telegram work');
+    assert.equal((await db.query('SELECT ishdasiz_job_work_mode(j) mode FROM jobs j WHERE id=$1',[id])).rows[0].mode,'onsite');
+    await db.query("UPDATE jobs SET work_mode=NULL,raw_source_json='{\"work_mode\":\"hybrid\"}' WHERE id=$1",[id]);
+    assert.notEqual(await version(),priorVersion,'A real format change must stale an editor');
+    assert.equal((await db.query('SELECT ishdasiz_job_work_mode(j) mode FROM jobs j WHERE id=$1',[id])).rows[0].mode,'hybrid');
+  } finally { await db.exec('RESET ROLE;ROLLBACK'); }
 });
 
 test('release manifest covers every prepared migration once, with exact hashes and ordered dependencies', () => {
-  assert.equal(validateRelease().migrations.length, 41);
+  assert.equal(validateRelease().migrations.length, 42);
   const actual = fs.readdirSync(path.join(root, 'supabase/migrations')).filter(n => /^202610.*\.sql$/.test(n)).sort();
   assert.deepEqual(manifest.migrations.map(m => m.file), actual);
   const seen = new Set(), versions = new Set();
