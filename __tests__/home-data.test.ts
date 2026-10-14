@@ -1,4 +1,4 @@
-import { loadHomeData, parseHomeCounts } from '@/lib/home-data';
+import { HOME_JOB_FIELDS, loadHomeData, parseHomeCounts } from '@/lib/home-data';
 import type { SupabaseClient } from '@supabase/supabase-js';
 const category = '20000000-0000-4000-8000-000000000001';
 function fixture(countError = false, malformed = false) {
@@ -12,8 +12,10 @@ test('loads homepage cards once without a REST count and shares one aggregate ac
   const { client, chains } = fixture(); const data = await loadHomeData(client as unknown as SupabaseClient, async () => ({ count: 106, error: null }));
   expect(client.rpc).toHaveBeenCalledTimes(1); expect(client.rpc).toHaveBeenCalledWith('ishdasiz_public_home_counts');
   expect(client.from.mock.calls.filter(([table]) => table === 'jobs')).toHaveLength(1);
-  expect(chains.jobs.select).toHaveBeenCalledWith('*, categories(*), districts(*, regions(*))');
-  expect(data).toMatchObject({ stats: { totalJobs: 24666, totalResumes: 106, totalEmployers: 12 }, jobCounts: { [category]: 101 }, specialCounts: { students: 2002, disabled: 637, women: 18000 }, unavailable: false });
+  expect(chains.jobs.select).toHaveBeenCalledWith(HOME_JOB_FIELDS);
+  expect(client.from).not.toHaveBeenCalledWith('employer_profiles');
+  expect(HOME_JOB_FIELDS).not.toMatch(/\*|phone|raw_source_json|user_id/);
+  expect(data).toMatchObject({ stats: { totalJobs: 24666, totalResumes: 106 }, jobCounts: { [category]: 101 }, specialCounts: { students: 2002, disabled: 637, women: 18000 }, unavailable: false });
 });
 test.each([[true, false], [false, true]])('keeps unavailable counters explicit when the aggregate fails or is malformed', async (error, malformed) => {
   const { client } = fixture(error, malformed); const data = await loadHomeData(client as unknown as SupabaseClient, async () => ({ count: 106, error: null }));

@@ -9,6 +9,8 @@ jest.mock('@/components/home/latest-jobs-section',()=>({LatestJobsSection:()=>nu
 jest.mock('@/components/home/special-categories-section',()=>({SpecialCategoriesSection:()=>null}));
 jest.mock('@/components/home/telegram-banner',()=>({TelegramBanner:()=>null}));
 jest.mock('@/components/home/home-data-notice',()=>({HomeDataNotice:()=>null}));
+jest.mock('@/components/home/seekers-section',()=>({SeekersSection:()=>null}));
+jest.mock('@/lib/resume-catalog',()=>({catalogFilters:()=>({}),searchResumes:async()=>({resumes:[]})}));
 jest.mock('@/lib/auth/server',()=>({getAuthClient:jest.fn()}));
 jest.mock('@/lib/supabase',()=>({supabase:{rpc:()=>({abortSignal:async()=>({data:{total:5,categories:{},special:{students:0,disabled:0,women:0}},error:null})}),from:(table:string)=>{mockAnonTables.push(table);const q:any={select:()=>q,eq:()=>q,neq:()=>q,order:()=>q,limit:()=>q,or:()=>q,then:(resolve:any)=>Promise.resolve({data:[],error:null,count:5}).then(resolve)};return q;}}}));
 let calls:any[],failure:boolean;

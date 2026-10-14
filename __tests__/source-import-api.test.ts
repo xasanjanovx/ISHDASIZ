@@ -28,12 +28,13 @@ test('missing or incorrect cron credentials are rejected before creating a privi
  for(const authorized of [false,true]){delete process.env.CRON_SECRET;expect((await cron.GET(request('/api/cron/import',undefined,authorized))).status).toBe(401);}expect(getAuthClient).not.toHaveBeenCalled();expect(stepOsonishImport).not.toHaveBeenCalled();
 });
 
-test('continuation authenticates before reading privileged state and never creates a fresh run',async()=>{
+test('scheduled refresh authenticates before reading state, starts idle work and pins active work',async()=>{
  expect(continuation.maxDuration).toBe(300);
  expect((await continuation.GET(request('/api/cron/continue-osonish',undefined,false))).status).toBe(401);
  expect(getAuthClient).not.toHaveBeenCalled();expect(readOsonishImport).not.toHaveBeenCalled();
  (readOsonishImport as jest.Mock).mockResolvedValue(null);
- expect((await continuation.GET(request('/api/cron/continue-osonish'))).status).toBe(200);expect(stepOsonishImport).not.toHaveBeenCalled();
+ expect((await continuation.GET(request('/api/cron/continue-osonish'))).status).toBe(202);expect(stepOsonishImport).toHaveBeenCalledWith(client);
+ jest.clearAllMocks();
  (readOsonishImport as jest.Mock).mockResolvedValue(progress());
  await continuation.GET(request('/api/cron/continue-osonish'));
  expect(stepOsonishImport).toHaveBeenCalledTimes(1);expect(stepOsonishImport).toHaveBeenCalledWith(client,{runId:id});

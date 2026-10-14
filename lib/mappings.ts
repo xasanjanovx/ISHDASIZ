@@ -21,6 +21,16 @@ import {getJobWorkMode} from './work-mode';
     working_days: {
         1: { uz: '6 kunlik ish haftasi', ru: '6-дневная рабочая неделя' },
         2: { uz: '5 kunlik ish haftasi', ru: '5-дневная рабочая неделя' },
+        3: { uz: '4/4', ru: '4/4' },
+        4: { uz: '4/3', ru: '4/3' },
+        5: { uz: '4/2', ru: '4/2' },
+        6: { uz: '3/3', ru: '3/3' },
+        7: { uz: '3/2', ru: '3/2' },
+        8: { uz: '2/2', ru: '2/2' },
+        9: { uz: '2/1', ru: '2/1' },
+        10: { uz: '1/3', ru: '1/3' },
+        11: { uz: '1/2', ru: '1/2' },
+        12: { uz: 'Erkin grafik', ru: 'Свободный график' },
     },
     languages: {
         1: { uz: "O'zbek tili", ru: 'Узбекский' },

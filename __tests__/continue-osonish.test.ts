@@ -26,3 +26,22 @@ test('a changed run or lost step response is surfaced without restarting',async(
  await expect(continueOsonishImport({read:async()=>progress(),step})).rejects.toThrow('Import run changed');expect(step).toHaveBeenCalledTimes(1);
  step.mockRejectedValueOnce(new Error('unavailable'));await expect(continueOsonishImport({read:async()=>progress(),step})).rejects.toThrow('unavailable');
 });
+
+test('scheduled refresh starts an idle cycle but lets the database choose and lease its run',async()=>{
+ const {refreshOsonishImport}=await import('@/lib/import/continue-osonish');
+ const start=jest.fn(async()=>progress()),step=jest.fn(async()=>progress({state:'completed'}));
+ expect(await refreshOsonishImport({read:async()=>null,start,step,now:()=>0})).toMatchObject({state:'completed'});
+ expect(start).toHaveBeenCalledTimes(1);expect(step).toHaveBeenCalledWith(id);
+});
+test.each(['completed','failed'] as const)('terminal %s runs refresh automatically after the six-hour cooldown',async state=>{
+ const {refreshOsonishImport}=await import('@/lib/import/continue-osonish');
+ const start=jest.fn(async()=>progress({busy:true})),step=jest.fn();const previous=progress({state});const time=Date.parse(previous.started_at);
+ expect(await refreshOsonishImport({read:async()=>previous,start,step,now:()=>time+6*3600000-1})).toEqual(previous);expect(start).not.toHaveBeenCalled();
+ await refreshOsonishImport({read:async()=>previous,start,step,now:()=>time+6*3600000});expect(start).toHaveBeenCalledTimes(1);expect(step).not.toHaveBeenCalled();
+});
+test('scheduled refresh never starts another cycle over a running or leased one',async()=>{
+ const {refreshOsonishImport}=await import('@/lib/import/continue-osonish');
+ const start=jest.fn(),step=jest.fn();const active=progress({busy:true});
+ expect(await refreshOsonishImport({read:async()=>active,start,step,now:()=>Date.parse(active.started_at)+48*3600000})).toEqual(active);
+ expect(start).not.toHaveBeenCalled();expect(step).not.toHaveBeenCalled();
+});

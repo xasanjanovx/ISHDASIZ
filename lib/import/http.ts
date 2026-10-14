@@ -6,7 +6,7 @@ import {verifyCron} from '@/lib/auth/cron';
 import {getAuthClient} from '@/lib/auth/server';
 import {ImportWorkerError,readOsonishImport,stepOsonishImport} from './osonish-worker';
 import {importProgress,type ImportProgress} from './progress';
-import {continueOsonishImport} from './continue-osonish';
+import {refreshOsonishImport} from './continue-osonish';
 
 function importKey(request:NextRequest){
  const expected=process.env.IMPORT_API_KEY,incoming=request.headers.get('X-Import-Key')||'';
@@ -37,7 +37,7 @@ export async function cronImport(request:NextRequest){try{if(!verifyCron(request
 export async function cronContinueImport(request:NextRequest){try{
  if(!verifyCron(request))throw new AccountError(401,'Unauthorized');
  const client=getAuthClient();
- const progress=await continueOsonishImport({read:()=>readOsonishImport(client),step:runId=>stepOsonishImport(client,{runId})});
+ const progress=await refreshOsonishImport({read:()=>readOsonishImport(client),start:()=>stepOsonishImport(client),step:runId=>stepOsonishImport(client,{runId})});
  return progress===null?statusResult(null):result(progress);
 }catch(error){return failure(error);}}
 export async function keyImportGet(request:NextRequest){try{importKey(request);return statusResult(await readOsonishImport(getAuthClient()));}catch(error){return failure(error);}}

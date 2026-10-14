@@ -1,111 +1,390 @@
-'use client';
-
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { Search, MapPin, ArrowUpRight, FileText, Building2, Globe2, ArrowRight } from 'lucide-react';
-import { useLanguage } from '@/contexts/language-context';
-import { useAuthModal } from '@/contexts/auth-modal-context';
-import { useUserAuth } from '@/contexts/user-auth-context';
-
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useReducedMotion } from "framer-motion";
+import {
+  Search,
+  MapPin,
+  ArrowUpRight,
+  ArrowRight,
+  Pause,
+  Play,
+} from "lucide-react";
+import { useLanguage } from "@/contexts/language-context";
 interface HeroProps {
   regions?: { id: number; name_uz: string; name_ru: string }[];
-  jobs?: any[];
-  stats?: { totalJobs: number | null; totalResumes: number | null; totalEmployers: number | null };
+  stats?: {
+    totalJobs: number | null;
+    totalResumes: number | null;
+    totalEmployers?: number | null;
+  };
 }
-
+const professionals = [
+  "/profession-teacher-formal.webp",
+  "/profession-builder.webp",
+  "/profession-doctor.webp",
+  "/profession-programmer.webp",
+  "/profession-chef.webp",
+];
 export function HeroSection({ regions = [], stats }: HeroProps) {
   const { lang } = useLanguage();
-  const ru = lang === 'ru';
+  const ru = lang === "ru";
   const router = useRouter();
-  const { openModal, setUserRole, setStep } = useAuthModal();
-  const { user } = useUserAuth();
-  const [query, setQuery] = useState('');
-  const [region, setRegion] = useState('all');
-  const start = (role: 'seeker' | 'employer') => {
-    if (user && (role === 'seeker' ? user.has_job_seeker_profile : user.has_employer_profile)) {
-      router.push(role === 'seeker' ? '/profile/job-seeker/resumes/new' : '/profile/employer/vacancies');
-    } else {
-      setUserRole(role);
-      setStep('auth');
-      openModal();
-    }
-  };
+  const reducedMotion = useReducedMotion();
+  const [query, setQuery] = useState("");
+  const [region, setRegion] = useState("all");
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const playing = !paused && !reducedMotion && !hovered && !focused;
+  useEffect(() => {
+    if (!playing) return;
+    const timer = setInterval(
+      () => setActive((value) => (value + 1) % professionals.length),
+      7000,
+    );
+    return () => clearInterval(timer);
+  }, [playing]);
+  const number = (value?: number | null) =>
+    value == null ? "—" : value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
   const search = (event: React.FormEvent) => {
     event.preventDefault();
     const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query.trim());
-    if (region !== 'all') params.set('region', region);
-    router.push(params.size ? `/jobs?${params}` : '/jobs');
+    if (query.trim()) params.set("q", query.trim());
+    if (region !== "all") params.set("region", region);
+    router.push(params.size ? `/jobs?${params}` : "/jobs");
   };
-  const labels = ru
-    ? ['Открытые вакансии', 'Резюме кандидатов', 'Работодатели']
-    : ['Ochiq vakansiyalar', 'Nomzodlar rezyumelari', 'Ish beruvchilar'];
+  const scenes = ru
+    ? [
+        {
+          name: "Учитель",
+          title: "Передавайте знания.\nОткрывайте будущее.",
+          text: "Найдите своё место в образовании — от первого урока до нового этапа карьеры.",
+          action: "Вакансии в образовании",
+          category: "a0000004-0004-4000-8000-000000000004",
+        },
+        {
+          name: "Строитель",
+          title: "Стройте больше.\nРастите в профессии.",
+          text: "Новый проект начинается с вас. Найдите работу в строительстве в удобном регионе.",
+          action: "Вакансии в строительстве",
+          category: "a0000007-0007-4000-8000-000000000007",
+        },
+        {
+          name: "Врач",
+          title: "Заботьтесь о людях.\nНайдите своё место.",
+          text: "Ваши знания нужны людям. Посмотрите предложения в медицине по всему Узбекистану.",
+          action: "Вакансии в медицине",
+          category: "a0000005-0005-4000-8000-000000000005",
+        },
+        {
+          name: "Программист",
+          title: "Создавайте новое.\nРазвивайте карьеру.",
+          text: "Следующая задача может стать новым этапом. Найдите возможности в IT и разработке.",
+          action: "Вакансии в IT",
+          category: "a0000001-0001-4000-8000-000000000001",
+        },
+        {
+          name: "Повар",
+          title: "Создавайте вкус.\nНайдите свою команду.",
+          text: "Найдите работу на кухне, где ваш опыт и мастерство станут частью нового меню.",
+          action: "Вакансии повара",
+          category: "a0000003-0003-4000-8000-000000000003",
+          query: "oshpaz",
+        },
+      ]
+    : [
+        {
+          name: "O‘qituvchi",
+          title: "Bilim ulashing.\nKelajakni yarating.",
+          text: "Ta’limda o‘z o‘rningizni toping — ilk darsdan kasbingizdagi yangi bosqichgacha.",
+          action: "Ta’limdagi vakansiyalar",
+          category: "a0000004-0004-4000-8000-000000000004",
+        },
+        {
+          name: "Quruvchi",
+          title: "Ko‘proq bunyod eting.\nKasbingizda o‘sing.",
+          text: "Yangi loyiha sizdan boshlanadi. Qulay hududda qurilish sohasidagi ishni toping.",
+          action: "Qurilishdagi vakansiyalar",
+          category: "a0000007-0007-4000-8000-000000000007",
+        },
+        {
+          name: "Shifokor",
+          title: "Insonlarga g‘amxo‘rlik.\nSizga mos imkoniyat.",
+          text: "Bilimingiz insonlarga kerak. Butun O‘zbekiston bo‘ylab tibbiyotdagi takliflarni ko‘ring.",
+          action: "Tibbiyotdagi vakansiyalar",
+          category: "a0000005-0005-4000-8000-000000000005",
+        },
+        {
+          name: "Dasturchi",
+          title: "Yangilik yarating.\nKaryerangizni o‘stiring.",
+          text: "Keyingi vazifa yangi bosqichga aylanishi mumkin. IT va dasturlashdagi imkoniyatlarni toping.",
+          action: "IT vakansiyalari",
+          category: "a0000001-0001-4000-8000-000000000001",
+        },
+        {
+          name: "Oshpaz",
+          title: "Ta’m yarating.\nJamoangizni toping.",
+          text: "Tajribangiz va mahoratingiz yangi menyuning bir qismiga aylanishi mumkin. Sizga mos oshxonani toping.",
+          action: "Oshpaz vakansiyalari",
+          category: "a0000003-0003-4000-8000-000000000003",
+          query: "oshpaz",
+        },
+      ];
+  const scene = scenes[active];
+  const professionParams = new URLSearchParams({ category: scene.category });
+  if (scene.query) professionParams.set("q", scene.query);
+  if (region !== "all") professionParams.set("region", region);
+  const ticker = ru
+    ? [
+        "РАБОТА ПО ВСЕМУ УЗБЕКИСТАНУ",
+        "ВАКАНСИИ",
+        "РЕЗЮМЕ",
+        "РАБОТА НА КАРТЕ",
+        "ISHDASIZ",
+      ]
+    : [
+        "BUTUN O‘ZBEKISTON BO‘YLAB ISH",
+        "VAKANSIYALAR",
+        "REZYUMELAR",
+        "XARITADA ISH",
+        "ISHDASIZ",
+      ];
   return (
-    <section className="border-b border-slate-200 bg-white">
-      <div className="relative isolate overflow-hidden bg-slate-900">
-        <Image src="/hero-office.png" alt="" fill priority sizes="100vw" className="object-cover object-[65%_center] lg:object-center" />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 to-transparent" />
-        <div className="container relative mx-auto px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-          <div className="max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
-              <Globe2 className="h-3.5 w-3.5" />
-              {ru ? 'Работа по всему Узбекистану' : 'O‘zbekiston bo‘ylab ish imkoniyatlari'}
-            </div>
-            <h1 className="max-w-2xl text-[38px] font-semibold leading-[1.12] tracking-[-0.04em] text-white sm:text-5xl xl:text-[60px]">
-              {ru ? 'Найдите работу,' : 'O‘zingizga mos'}<br />
-              <span className="text-teal-300">{ru ? 'которая вам подходит.' : 'ishni toping.'}</span>
-            </h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-slate-200 sm:text-lg">
-              {ru ? 'Найдите подходящую вакансию рядом с вами или в другом регионе. Выберите работу, которая подходит именно вам.' : 'O‘zingizga mos ishni yaqin atrofda yoki boshqa hududda toping. Keyingi qadamingizni biz bilan boshlang.'}
-            </p>
-            <form onSubmit={search} className="mt-8 rounded-2xl border border-white/70 bg-white p-2 shadow-xl shadow-slate-950/20">
-              <div className="flex items-center gap-3 px-3">
-                <Search className="h-5 w-5 shrink-0 text-slate-400" />
-                <label htmlFor="home-search" className="sr-only">{ru ? 'Профессия или компания' : 'Kasb yoki kompaniya'}</label>
-                <input id="home-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={ru ? 'Профессия, должность или компания' : 'Kasb, lavozim yoki kompaniya'} className="h-12 w-full min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
-              </div>
-              <div className="flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row">
-                <div className="flex min-w-0 flex-1 items-center gap-3 px-3">
-                  <MapPin className="h-5 w-5 shrink-0 text-slate-400" />
-                  <label htmlFor="home-region" className="sr-only">{ru ? 'Регион' : 'Hudud'}</label>
-                  <select id="home-region" value={region} onChange={e => setRegion(e.target.value)} className="h-11 w-full min-w-0 bg-white text-sm text-slate-700 outline-none">
-                    <option value="all">{ru ? 'Весь Узбекистан' : 'Butun O‘zbekiston'}</option>
-                    {regions.map(r => <option key={r.id} value={r.id}>{ru ? r.name_ru || r.name_uz : r.name_uz}</option>)}
-                  </select>
-                </div>
-                <button type="submit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                  {ru ? 'Найти работу' : 'Ish topish'} <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-200">
-              <span>{ru ? 'Популярные запросы:' : 'Mashhur qidiruvlar:'}</span>
-              {(ru ? ['Продавец', 'Водитель', 'Бухгалтер'] : ['Sotuvchi', 'Haydovchi', 'Buxgalter']).map(term =>
-                <Link key={term} href={`/jobs?q=${encodeURIComponent(term)}`} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-white transition-colors hover:bg-white/20">{term}</Link>)}
-            </div>
-          </div>
-          <Link href="/map" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-white underline decoration-white/40 underline-offset-4 hover:decoration-white">
-            <MapPin className="h-4 w-4" />{ru ? 'Найти работу на карте' : 'Xaritada ish topish'}<ArrowUpRight className="h-4 w-4" />
-          </Link>
+    <section
+      id="home-top"
+      className="poster-hero"
+      data-playing={playing}
+      data-profession={active}
+    >
+      <div className="poster-atmospheres" aria-hidden="true">
+        {professionals.map((src, index) => (
+          <div
+            key={src}
+            className={`poster-atmosphere theme-${index} ${index === active ? "is-active" : ""}`}
+          />
+        ))}
+      </div>
+      <div className="poster-ticker" aria-hidden="true">
+        <div>
+          {[...ticker, ...ticker].map((label, index) => (
+            <span key={index}>
+              {label}
+              <i />
+            </span>
+          ))}
         </div>
       </div>
-      <div className="container mx-auto px-4 py-8 sm:px-6">
-        {stats && <div className="grid grid-cols-3 gap-4 border-b border-slate-200 pb-7">
-          {[stats.totalJobs, stats.totalResumes, stats.totalEmployers].map((value, i) => <div key={labels[i]}>
-            <div className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">{value === null ? '—' : value.toLocaleString('ru-RU').replace(/\u00a0/g, ' ')}</div>
-            <div className="mt-1 text-xs leading-5 text-slate-500">{labels[i]}</div>
-          </div>)}
-        </div>}
-        <div className="mt-7 grid gap-4 sm:grid-cols-2">
-          {[{ role: 'seeker' as const, icon: FileText, title: ru ? 'Пусть работа найдёт вас' : 'Ish sizni topsin', text: ru ? 'Создайте резюме и расскажите о своих навыках.' : 'Rezyume yarating va ko‘nikmalaringizni ko‘rsating.', action: ru ? 'Создать резюме' : 'Rezyume yaratish' },
-            { role: 'employer' as const, icon: Building2, title: ru ? 'Найдите людей для своей команды' : 'Jamoangiz uchun xodim toping', text: ru ? 'Разместите вакансию и получайте отклики.' : 'Vakansiya joylang va nomzodlardan arizalar oling.', action: ru ? 'Разместить вакансию' : 'Vakansiya joylash' }].map(item => <button key={item.role} onClick={() => start(item.role)} className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/50">
-              <item.icon className="h-6 w-6 shrink-0 text-blue-600" />
-              <div className="flex-1"><div className="text-sm font-semibold text-slate-900">{item.title}</div><div className="mt-1 text-xs leading-5 text-slate-500">{item.text}</div><div className="mt-2 text-xs font-semibold text-blue-600">{item.action}</div></div>
-              <ArrowUpRight className="h-5 w-5 shrink-0 text-slate-400 group-hover:text-blue-600" />
-            </button>)}
+      <div className="poster-stage home-shell">
+        <div className="poster-word" aria-hidden="true">
+          ISHDASIZ
+        </div>
+        <svg
+          className="poster-connectors"
+          viewBox="0 0 1600 820"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M320 410 C480 410 475 310 630 310" />
+          <path d="M1010 455 C1180 455 1220 440 1290 440" />
+          <circle cx="630" cy="310" r="5" />
+          <circle cx="1010" cy="455" r="5" />
+        </svg>
+        <div className="poster-character" aria-hidden="true">
+          {professionals.map((src, index) => (
+            <div
+              key={src}
+              className={`poster-character-layer ${index === active ? "is-active" : ""}`}
+            >
+              <Image
+                src={src}
+                alt=""
+                fill
+                preload={index === 0}
+                sizes="(min-width:1100px) 45vw, 95vw"
+                loading={index === 0 ? undefined : "eager"}
+                className="poster-character-image"
+              />
+            </div>
+          ))}
+        </div>
+        <div
+          className="poster-profession-tag"
+          aria-hidden="true"
+          key={scene.name}
+        >
+          <span>0{active + 1}</span>
+          {scene.name}
+          <ArrowUpRight size={15} />
+        </div>
+        <div className="poster-search-card">
+          <div className="poster-card-label">
+            <span>{ru ? "ВАШИ ВОЗМОЖНОСТИ" : "SIZNING IMKONIYATLARINGIZ"}</span>
+            <ArrowUpRight size={17} />
+          </div>
+          <div className="poster-job-count">
+            <strong>{number(stats?.totalJobs)}</strong>
+            <span>{ru ? "открытых вакансий" : "ochiq vakansiyalar"}</span>
+          </div>
+          <form onSubmit={search} className="home-search">
+            <div className="home-search-query">
+              <Search size={18} />
+              <label htmlFor="home-search" className="sr-only">
+                {ru ? "Профессия или компания" : "Kasb yoki kompaniya"}
+              </label>
+              <input
+                id="home-search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={
+                  ru ? "Кем хотите работать?" : "Qaysi kasbni qidiryapsiz?"
+                }
+              />
+            </div>
+            <div className="home-search-bottom">
+              <div className="home-search-region">
+                <MapPin size={16} />
+                <label htmlFor="home-region" className="sr-only">
+                  {ru ? "Регион" : "Hudud"}
+                </label>
+                <select
+                  id="home-region"
+                  value={region}
+                  onChange={(event) => setRegion(event.target.value)}
+                >
+                  <option value="all">
+                    {ru ? "Весь Узбекистан" : "Butun O‘zbekiston"}
+                  </option>
+                  {regions.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {ru ? row.name_ru || row.name_uz : row.name_uz}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="home-button">
+                {ru ? "Найти работу" : "Ish topish"}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </form>
+        </div>
+        <Link href="/resumes" className="poster-resumes-card">
+          <div className="poster-card-label">
+            <ArrowUpRight size={17} />
+            <span>{ru ? "СОИСКАТЕЛИ" : "ISH IZLOVCHILAR"}</span>
+          </div>
+          <div className="poster-resume-count">
+            <strong>{number(stats?.totalResumes)}</strong>
+            <span>
+              {ru
+                ? "резюме людей, открытых\nк новой работе"
+                : "yangi ishga tayyor\ninsonlarning rezyumelari"}
+            </span>
+          </div>
+        </Link>
+        <div className="poster-copy">
+          <div className="home-eyebrow">
+            <span className="home-status-dot" />
+            {ru
+              ? "МЕСТО ДЛЯ ВАШЕГО БУДУЩЕГО"
+              : "KELAJAGINGIZ UCHUN YANGI MAKON"}
+          </div>
+          <h1>
+            {ru
+              ? "Работа, в которой\nесть ваше будущее."
+              : "Sizga mos ish.\nSizga mos kelajak."}
+          </h1>
+          <p>
+            {ru
+              ? "Найдите своё место. По всему Узбекистану."
+              : "O‘z o‘rningizni toping. Butun O‘zbekiston bo‘ylab."}
+          </p>
+          <div className="home-popular">
+            {(ru
+              ? ["Продавец", "Водитель", "Бухгалтер"]
+              : ["Sotuvchi", "Haydovchi", "Buxgalter"]
+            ).map((term) => (
+              <Link key={term} href={`/jobs?q=${encodeURIComponent(term)}`}>
+                {term}
+                <ArrowUpRight size={11} />
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div
+          className="poster-feature"
+          onPointerEnter={() => setHovered(true)}
+          onPointerLeave={() => setHovered(false)}
+          onFocusCapture={() => setFocused(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget))
+              setFocused(false);
+          }}
+        >
+          <div className="poster-controls">
+            <div className="poster-avatars">
+              {scenes.map((item, index) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  className={index === active ? "is-active" : ""}
+                  aria-label={item.name}
+                  aria-pressed={index === active}
+                  onClick={() => {
+                    setActive(index);
+                    setPaused(true);
+                  }}
+                >
+                  <Image src={professionals[index]} alt="" fill sizes="52px" />
+                </button>
+              ))}
+            </div>
+            <span className="poster-slide-number">
+              0{active + 1}
+              <em>/ 05</em>
+            </span>
+            <button
+              type="button"
+              className="poster-pause"
+              aria-label={
+                paused || reducedMotion
+                  ? ru
+                    ? "Включить смену профессий"
+                    : "Kasblar almashinuvini yoqish"
+                  : ru
+                    ? "Приостановить смену профессий"
+                    : "Kasblar almashinuvini to‘xtatish"
+              }
+              onClick={() => setPaused((value) => !value)}
+              disabled={!!reducedMotion}
+            >
+              {paused || reducedMotion ? (
+                <Play size={17} />
+              ) : (
+                <Pause size={17} />
+              )}
+            </button>
+          </div>
+          <div
+            key={scene.name}
+            className="poster-feature-copy"
+            aria-live={playing ? "off" : "polite"}
+          >
+            <h2>{scene.title}</h2>
+            <p>{scene.text}</p>
+            <Link className="poster-action" href={`/jobs?${professionParams}`}>
+              <ArrowUpRight size={20} />
+              {scene.action}
+            </Link>
+          </div>
+        </div>
+        <div className="poster-bottom-label" aria-hidden="true">
+          <span>UZBEKISTAN</span>
+          <span>EST. ISHDASIZ ↗</span>
         </div>
       </div>
     </section>

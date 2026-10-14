@@ -413,7 +413,7 @@ export default function Header() {
                 <Button
                   onClick={openModal}
                   size="sm"
-                  className="h-9 px-5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white gap-2 rounded-full font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:scale-105"
+                  className="h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white gap-2 rounded-full font-semibold transition-colors"
                 >
                   <LogIn className="w-4 h-4" />
                   <span className="text-sm">
