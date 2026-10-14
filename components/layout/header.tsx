@@ -363,7 +363,7 @@ export default function Header() {
         <div className="container mx-auto">
           <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
             <Link href="/" className="flex items-center group pl-0 no-tap-highlight select-none outline-none focus-visible:outline-none focus-visible:ring-0">
-              <span className="inline-flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white"><Briefcase className="h-5 w-5" /></span><span className="text-lg font-extrabold tracking-tight text-slate-950">ISHDA<span className="text-blue-600">SIZ</span></span></span>
+              <Image src="/ishda1.webp" alt="ISHDASIZ" width={930} height={310} priority className="h-auto w-[126px] shrink-0 sm:w-[150px]" />
             </Link>
 
             <div className={`hidden lg:flex items-center justify-center flex-1`}>
