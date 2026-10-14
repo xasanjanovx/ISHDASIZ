@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { HeroSection } from '@/components/home/hero-section';
 const mockPush = jest.fn();
 const mockOpen = jest.fn();
@@ -28,4 +28,22 @@ it('uses supplied counts and omits employer promotion', () => {
   expect(screen.queryByText('24')).not.toBeInTheDocument();
   expect(screen.queryByText('Работодатели')).not.toBeInTheDocument();
   expect(screen.getByText('—')).toBeInTheDocument();
+});
+
+it('preserves the selected avatar and offers seeker registration without automatic navigation', () => {
+  jest.useFakeTimers();
+  try {
+    render(<HeroSection />);
+    fireEvent.click(screen.getByRole('button', { name: 'Резюме', exact: true }));
+    act(() => jest.advanceTimersByTime(14000));
+    expect(screen.getByRole('button', { name: 'Резюме', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    expect(mockPush).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Создать резюме', exact: true }));
+    expect(mockOpen).toHaveBeenCalledTimes(1);
+  } finally { jest.useRealTimers(); }
+});
+it('the map avatar exposes the working map route', () => {
+  render(<HeroSection />);
+  fireEvent.click(screen.getByRole('button', { name: 'Карта вакансий', exact: true }));
+  expect(screen.getByRole('link', { name: 'Открыть карту', exact: true })).toHaveAttribute('href', '/map');
 });

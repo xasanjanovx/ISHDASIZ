@@ -9,6 +9,13 @@ import { TelegramBanner } from "@/components/home/telegram-banner";
 import { HomeDataNotice } from "@/components/home/home-data-notice";
 import { SeekersSection } from "@/components/home/seekers-section";
 import { catalogFilters, searchResumes } from "@/lib/resume-catalog";
+import { Onest } from "next/font/google";
+import { HowItWorksSection } from "@/components/home/how-it-works-section";
+const homeFont = Onest({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-home",
+  display: "swap",
+});
 
 export const revalidate = 60;
 
@@ -30,7 +37,7 @@ export default async function HomePage() {
     loadSeekers(),
   ]);
   return (
-    <div className="home-canvas">
+    <div className={`home-canvas ${homeFont.variable}`}>
       <HeroSection regions={data.regions} stats={data.stats} />
       {data.unavailable && <HomeDataNotice />}
       <LatestJobsSection jobs={data.jobs} unavailable={data.unavailable} />
@@ -43,6 +50,7 @@ export default async function HomePage() {
         unavailable={seekers.unavailable}
       />
       <SpecialCategoriesSection counts={data.specialCounts} />
+      <HowItWorksSection />
       <TelegramBanner />
     </div>
   );
