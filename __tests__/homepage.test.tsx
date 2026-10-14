@@ -22,9 +22,10 @@ it('keeps the database region ID and safely encodes the search', () => {
   expect(url.searchParams.get('q')).toBe('Бухгалтер & кассир');
   expect(url.searchParams.get('region')).toBe('22');
 });
-it('uses supplied counts and never doubles the employer count', () => {
+it('uses supplied counts and omits employer promotion', () => {
   render(<HeroSection stats={{ totalJobs: 24666, totalResumes: null, totalEmployers: 24 }} />);
   expect(screen.getByText('24 666')).toBeInTheDocument();
-  expect(screen.getByText('24')).toBeInTheDocument();
+  expect(screen.queryByText('24')).not.toBeInTheDocument();
+  expect(screen.queryByText('Работодатели')).not.toBeInTheDocument();
   expect(screen.getByText('—')).toBeInTheDocument();
 });
