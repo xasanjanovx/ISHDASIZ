@@ -3,6 +3,7 @@ import {fetchVacancyIdList,fetchVacancyDetail,fetchCompanyContacts,transformDeta
 import {osonishJob,type ImportReferences} from './osonish-job';
 import {importProgress,type ImportProgress} from './progress';
 import {AccountError,isUuid} from '@/lib/auth/account';
+import {fetchOsonishConfigs} from '@/lib/scrapers/osonish-config';
 
 type Options={actorId?:string;runId?:string;requestId?:string;start?:boolean;maxPages?:number};
 export class ImportWorkerError extends Error{constructor(public code:string){super('Import operation unavailable');}}
@@ -48,6 +49,7 @@ export async function stepOsonishImport(client:SupabaseClient,options:Options={}
     if(!Array.isArray(work.ids)||work.ids.length>50||new Set(work.ids).size!==work.ids.length||work.ids.some((id:any)=>typeof id!=='string'||!/^[1-9]\d*$/.test(id)||!Number.isSafeInteger(Number(id))))throw new WorkerError('invalid_data');
     if(!work.ids.length)break;
     const resolvedRefs=refs??=await references(client,signal);
+    const configs=await fetchOsonishConfigs(signal);
     // Fetch five at a time within one shared deadline, then commit each result
     // with its checkpoint. A crashed request repeats only unconfirmed items.
     for(let offset=0;offset<work.ids.length&&!signal.aborted&&progress.state==='running';offset+=5){
@@ -57,7 +59,7 @@ export async function stepOsonishImport(client:SupabaseClient,options:Options={}
      let state:'active'|'filled'|'removed',payload:any=null;
      if(!detail.success&&detail.status!==404)return {id,state:'retry',payload:null};
      if(detail.status===404)state='removed';else if(detail.detail?.status!==2)state='filled';else{
-      state='active';const vacancy=transformDetail(detail.detail);
+      state='active';const vacancy=transformDetail(detail.detail,configs??undefined);
       if(!vacancy.has_contact&&detail.detail.company?.id){const contacts=await fetchCompanyContacts(detail.detail.company.id,signal);if(contacts){if(typeof contacts.phone==='string'&&/^\+?[\d\s().-]+$/.test(contacts.phone)){let digits=contacts.phone.replace(/\D/g,'');if(digits.length===9)digits='998'+digits;if(/^998\d{9}$/.test(digits))vacancy.contact_phone='+'+digits;}if(contacts.email)vacancy.contact_email=contacts.email;}}
       payload=osonishJob(vacancy,resolvedRefs);
      }

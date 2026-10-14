@@ -20,6 +20,12 @@ export function parseWorkMode(value:unknown):JobWorkMode|null {
 export function getJobWorkMode(job:Record<string,any>|null|undefined):JobWorkMode|null {
  if(!job)return null;
  const raw=job.raw_source_json??{};
+ // OsonIsh work_type codes differ from our older work_mode codes (2 = shifts).
+ // Preserve the source format even for imports saved by the previous mapper.
+ if(typeof raw.work_type==='number'){
+  const sourceModes:Record<number,JobWorkMode>={1:'onsite',2:'onsite',3:'remote',4:'hybrid',5:'home',6:'onsite'};
+  return sourceModes[raw.work_type]??null;
+ }
  for(const value of [job.work_mode,job.work_format,raw.work_mode,raw.work_format,raw.workplace_type]){
   if(value===null||value===undefined||normalized(value)===''||['0','all','any','ahamiyatsiz','ahamiyatga ega emas','не важно'].includes(normalized(value)))continue;
   // An explicit format takes precedence over older, lower-priority fields.

@@ -4,6 +4,7 @@ import {fetchVacancyIdList,fetchVacancyDetail,fetchCompanyContacts,transformDeta
 import {importLocation,osonishJob,type ImportReferences} from '@/lib/import/osonish-job';
 import {importProgress} from '@/lib/import/progress';
 jest.mock('@/lib/scrapers/osonish',()=>({fetchVacancyIdList:jest.fn(),fetchVacancyDetail:jest.fn(),fetchCompanyContacts:jest.fn(),transformDetail:jest.fn()}));
+jest.mock('@/lib/scrapers/osonish-config',()=>({fetchOsonishConfigs:jest.fn(async()=>null)}));
 const id='10000000-0000-4000-8000-000000000001',token='10000000-0000-4000-8000-000000000002',category='a0000001-0001-4000-8000-000000000001';
 const progress=(patch:any={})=>({id,state:'running',phase:'list',started_at:'2026-10-09T00:00:00Z',completed_at:null,total:null,listed:0,processed:0,failed:0,verified:0,new_imported:0,updated:0,skipped_closed:0,next_page:1,verify_page:1,last_error:null,next_retry_at:null,busy:false,...patch});
 const refs:ImportReferences={regions:[{id:1,name_uz:'Toshkent viloyati',name_ru:'Ташкентская область'},{id:22,name_uz:'Toshkent shahri',name_ru:'город Ташкент'},{id:2,name_uz:'Andijon viloyati',name_ru:'Андижанская область'}],districts:[{id:100,region_id:22,name_uz:'Yunusobod tumani',name_ru:'Юнусабадский район'},{id:101,region_id:1,name_uz:'Qibray tumani',name_ru:'Кибрайский район'},{id:200,region_id:1,name_uz:'Olmazor tumani',name_ru:'Олмазорский район'},{id:201,region_id:22,name_uz:'Olmazor tumani',name_ru:'Олмазорский район'}],categories:[{id:category}]};

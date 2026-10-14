@@ -568,7 +568,8 @@ function mapEmploymentType(busyness_type?: number): string {
         1: 'full_time',   // Doimiy
         2: 'contract',    // Muddatli
         3: 'contract',    // Mavsumiy
-        4: 'internship'   // Stajirovka/Amaliyot
+        4: 'internship',  // Stajirovka/Amaliyot
+        5: 'contract'     // Kunlik
     };
     return busyness_type ? (map[busyness_type] || 'full_time') : 'full_time';
 }
@@ -582,17 +583,21 @@ function mapWorkMode(id?: number, configs?: OsonishConfigs): string | null {
     // 1. Dynamic Map (if config available)
     if (configs?.workMode[id]) {
         const label = configs.workMode[id].toLowerCase();
-        if (label.includes('masofaviy') || label.includes('uydan')) return 'remote';
         if (label.includes('gibrid')) return 'hybrid';
-        if (label.includes('ofis') || label.includes('odatiy') || label.includes('joyida')) return 'onsite';
+        if (label.includes('uydan') || label.includes('uyda') || label.includes('kasanachilik')) return 'home';
+        if (label.includes('masofaviy')) return 'remote';
+        if (label.includes('ofis') || label.includes('odatiy') || label.includes('joyida') || label.includes('smenali') || label.includes('mobil')) return 'onsite';
+        return null;
     }
 
     // 2. Fallback ID Map
     const map: Record<number, string> = {
         1: 'onsite',   // Odatiy/Ish joyida
-        2: 'remote',   // Uydan
+        2: 'onsite',   // Smenali ish
         3: 'remote',   // Masofaviy
-        4: 'hybrid'    // Gibrid
+        4: 'hybrid',   // Gibrid
+        5: 'home',     // Kasanachilik (uyda)
+        6: 'onsite'    // Mobil ishchi
     };
     return map[id] || null;
 }
@@ -600,8 +605,8 @@ function mapWorkMode(id?: number, configs?: OsonishConfigs): string | null {
 /**
  * Map experience from dynamic config or ID fallback
  */
-function mapExperience(id?: number, configs?: OsonishConfigs): number {
-    if (!id) return 0;
+function mapExperience(id?: number, configs?: OsonishConfigs): number | undefined {
+    if (!id) return undefined;
 
     // 1. Dynamic Map (if config available)
     if (configs?.experience[id]) {
@@ -611,24 +616,21 @@ function mapExperience(id?: number, configs?: OsonishConfigs): number {
         // Parse "1-3 yil", "3-6 yil", "5 yildan"
         const numbers = label.match(/\d+/g)?.map(Number);
         if (numbers && numbers.length > 0) {
-            // "1-3" -> avg 2? Or min 1? Existing logic used approx values.
-            // "1-3" was 2. "3-6" was 5. "6+" was 7.
-            const val = numbers[0];
-            if (val >= 6) return 7;
-            if (val >= 5) return 6; // 5+
-            if (val >= 3) return 5; // 3-6
-            if (val >= 1) return 2; // 1-3
+            // Preserve the stated minimum, never fabricate an average.
+            return numbers[0];
         }
+        return undefined;
     }
 
     // 2. Fallback ID Map
     const map: Record<number, number> = {
         1: 0,   // No experience
-        2: 2,   // 1-3 years
-        3: 5,   // 3-6 years
-        4: 7    // 6+ years
+        2: 1,   // Up to one year
+        3: 1,   // 1-3 years
+        4: 3,   // 3-5 years
+        5: 5    // More than five years
     };
-    return map[id] || 0;
+    return map[id];
 }
 
 // ==================== API FUNCTIONS ====================
@@ -844,14 +846,7 @@ async function fetchDetailsWithConcurrency(
  */
 export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs): TransformedVacancy {
     // Extract contacts
-    let contact_phone = normalizePhone(detail.hr?.phone) || normalizePhone(detail.additional_phone);
-
-    // HARDCODED FIX: Replace specific old phone number with new one
-    if (contact_phone === '+998998588698') {
-        contact_phone = '+998998088698';
-        if (detail.hr && detail.hr.phone === '998998588698') detail.hr.phone = '998998088698';
-        if (detail.additional_phone === '998998588698') detail.additional_phone = '998998088698';
-    }
+    const contact_phone = normalizePhone(detail.hr?.phone) || normalizePhone(detail.additional_phone);
     const contact_telegram = extractTelegram(detail.another_network);
     const has_contact = hasValidContact(detail);
 
@@ -899,8 +894,8 @@ export function transformDetail(detail: OsonishDetail, configs?: OsonishConfigs)
                 : undefined),
 
         // Salary
-        salary_min: detail.min_salary || undefined,
-        salary_max: detail.max_salary || undefined,
+        salary_min: detail.min_salary ?? undefined,
+        salary_max: detail.max_salary ?? undefined,
         payment_type: detail.payment_type,
 
         // Work type

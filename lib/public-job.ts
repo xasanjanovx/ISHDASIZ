@@ -31,7 +31,7 @@ export function publicJobDetail(row:any) {
  const result:any=Object.fromEntries(fields.split(',').map(key=>[key,row[key]??null]));result.categories=relation(row.categories);result.regions=relation(row.regions);result.districts=relation(row.districts);
  // Import metadata is projected rather than exposing arbitrary original records.
  const raw=row.raw_source_json&&typeof row.raw_source_json==='object'?row.raw_source_json:{};
- const rawKeys='info,html_responsibilities,html_requirements,html_conditions,work_experiance,education_level,payment_type,work_mode,working_days_id,working_hours,working_time_from,working_time_to,position_name,vacancy_count,test_period_id,test_period,address,hr_name';
+ const rawKeys='info,html_responsibilities,html_requirements,html_conditions,work_experiance,min_education,education_level,payment_type,work_mode,work_type,working_days_id,working_hours,working_time_from,working_time_to,position_name,vacancy_count,test_period_id,test_period,address,hr_name';
  result.raw_source_json=Object.fromEntries(rawKeys.split(',').filter(key=>typeof raw[key]==='string'||typeof raw[key]==='number').map(key=>[key,raw[key]]));
  const sections=(value:any)=>Object.fromEntries(['qulayliklar','talablar','ish_vazifalari'].map(key=>[key,Array.isArray(value?.[key])?value[key].filter((item:any)=>typeof item==='string').slice(0,100):[]]));
  result.sections=sections(row.sections||raw.sections);
