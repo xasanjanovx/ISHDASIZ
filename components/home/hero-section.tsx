@@ -13,8 +13,6 @@ import {
   Play,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
-import { useAuthModal } from "@/contexts/auth-modal-context";
-import { useUserAuth } from "@/contexts/user-auth-context";
 interface HeroProps {
   regions?: { id: number; name_uz: string; name_ru: string }[];
   stats?: {
@@ -23,18 +21,18 @@ interface HeroProps {
     totalEmployers?: number | null;
   };
 }
-const mascots = [
-  "/mascot-search.webp",
-  "/mascot-resume.webp",
-  "/mascot-map.webp",
+const professionals = [
+  "/profession-teacher-formal.webp",
+  "/profession-builder.webp",
+  "/profession-doctor.webp",
+  "/profession-programmer.webp",
+  "/profession-chef.webp",
 ];
 export function HeroSection({ regions = [], stats }: HeroProps) {
   const { lang } = useLanguage();
   const ru = lang === "ru";
   const router = useRouter();
   const reducedMotion = useReducedMotion();
-  const { openModal, setStep, setUserRole } = useAuthModal();
-  const { user } = useUserAuth();
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("all");
   const [active, setActive] = useState(0);
@@ -45,7 +43,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
   useEffect(() => {
     if (!playing) return;
     const timer = setInterval(
-      () => setActive((value) => (value + 1) % mascots.length),
+      () => setActive((value) => (value + 1) % professionals.length),
       7000,
     );
     return () => clearInterval(timer);
@@ -59,63 +57,87 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     if (region !== "all") params.set("region", region);
     router.push(params.size ? `/jobs?${params}` : "/jobs");
   };
-  const create = () => {
-    if (user?.has_job_seeker_profile)
-      router.push("/profile/job-seeker/resumes/new");
-    else {
-      setUserRole("seeker");
-      setStep("auth");
-      openModal();
-    }
-  };
   const scenes = ru
     ? [
         {
-          name: "Поиск работы",
-          title: "Ваш следующий шаг",
-          text: "Вакансии по вашим навыкам и в вашем регионе. Всё начинается с одного поиска.",
-          action: "Смотреть вакансии",
-          href: "/jobs",
+          name: "Учитель",
+          title: "Передавайте знания.\nОткрывайте будущее.",
+          text: "Найдите своё место в образовании — от первого урока до нового этапа карьеры.",
+          action: "Вакансии в образовании",
+          category: "a0000004-0004-4000-8000-000000000004",
         },
         {
-          name: "Резюме",
-          title: "Пусть работа найдёт вас",
-          text: "Расскажите о своих навыках и опыте. Создайте профиль, который поможет вас найти.",
-          action: "Создать резюме",
-          href: null,
+          name: "Строитель",
+          title: "Стройте больше.\nРастите в профессии.",
+          text: "Новый проект начинается с вас. Найдите работу в строительстве в удобном регионе.",
+          action: "Вакансии в строительстве",
+          category: "a0000007-0007-4000-8000-000000000007",
         },
         {
-          name: "Карта вакансий",
-          title: "Работа ближе, чем кажется",
-          text: "Посмотрите предложения на карте и выберите удобное место для следующего шага.",
-          action: "Открыть карту",
-          href: "/map",
+          name: "Врач",
+          title: "Заботьтесь о людях.\nНайдите своё место.",
+          text: "Ваши знания нужны людям. Посмотрите предложения в медицине по всему Узбекистану.",
+          action: "Вакансии в медицине",
+          category: "a0000005-0005-4000-8000-000000000005",
+        },
+        {
+          name: "Программист",
+          title: "Создавайте новое.\nРазвивайте карьеру.",
+          text: "Следующая задача может стать новым этапом. Найдите возможности в IT и разработке.",
+          action: "Вакансии в IT",
+          category: "a0000001-0001-4000-8000-000000000001",
+        },
+        {
+          name: "Повар",
+          title: "Создавайте вкус.\nНайдите свою команду.",
+          text: "Найдите работу на кухне, где ваш опыт и мастерство станут частью нового меню.",
+          action: "Вакансии повара",
+          category: "a0000003-0003-4000-8000-000000000003",
+          query: "oshpaz",
         },
       ]
     : [
         {
-          name: "Ish qidirish",
-          title: "Keyingi qadamingiz",
-          text: "Ko‘nikmalaringiz va hududingizga mos vakansiyalar. Hammasi bitta qidiruvdan boshlanadi.",
-          action: "Vakansiyalarni ko‘rish",
-          href: "/jobs",
+          name: "O‘qituvchi",
+          title: "Bilim ulashing.\nKelajakni yarating.",
+          text: "Ta’limda o‘z o‘rningizni toping — ilk darsdan kasbingizdagi yangi bosqichgacha.",
+          action: "Ta’limdagi vakansiyalar",
+          category: "a0000004-0004-4000-8000-000000000004",
         },
         {
-          name: "Rezyume",
-          title: "Ish sizni topsin",
-          text: "Ko‘nikmalaringiz va tajribangizni ko‘rsating. Sizni topishga yordam beradigan profil yarating.",
-          action: "Rezyume yaratish",
-          href: null,
+          name: "Quruvchi",
+          title: "Ko‘proq bunyod eting.\nKasbingizda o‘sing.",
+          text: "Yangi loyiha sizdan boshlanadi. Qulay hududda qurilish sohasidagi ishni toping.",
+          action: "Qurilishdagi vakansiyalar",
+          category: "a0000007-0007-4000-8000-000000000007",
         },
         {
-          name: "Vakansiyalar xaritasi",
-          title: "Ish sizga yanada yaqin",
-          text: "Xaritadagi takliflarni ko‘ring va keyingi qadamingiz uchun qulay joyni tanlang.",
-          action: "Xaritani ochish",
-          href: "/map",
+          name: "Shifokor",
+          title: "Insonlarga g‘amxo‘rlik.\nSizga mos imkoniyat.",
+          text: "Bilimingiz insonlarga kerak. Butun O‘zbekiston bo‘ylab tibbiyotdagi takliflarni ko‘ring.",
+          action: "Tibbiyotdagi vakansiyalar",
+          category: "a0000005-0005-4000-8000-000000000005",
+        },
+        {
+          name: "Dasturchi",
+          title: "Yangilik yarating.\nKaryerangizni o‘stiring.",
+          text: "Keyingi vazifa yangi bosqichga aylanishi mumkin. IT va dasturlashdagi imkoniyatlarni toping.",
+          action: "IT vakansiyalari",
+          category: "a0000001-0001-4000-8000-000000000001",
+        },
+        {
+          name: "Oshpaz",
+          title: "Ta’m yarating.\nJamoangizni toping.",
+          text: "Tajribangiz va mahoratingiz yangi menyuning bir qismiga aylanishi mumkin. Sizga mos oshxonani toping.",
+          action: "Oshpaz vakansiyalari",
+          category: "a0000003-0003-4000-8000-000000000003",
+          query: "oshpaz",
         },
       ];
   const scene = scenes[active];
+  const professionParams = new URLSearchParams({ category: scene.category });
+  if (scene.query) professionParams.set("q", scene.query);
+  if (region !== "all") professionParams.set("region", region);
   const ticker = ru
     ? [
         "РАБОТА ПО ВСЕМУ УЗБЕКИСТАНУ",
@@ -132,7 +154,20 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
         "ISHDASIZ",
       ];
   return (
-    <section id="home-top" className="poster-hero" data-playing={playing}>
+    <section
+      id="home-top"
+      className="poster-hero"
+      data-playing={playing}
+      data-profession={active}
+    >
+      <div className="poster-atmospheres" aria-hidden="true">
+        {professionals.map((src, index) => (
+          <div
+            key={src}
+            className={`poster-atmosphere theme-${index} ${index === active ? "is-active" : ""}`}
+          />
+        ))}
+      </div>
       <div className="poster-ticker" aria-hidden="true">
         <div>
           {[...ticker, ...ticker].map((label, index) => (
@@ -159,7 +194,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           <circle cx="1010" cy="455" r="5" />
         </svg>
         <div className="poster-character" aria-hidden="true">
-          {mascots.map((src, index) => (
+          {professionals.map((src, index) => (
             <div
               key={src}
               className={`poster-character-layer ${index === active ? "is-active" : ""}`}
@@ -170,10 +205,20 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                 fill
                 preload={index === 0}
                 sizes="(min-width:1100px) 45vw, 95vw"
+                loading={index === 0 ? undefined : "eager"}
                 className="poster-character-image"
               />
             </div>
           ))}
+        </div>
+        <div
+          className="poster-profession-tag"
+          aria-hidden="true"
+          key={scene.name}
+        >
+          <span>0{active + 1}</span>
+          {scene.name}
+          <ArrowUpRight size={15} />
         </div>
         <div className="poster-search-card">
           <div className="poster-card-label">
@@ -294,13 +339,13 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                     setPaused(true);
                   }}
                 >
-                  <Image src={mascots[index]} alt="" fill sizes="52px" />
+                  <Image src={professionals[index]} alt="" fill sizes="52px" />
                 </button>
               ))}
             </div>
             <span className="poster-slide-number">
               0{active + 1}
-              <em>/ 03</em>
+              <em>/ 05</em>
             </span>
             <button
               type="button"
@@ -308,11 +353,11 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
               aria-label={
                 paused || reducedMotion
                   ? ru
-                    ? "Включить смену аватаров"
-                    : "Avatarlar almashinuvini yoqish"
+                    ? "Включить смену профессий"
+                    : "Kasblar almashinuvini yoqish"
                   : ru
-                    ? "Приостановить смену аватаров"
-                    : "Avatarlar almashinuvini to‘xtatish"
+                    ? "Приостановить смену профессий"
+                    : "Kasblar almashinuvini to‘xtatish"
               }
               onClick={() => setPaused((value) => !value)}
               disabled={!!reducedMotion}
@@ -325,22 +370,16 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             </button>
           </div>
           <div
+            key={scene.name}
             className="poster-feature-copy"
             aria-live={playing ? "off" : "polite"}
           >
             <h2>{scene.title}</h2>
             <p>{scene.text}</p>
-            {scene.href ? (
-              <Link className="poster-action" href={scene.href}>
-                <ArrowUpRight size={20} />
-                {scene.action}
-              </Link>
-            ) : (
-              <button className="poster-action" type="button" onClick={create}>
-                <ArrowUpRight size={20} />
-                {scene.action}
-              </button>
-            )}
+            <Link className="poster-action" href={`/jobs?${professionParams}`}>
+              <ArrowUpRight size={20} />
+              {scene.action}
+            </Link>
           </div>
         </div>
         <div className="poster-bottom-label" aria-hidden="true">
