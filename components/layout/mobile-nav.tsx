@@ -57,18 +57,18 @@ export function MobileNav() {
     };
 
     return (
-        <div className="site-mobile-nav md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe">
+        <div className="site-mobile-nav md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe">
             <div className="flex items-center justify-around h-16 px-2">
                 {/* Home */}
                 <Link
                     href="/"
                     className={cn(
                         "flex flex-col items-center justify-center w-full h-full gap-1",
-                        isActive('/') ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        isActive('/') ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}
                 >
                     <Home className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">{lang === 'uz' ? 'Bosh' : 'Главная'}</span>
+                    <span className="text-xs font-medium">{lang === 'uz' ? 'Bosh' : 'Главная'}</span>
                 </Link>
 
                 {/* Search */}
@@ -76,11 +76,11 @@ export function MobileNav() {
                     href="/jobs"
                     className={cn(
                         "flex flex-col items-center justify-center w-full h-full gap-1",
-                        isActive('/jobs') ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        isActive('/jobs') ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}
                 >
                     <Search className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">{lang === 'uz' ? 'Qidirish' : 'Поиск'}</span>
+                    <span className="text-xs font-medium">{lang === 'uz' ? 'Qidirish' : 'Поиск'}</span>
                 </Link>
 
                 {/* Add (Center Action) */}
@@ -92,12 +92,12 @@ export function MobileNav() {
                     <div className={cn(
                         "w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95",
                         isActive(getAddLink() || '')
-                            ? "bg-blue-700 text-white"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
+                            ? "bg-primary text-white"
+                            : "bg-primary text-white hover:bg-primary"
                     )}>
                         <PlusCircle className="w-6 h-6" />
                     </div>
-                    <span className="text-[10px] font-medium text-slate-500 mt-1">{lang === 'uz' ? 'Joylash' : 'Разместить'}</span>
+                    <span className="text-xs font-medium text-muted-foreground mt-1">{lang === 'uz' ? 'Joylash' : 'Разместить'}</span>
                 </Link>
 
                 {/* Profile */}
@@ -106,11 +106,11 @@ export function MobileNav() {
                     onClick={handleProfileClick}
                     className={cn(
                         "flex flex-col items-center justify-center w-full h-full gap-1",
-                        isActive(getProfileLink() || '') ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        isActive(getProfileLink() || '') ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}
                 >
                     <User className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">{lang === 'uz' ? 'Profil' : 'Профиль'}</span>
+                    <span className="text-xs font-medium">{lang === 'uz' ? 'Profil' : 'Профиль'}</span>
                 </Link>
 
                 {/* Menu (Sheet) */}
@@ -118,31 +118,31 @@ export function MobileNav() {
                     <SheetTrigger asChild>
                         <button className={cn(
                             "flex flex-col items-center justify-center w-full h-full gap-1",
-                            open ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                            open ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         )}>
                             <Menu className="w-6 h-6" />
-                            <span className="text-[10px] font-medium">{lang === 'uz' ? 'Menu' : 'Меню'}</span>
+                            <span className="text-xs font-medium">{lang === 'uz' ? 'Menu' : 'Меню'}</span>
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-72 bg-white flex flex-col pt-10">
+                    <SheetContent side="right" className="w-72 bg-card flex flex-col pt-10">
                         <div className="flex-1 space-y-4">
                             {/* Simplified Menu Content */}
                             <h3 className="text-lg font-semibold px-4 mb-4">Menu</h3>
 
-                            <Link href="/jobs" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100 rounded-lg">
-                                <Briefcase className="w-5 h-5 text-slate-500" />
+                            <Link href="/jobs" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
+                                <Briefcase className="w-5 h-5 text-muted-foreground" />
                                 <span>{lang === 'uz' ? 'Vakansiyalar' : 'Вакансии'}</span>
                             </Link>
 
-                            <Link href="/resumes" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100 rounded-lg">
-                                <FileText className="w-5 h-5 text-slate-500" />
+                            <Link href="/resumes" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
+                                <FileText className="w-5 h-5 text-muted-foreground" />
                                 <span>{lang === 'uz' ? 'Rezyumelar' : 'Резюме'}</span>
                             </Link>
 
                             {(isAuthenticated || isAdmin) && (
-                                <div className="border-t border-slate-100 my-2 pt-2">
-                                    <Link href={getProfileLink() || '#'} onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100 rounded-lg">
-                                        <User className="w-5 h-5 text-slate-500" />
+                                <div className="border-t border-border my-2 pt-2">
+                                    <Link href={getProfileLink() || '#'} onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
+                                        <User className="w-5 h-5 text-muted-foreground" />
                                         <span>{lang === 'uz' ? 'Mening profilim' : 'Мой профиль'}</span>
                                     </Link>
                                 </div>

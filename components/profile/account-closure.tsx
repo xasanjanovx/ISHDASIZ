@@ -18,9 +18,9 @@ export function AccountClosure() {
       setError(detail?.[lang==='ru'?0:1] || (lang==='ru'?'Не удалось закрыть аккаунт. Попробуйте ещё раз.':'Akkauntni yopib bo‘lmadi. Qayta urinib ko‘ring.'));
     } finally { lock.current=false;setBusy(false); }
   };
-  return <section className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-7 space-y-3">
+  return <section className="rounded-2xl bg-card border border-border p-5 sm:p-7 space-y-3">
     <h2 className="text-xl font-semibold">{lang==='ru'?'Закрытие аккаунта':'Akkauntni yopish'}</h2>
-    <p className="text-sm text-slate-600">{lang==='ru'?'Вакансии и резюме будут скрыты. Данные и переписка сохранятся. Для восстановления войдите на сайт и подтвердите свой номер по SMS.':'Vakansiyalar va rezyumelar yashiriladi. Ma’lumotlar va yozishmalar saqlanadi. Tiklash uchun saytga kiring va raqamingizni SMS orqali tasdiqlang.'}</p>
+    <p className="text-sm text-muted-foreground">{lang==='ru'?'Вакансии и резюме будут скрыты. Данные и переписка сохранятся. Для восстановления войдите на сайт и подтвердите свой номер по SMS.':'Vakansiyalar va rezyumelar yashiriladi. Ma’lumotlar va yozishmalar saqlanadi. Tiklash uchun saytga kiring va raqamingizni SMS orqali tasdiqlang.'}</p>
     <Button variant="outline" onClick={()=>{setOpen(true);setError('');}}>{lang==='ru'?'Закрыть аккаунт':'Akkauntni yopish'}</Button>
     <AlertDialog open={open} onOpenChange={value=>{if(!lock.current)setOpen(value);}}>
       <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{lang==='ru'?'Закрыть оба профиля аккаунта?':'Akkauntdagi ikkala profil yopilsinmi?'}</AlertDialogTitle>

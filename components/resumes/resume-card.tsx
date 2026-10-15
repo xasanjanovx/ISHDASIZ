@@ -55,9 +55,9 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
             onClick={() => {
                 if (!canOpenDetails) onRequireEmployerAccess?.();
             }}
-            className="group relative cursor-pointer hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-slate-200/80 hover:border-blue-300/50 bg-white rounded-xl h-full"
+            className="catalog-resume-card group relative cursor-pointer hover:shadow-xl hover:shadow-primary/5 transition-all duration-400 hover:-translate-y-1 overflow-hidden border-border/80 hover:border-border/50 bg-card rounded-xl h-full"
         >
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-teal-400 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity" />
+            <div className="resume-decoration absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-primary to-primary opacity-80 group-hover:opacity-100 transition-opacity" />
 
             {canOpenDetails && (
                 <Link href={`/resumes/${resume.id}`} className="absolute inset-0 z-10" aria-label={`${title}, ${fullName}`} />
@@ -66,49 +66,49 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
             <CardContent className="p-4 md:p-5 h-full flex flex-col">
                 <div className="flex items-start gap-3 mb-3">
                     <div className="relative shrink-0">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
+                        <div className="resume-avatar w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center text-white font-bold text-base shadow-md shadow-primary/10 group-hover:scale-105 transition-transform">
                             {initial}
                         </div>
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
-                        <h3 className="font-bold text-[15px] text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-tight mb-1">
+                        <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors line-clamp-1 leading-tight mb-1">
                             {title}
                         </h3>
-                        <p className="text-sm text-slate-500 line-clamp-1">{fullName}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{fullName}</p>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 mb-3 text-xs font-medium">
                     {locationLabel && (
-                        <div className="flex items-center gap-1 bg-teal-50/60 text-teal-700 px-2 py-1 rounded-md border border-teal-200/50">
-                            <MapPin className="w-3 h-3 text-teal-500" />
+                        <div className="flex items-center gap-1 bg-accent/60 text-primary px-2 py-1 rounded-md border border-border/50">
+                            <MapPin className="w-3 h-3 text-primary" />
                             <span className="line-clamp-1">{locationLabel}</span>
                         </div>
                     )}
-                    <div className="flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-1 rounded-md border border-slate-200/60">
-                        <Clock className="w-3 h-3 text-slate-400" />
+                    <div className="flex items-center gap-1 bg-background text-muted-foreground px-2 py-1 rounded-md border border-border/60">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
                         {experienceLabel}
                     </div>
                 </div>
 
                 <div className="mb-3">
-                    <span className="text-sm font-bold text-amber-700 bg-gradient-to-br from-amber-50 to-amber-100/50 px-2.5 py-1 rounded-md border border-amber-200/60 shadow-sm">
+                    <span className="resume-salary text-sm font-bold text-amber-700 bg-gradient-to-br from-amber-50 to-amber-100/50 px-2.5 py-1 rounded-md border border-amber-200/60 shadow-sm">
                         {formatSalary(salaryMin, salaryMax, lang)}
                     </span>
                 </div>
 
                 {skillsList.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-auto pt-3 border-t border-slate-100/80">
+                    <div className="flex flex-wrap gap-1.5 mt-auto pt-3 border-t border-border/80">
                         {skillsList.slice(0, 4).map((skill: string, i: number) => (
                             <span
                                 key={i}
-                                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 border border-slate-200/60 group-hover:border-blue-200/40 group-hover:text-blue-700 transition-colors"
+                                className="text-xs font-semibold px-2 py-0.5 rounded-md bg-gradient-to-br from-background to-secondary text-muted-foreground border border-border/60 group-hover:border-border/40 group-hover:text-primary transition-colors"
                             >
                                 {skill}
                             </span>
                         ))}
                         {skillsList.length > 4 && (
-                            <span className="text-[10px] text-slate-400 px-1 py-0.5 font-medium">
+                            <span className="text-xs text-muted-foreground px-1 py-0.5 font-medium">
                                 +{skillsList.length - 4}
                             </span>
                         )}
@@ -116,7 +116,7 @@ export function ResumeCard({ resume, canOpenDetails = true, onRequireEmployerAcc
                 )}
 
                 <div className="flex items-center justify-end mt-3 pt-2">
-                    <div className="flex items-center gap-1 text-blue-600 text-xs font-bold group-hover:gap-2 transition-all duration-300">
+                    <div className="flex items-center gap-1 text-primary text-xs font-bold group-hover:gap-2 transition-all duration-300">
                         {lang === 'uz' ? 'Batafsil' : 'Подробнее'}
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </div>

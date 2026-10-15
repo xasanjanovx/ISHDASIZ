@@ -1,42 +1,50 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { LanguageProvider } from '@/contexts/language-context';
-import { AuthProvider } from '@/contexts/auth-context';
-import { UserAuthProvider } from '@/contexts/user-auth-context';
-import { UserSessionProvider } from '@/lib/contexts/session-context';
-import Header from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { Toaster } from '@/components/ui/sonner';
-import { RoleSelectionWrapper } from '@/components/home/role-selection-wrapper';
-import { AuthModalProvider } from '@/contexts/auth-modal-context';
-import { AuthModal } from '@/components/auth/auth-modal';
-import { AdminViewBanner } from '@/components/admin/AdminViewBanner';
-import { MobileNav } from '@/components/layout/mobile-nav';
-import { TelegramProvider } from '@/contexts/telegram-context';
-import { TelegramNotice } from '@/components/layout/telegram-notice';
+import "./globals.css";
+import "./site-theme.css";
+import type { Metadata } from "next";
+import { Onest } from "next/font/google";
+import { LanguageProvider } from "@/contexts/language-context";
+import { AuthProvider } from "@/contexts/auth-context";
+import { UserAuthProvider } from "@/contexts/user-auth-context";
+import { UserSessionProvider } from "@/lib/contexts/session-context";
+import Header from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Toaster } from "@/components/ui/sonner";
+import { RoleSelectionWrapper } from "@/components/home/role-selection-wrapper";
+import { AuthModalProvider } from "@/contexts/auth-modal-context";
+import { AuthModal } from "@/components/auth/auth-modal";
+import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { TelegramProvider } from "@/contexts/telegram-context";
+import { TelegramNotice } from "@/components/layout/telegram-notice";
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'] });
+const siteFont = Onest({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-home",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ishdasiz.uz'),
+  metadataBase: new URL("https://ishdasiz.uz"),
   title: {
-    template: '%s | ISHDASIZ',
+    template: "%s | ISHDASIZ",
     default: "ISHDASIZ - O'zbekiston ish joylari portali",
   },
-  description: "O'zbekistondagi barcha vakansiyalar. Rasmiy ish joylari portali.",
-  keywords: 'ish, vakansiya, Andijon, Ozbekiston, ishga joylashish, работа, вакансии, Андижан',
-  authors: [{ name: 'ISHDASIZ' }],
+  description:
+    "O'zbekistondagi barcha vakansiyalar. Rasmiy ish joylari portali.",
+  keywords:
+    "ish, vakansiya, Andijon, Ozbekiston, ishga joylashish, работа, вакансии, Андижан",
+  authors: [{ name: "ISHDASIZ" }],
   openGraph: {
     title: "ISHDASIZ - O'zbekiston ish joylari portali",
-    description: "O'zbekistondagi barcha vakansiyalar. Rasmiy ish joylari portali.",
-    url: 'https://ishdasiz.uz',
-    siteName: 'ISHDASIZ',
-    locale: 'uz_UZ',
-    type: 'website',
+    description:
+      "O'zbekistondagi barcha vakansiyalar. Rasmiy ish joylari portali.",
+    url: "https://ishdasiz.uz",
+    siteName: "ISHDASIZ",
+    locale: "uz_UZ",
+    type: "website",
     images: [
       {
-        url: '/og.png',
+        url: "/og.png",
         width: 1200,
         height: 630,
         alt: "ISHDASIZ - O'zbekiston ish joylari portali",
@@ -44,9 +52,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    card: 'summary_large_image',
+    card: "summary_large_image",
     title: "ISHDASIZ - O'zbekiston ish joylari portali",
-    description: "O'zbekistondagi barcha vakansiyalar. Rasmiy ish joylari portali.",
+    description:
+      "O'zbekistondagi barcha vakansiyalar. Rasmiy ish joylari portali.",
   },
   robots: {
     index: true,
@@ -64,7 +73,9 @@ export default function RootLayout({
         {/* Telegram WebApp Script for Mini App support */}
         <script src="https://telegram.org/js/telegram-web-app.js" async />
       </head>
-      <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50`}>
+      <body
+        className={`site-root ${siteFont.className} ${siteFont.variable} min-h-screen flex flex-col bg-background`}
+      >
         <AuthProvider>
           <UserAuthProvider>
             <UserSessionProvider>
@@ -73,7 +84,7 @@ export default function RootLayout({
                   <AuthModalProvider>
                     <Header />
                     <AdminViewBanner />
-                    <main className="flex-1 pt-16 pb-20 md:pb-0">
+                    <main className="site-main flex-1 pt-16 pb-20 md:pb-0">
                       <TelegramNotice />
                       {children}
                     </main>

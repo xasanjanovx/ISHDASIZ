@@ -73,9 +73,9 @@ export function ResumeFilters({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Category */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.filters.category}</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.filters.category}</Label>
                     <Select value={selectedCategory} onValueChange={onCategoryChange}>
-                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
+                        <SelectTrigger className="h-10 rounded-xl bg-background border-border hover:border-border transition-colors">
                             <SelectValue placeholder={t.filters.allCategories} />
                         </SelectTrigger>
                         <SelectContent>
@@ -105,11 +105,11 @@ export function ResumeFilters({
 
                 {/* Experience */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {lang === 'uz' ? 'Tajriba' : 'Опыт'}
                     </Label>
                     <Select value={selectedExperience} onValueChange={onExperienceChange}>
-                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
+                        <SelectTrigger className="h-10 rounded-xl bg-background border-border hover:border-border transition-colors">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -127,11 +127,11 @@ export function ResumeFilters({
 
                 {/* Education */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {lang === 'uz' ? "Ta'lim" : 'Образ.'}
                     </Label>
                     <Select value={selectedEducation} onValueChange={onEducationChange}>
-                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
+                        <SelectTrigger className="h-10 rounded-xl bg-background border-border hover:border-border transition-colors">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -149,11 +149,11 @@ export function ResumeFilters({
 
                 {/* Gender */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {lang === 'uz' ? 'Jins' : 'Пол'}
                     </Label>
                     <Select value={selectedGender} onValueChange={onGenderChange}>
-                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors">
+                        <SelectTrigger className="h-10 rounded-xl bg-background border-border hover:border-border transition-colors">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -173,7 +173,7 @@ export function ResumeFilters({
             {/* Salary row + Clear */}
             <div className="flex flex-wrap items-end gap-3">
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {lang === 'uz' ? 'Maosh (dan)' : 'Зарплата (от)'}
                     </Label>
                     <Input
@@ -186,11 +186,11 @@ export function ResumeFilters({
                             const val = e.target.value ? Number(e.target.value) : 0;
                             onSalaryRangeChange([val, salaryRange[1]]);
                         }}
-                        className="h-10 w-36 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors"
+                        className="h-10 w-36 rounded-xl bg-background border-border hover:border-border transition-colors"
                     />
                 </div>
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {lang === 'uz' ? 'Maosh (gacha)' : 'Зарплата (до)'}
                     </Label>
                     <Input
@@ -203,7 +203,7 @@ export function ResumeFilters({
                             const val = e.target.value ? Number(e.target.value) : 20000000;
                             onSalaryRangeChange([salaryRange[0], val]);
                         }}
-                        className="h-10 w-36 rounded-xl bg-slate-50 border-slate-200 hover:border-teal-300 transition-colors"
+                        className="h-10 w-36 rounded-xl bg-background border-border hover:border-border transition-colors"
                     />
                 </div>
 
@@ -212,7 +212,7 @@ export function ResumeFilters({
                         variant="ghost"
                         size="sm"
                         onClick={onClear}
-                        className="h-10 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        className="h-10 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     >
                         <X className="w-4 h-4 mr-1.5" />
                         {t.filters.clear}

@@ -52,7 +52,7 @@ export function NavBar({ items, className, activeTab, onTabChange }: NavBarProps
             {isActive && (
               <motion.div
                 layoutId="lamp"
-                className="absolute inset-0 bg-white/90 border border-primary/10 rounded-full shadow-md"
+                className="absolute inset-0 bg-card/90 border border-primary/10 rounded-full shadow-md"
                 initial={false}
                 transition={{
                   type: "spring",

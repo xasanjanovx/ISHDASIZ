@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { HeroSection } from "@/components/home/hero-section";
 const mockPush = jest.fn();
 const mockReducedMotion = jest.fn(() => false);
@@ -13,6 +13,22 @@ jest.mock("framer-motion", () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockReducedMotion.mockReturnValue(false);
+});
+it("the profession strip exposes clear catalog links without duplicate keyboard stops", () => {
+  render(<HeroSection />);
+  const strip = screen.getByRole("navigation", {
+    name: "Вакансии по профессиям",
+  });
+  expect(within(strip).getAllByRole("link")).toHaveLength(5);
+  expect(within(strip).getByRole("link", { name: "Учитель" })).toHaveAttribute(
+    "href",
+    "/jobs?category=a0000004-0004-4000-8000-000000000004",
+  );
+  expect(within(strip).getByRole("link", { name: "Повар" })).toHaveAttribute(
+    "href",
+    "/jobs?category=a0000003-0003-4000-8000-000000000003&q=oshpaz",
+  );
+  expect(strip.querySelectorAll('a[tabindex="-1"]')).toHaveLength(5);
 });
 it("searches the whole country by default without inventing a region", () => {
   render(<HeroSection />);

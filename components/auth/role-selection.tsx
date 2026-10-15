@@ -26,10 +26,10 @@ export function RoleSelection() {
             subtitle: lang === 'ru'
                 ? 'Найдите работу мечты'
                 : 'O\'z ishingizni toping',
-            gradient: 'from-emerald-500 to-teal-600',
-            bgLight: 'bg-emerald-50',
-            borderActive: 'border-emerald-500',
-            iconBg: 'bg-gradient-to-br from-emerald-400 to-teal-500',
+            gradient: 'from-primary to-primary',
+            bgLight: 'bg-accent',
+            borderActive: 'border-border',
+            iconBg: 'bg-gradient-to-br from-primary to-primary',
         },
         {
             id: 'employer' as const,
@@ -38,10 +38,10 @@ export function RoleSelection() {
             subtitle: lang === 'ru'
                 ? 'Найдите лучших специалистов'
                 : 'Eng yaxshi mutaxassislarni toping',
-            gradient: 'from-violet-500 to-purple-600',
-            bgLight: 'bg-violet-50',
-            borderActive: 'border-violet-500',
-            iconBg: 'bg-gradient-to-br from-violet-400 to-purple-500',
+            gradient: 'from-primary to-primary',
+            bgLight: 'bg-accent',
+            borderActive: 'border-primary',
+            iconBg: 'bg-gradient-to-br from-primary to-primary',
         },
     ];
 
@@ -49,7 +49,7 @@ export function RoleSelection() {
         <div className="space-y-5">
             {/* Header */}
             <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-foreground">
                     {lang === 'ru' ? 'Как вы хотите использовать платформу?' : 'Platformadan qanday foydalanmoqchisiz?'}
                 </h2>
             </div>
@@ -68,7 +68,7 @@ export function RoleSelection() {
                 group relative w-full p-3 rounded-xl border-2 transition-all duration-300 text-left
                 ${isSelected
                                     ? `${role.borderActive} ${role.bgLight} shadow-md scale-[1.01]`
-                                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+                                    : 'border-border bg-card hover:border-border hover:shadow-sm'
                                 }
               `}
                         >
@@ -84,8 +84,8 @@ export function RoleSelection() {
 
                                 {/* Text */}
                                 <div className="flex-1">
-                                    <h3 className="font-semibold text-base text-slate-900">{role.title}</h3>
-                                    <p className="text-xs text-slate-500">{role.subtitle}</p>
+                                    <h3 className="font-semibold text-base text-foreground">{role.title}</h3>
+                                    <p className="text-xs text-muted-foreground">{role.subtitle}</p>
                                 </div>
 
                                 {/* Check indicator */}
@@ -93,7 +93,7 @@ export function RoleSelection() {
                   w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300
                   ${isSelected
                                         ? `${role.borderActive} bg-gradient-to-br ${role.gradient}`
-                                        : 'border-slate-300'
+                                        : 'border-border'
                                     }
                 `}>
                                     {isSelected && (
@@ -115,8 +115,8 @@ export function RoleSelection() {
                 className={`
           w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300
           ${selectedRole
-                        ? 'bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 shadow-lg shadow-sky-500/25'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary shadow-lg shadow-primary/25'
+                        : 'bg-secondary text-muted-foreground cursor-not-allowed'
                     }
         `}
             >

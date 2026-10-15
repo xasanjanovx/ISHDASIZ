@@ -138,21 +138,6 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
   const professionParams = new URLSearchParams({ category: scene.category });
   if (scene.query) professionParams.set("q", scene.query);
   if (region !== "all") professionParams.set("region", region);
-  const ticker = ru
-    ? [
-        "РАБОТА ПО ВСЕМУ УЗБЕКИСТАНУ",
-        "ВАКАНСИИ",
-        "РЕЗЮМЕ",
-        "РАБОТА НА КАРТЕ",
-        "ISHDASIZ",
-      ]
-    : [
-        "BUTUN O‘ZBEKISTON BO‘YLAB ISH",
-        "VAKANSIYALAR",
-        "REZYUMELAR",
-        "XARITADA ISH",
-        "ISHDASIZ",
-      ];
   return (
     <section
       id="home-top"
@@ -168,16 +153,30 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           />
         ))}
       </div>
-      <div className="poster-ticker" aria-hidden="true">
+      <nav
+        className="poster-ticker"
+        aria-label={
+          ru ? "Вакансии по профессиям" : "Kasblar bo‘yicha vakansiyalar"
+        }
+      >
         <div>
-          {[...ticker, ...ticker].map((label, index) => (
-            <span key={index}>
-              {label}
+          {[...scenes, ...scenes].map((item, index) => (
+            <span
+              key={index}
+              aria-hidden={index >= scenes.length ? true : undefined}
+            >
+              <Link
+                href={`/jobs?${new URLSearchParams({ category: item.category, ...(item.query ? { q: item.query } : {}) })}`}
+                tabIndex={index >= scenes.length ? -1 : undefined}
+              >
+                {item.name}
+                <ArrowUpRight size={15} />
+              </Link>
               <i />
             </span>
           ))}
         </div>
-      </div>
+      </nav>
       <div className="poster-stage home-shell">
         <div className="poster-word" aria-hidden="true">
           ISHDASIZ

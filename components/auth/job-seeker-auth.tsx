@@ -100,10 +100,10 @@ export function JobSeekerAuth() {
         <div className="space-y-4">
             {/* Header */}
             <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-foreground">
                     {lang === 'ru' ? 'Вход для соискателя' : 'Ish qidiruvchi sifatida kirish'}
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                     {lang === 'ru' ? 'Введите номер телефона' : 'Telefon raqamingizni kiriting'}
                 </p>
             </div>
@@ -120,11 +120,11 @@ export function JobSeekerAuth() {
 
             {/* Phone Input */}
             <div className="space-y-2">
-                <Label htmlFor="seeker-login-phone" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="seeker-login-phone" className="text-sm font-medium text-foreground">
                     {lang === 'ru' ? 'Номер телефона' : 'Telefon raqami'}
                 </Label>
                 <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-600 font-medium pointer-events-none text-sm">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-muted-foreground font-medium pointer-events-none text-sm">
                         <span>🇺🇿</span>
                         <span>+998</span>
                     </div>
@@ -135,7 +135,7 @@ export function JobSeekerAuth() {
                         value={phone}
                         onChange={handlePhoneChange}
                         placeholder="91 234-56-78"
-                        className="pl-20 h-12 text-base font-medium rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                        className="pl-20 h-12 text-base font-medium rounded-xl border-border focus:border-border focus:ring-emerald-500/20"
                         autoFocus
                     />
                 </div>
@@ -148,8 +148,8 @@ export function JobSeekerAuth() {
                 className={`
                     w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300
                     ${isPhoneValid
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary shadow-lg shadow-primary/25'
+                        : 'bg-secondary text-muted-foreground cursor-not-allowed'
                     }
                 `}
             >
@@ -169,10 +169,10 @@ export function JobSeekerAuth() {
             {/* Divider */}
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200" />
+                    <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-3 bg-white text-slate-400">
+                    <span className="px-3 bg-card text-muted-foreground">
                         {lang === 'ru' ? 'или' : 'yoki'}
                     </span>
                 </div>
@@ -182,16 +182,16 @@ export function JobSeekerAuth() {
             <div className="space-y-2">
                 <Button
                     variant="outline"
-                    className="w-full h-12 rounded-xl border-sky-200 bg-sky-50 hover:bg-sky-100 hover:border-sky-300 transition-all group"
+                    className="w-full h-12 rounded-xl border-border bg-accent hover:bg-accent hover:border-border transition-all group"
                     onClick={() => toast.info(lang === 'ru' ? 'OneID в разработке' : 'OneID ishlab chiqilmoqda')}
                 >
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                             <Fingerprint className="w-5 h-5 text-white" />
                         </div>
                         <div className="text-left">
-                            <span className="font-semibold text-sm text-slate-900">{lang === 'ru' ? 'Вход через OneID' : 'OneID orqali kirish'}</span>
-                            <p className="text-xs text-slate-500">
+                            <span className="font-semibold text-sm text-foreground">{lang === 'ru' ? 'Вход через OneID' : 'OneID orqali kirish'}</span>
+                            <p className="text-xs text-muted-foreground">
                                 {lang === 'ru' ? 'Скоро будет доступен' : 'Tez orada mavjud bo‘ladi'}
                             </p>
                         </div>

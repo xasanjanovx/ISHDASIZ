@@ -61,7 +61,7 @@ export default function Header() {
               {lang === 'ru' ? 'Мои заявки' : 'Mening arizalarim'}
             </div>
             {unreadApplications > 0 && (
-              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-emerald-500 rounded-full">
+              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-emerald-500 rounded-full">
                 {unreadApplications > 99 ? '99+' : unreadApplications}
               </span>
             )}
@@ -74,7 +74,7 @@ export default function Header() {
               {lang === 'ru' ? 'Сообщения' : 'Xabarlar'}
             </div>
             {unreadMessages > 0 && (
-              <span className="flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+              <span className="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                 {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
@@ -95,7 +95,7 @@ export default function Header() {
               {lang === 'ru' ? 'Мои вакансии' : 'Mening vakansiyalarim'}
             </div>
             {unreadApplications > 0 && (
-              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-orange-500 rounded-full">
+              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-orange-500 rounded-full">
                 {unreadApplications > 99 ? '99+' : unreadApplications}
               </span>
             )}
@@ -108,7 +108,7 @@ export default function Header() {
               {lang === 'ru' ? 'Сообщения' : 'Xabarlar'}
             </div>
             {unreadMessages > 0 && (
-              <span className="flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+              <span className="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                 {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
@@ -178,11 +178,11 @@ export default function Header() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <div className="px-3 py-2 border-b border-slate-100">
-          <p className="text-sm font-medium text-slate-900">
+        <div className="px-3 py-2 border-b border-border">
+          <p className="text-sm font-medium text-foreground">
             {adminProfile?.full_name || 'Admin'}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             {adminProfile?.role === 'super_admin' ? 'Super Admin' : 'Hokimlik yordamchisi'}
           </p>
         </div>
@@ -197,7 +197,7 @@ export default function Header() {
         <DropdownMenuSeparator />
 
         <div className="px-2 py-1.5">
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             {lang === 'ru' ? 'Просмотр как' : "Ko'rinish"}
           </p>
         </div>
@@ -255,11 +255,11 @@ export default function Header() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className={`h-10 px-2 gap-2 rounded-full transition-all ${isHome ? 'text-white hover:bg-white/10 hover:text-white' : 'text-slate-700 hover:bg-slate-100'}`}
+            className={`h-10 px-2 gap-2 rounded-full transition-all ${isHome ? 'text-white hover:bg-card/10 hover:text-white' : 'text-foreground hover:bg-secondary'}`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${user?.active_role === 'employer'
-              ? 'bg-gradient-to-br from-violet-500 to-purple-600'
-              : 'bg-gradient-to-br from-sky-500 to-blue-600'
+              ? 'bg-gradient-to-br from-primary to-primary'
+              : 'bg-gradient-to-br from-primary to-primary'
               }`}>
               {getUserInitial()}
             </div>
@@ -269,11 +269,11 @@ export default function Header() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <div className="px-3 py-2 border-b border-slate-100">
-            <p className="text-sm font-medium text-slate-900 truncate">
+          <div className="px-3 py-2 border-b border-border">
+            <p className="text-sm font-medium text-foreground truncate">
               {getUserDisplayName()}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {user?.active_role === 'employer'
                 ? (lang === 'ru' ? 'Работодатель' : 'Ish beruvchi')
                 : (lang === 'ru' ? 'Соискатель' : 'Ish qidiruvchi')}
@@ -358,7 +358,7 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-lg">
+    <header className="site-header fixed top-0 left-0 right-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-lg">
       <div className={`${isHome ? '' : ''}`}>
         <div className="container mx-auto">
           <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
@@ -370,7 +370,7 @@ export default function Header() {
               <NavBar
                 items={navItems}
                 activeTab={activeTab}
-                className={isHome ? '[&_a]:!text-blue-100 [&_a:hover]:!text-white [&_a[data-active=true]]:!text-blue-950 [&_a[data-active=true]]:!font-bold [&_a]:transition-colors' : ''}
+                className={isHome ? '[&_a]:!text-primary [&_a:hover]:!text-white [&_a[data-active=true]]:!text-primary [&_a[data-active=true]]:!font-bold [&_a]:transition-colors' : ''}
               />
             </div>
 
@@ -379,7 +379,7 @@ export default function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={cycleLang}
-                className={`h-9 px-4 rounded-full font-semibold transition-all ${isHome ? 'text-white hover:bg-white/10 hover:text-white' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'}`}
+                className={`h-9 px-4 rounded-full font-semibold transition-all ${isHome ? 'text-white hover:bg-card/10 hover:text-white' : 'text-foreground hover:text-foreground hover:bg-secondary'}`}
               >
                 <span className="text-sm tracking-wider">
                   {languageLabels[lang]}
@@ -390,18 +390,18 @@ export default function Header() {
               {isAdmin ? (
                 renderAdminMenu()
               ) : isLoading ? (
-                <div className="w-9 h-9 rounded-full bg-slate-100 animate-pulse" />
+                <div className="w-9 h-9 rounded-full bg-secondary animate-pulse" />
               ) : isAuthenticated && user ? (
                 <div className="flex items-center gap-2">
                   <Link href="/messages">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`relative h-9 w-9 rounded-full transition-all ${isHome ? 'text-white hover:bg-white/10 hover:text-white' : 'text-slate-700 hover:bg-slate-100'}`}
+                      className={`relative h-9 w-9 rounded-full transition-all ${isHome ? 'text-white hover:bg-card/10 hover:text-white' : 'text-foreground hover:bg-secondary'}`}
                     >
                       <MessageCircle className="w-5 h-5" />
                       {unreadMessages > 0 && (
-                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-indigo-600 rounded-full border-2 border-white">
+                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-bold text-white bg-primary rounded-full border-2 border-white">
                           {unreadMessages > 99 ? '99+' : unreadMessages}
                         </span>
                       )}
@@ -413,7 +413,7 @@ export default function Header() {
                 <Button
                   onClick={openModal}
                   size="sm"
-                  className="h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white gap-2 rounded-full font-semibold transition-colors"
+                  className="h-9 px-5 bg-primary hover:bg-primary text-white gap-2 rounded-full font-semibold transition-colors"
                 >
                   <LogIn className="w-4 h-4" />
                   <span className="text-sm">
@@ -429,7 +429,7 @@ export default function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={cycleLang}
-                className={`h-8 px-3 rounded-lg font-semibold ${isHome ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'}`}
+                className={`h-8 px-3 rounded-lg font-semibold ${isHome ? 'text-white hover:bg-card/10' : 'text-foreground hover:text-foreground hover:bg-secondary'}`}
               >
                 <span className="text-xs tracking-wider">
                   {languageLabels[lang]}
@@ -438,11 +438,11 @@ export default function Header() {
 
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button aria-label={lang === 'ru' ? 'Открыть меню' : 'Menyuni ochish'} variant="ghost" size="icon" className={`h-8 w-8 rounded-lg ${isHome ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'}`}>
+                  <Button aria-label={lang === 'ru' ? 'Открыть меню' : 'Menyuni ochish'} variant="ghost" size="icon" className={`h-8 w-8 rounded-lg ${isHome ? 'text-white hover:bg-card/10' : 'text-foreground hover:text-foreground hover:bg-secondary'}`}>
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-72 bg-white border-slate-200/80">
+                <SheetContent side="right" className="w-72 bg-card border-border/80">
                   <SheetTitle className="sr-only">{lang === 'ru' ? 'Меню' : 'Menyu'}</SheetTitle>
                   <SheetDescription className="sr-only">{lang === 'ru' ? 'Разделы сайта и вход в аккаунт' : 'Sayt bo‘limlari va akkauntga kirish'}</SheetDescription>
                   <nav className="flex flex-col gap-2 mt-8">
@@ -454,7 +454,7 @@ export default function Header() {
                             <Shield className="w-5 h-5" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {adminProfile?.full_name || 'Admin'}
                             </p>
                             <p className="text-xs text-amber-600 font-medium">
@@ -465,18 +465,18 @@ export default function Header() {
                         <Link
                           href="/admin"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium"
+                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
                         >
                           <Home className="w-5 h-5" />
                           Admin panel
                         </Link>
                         <div className="px-4 py-1">
-                          <p className="text-xs text-slate-400 font-medium uppercase">Ko&apos;rinish</p>
+                          <p className="text-xs text-muted-foreground font-medium uppercase">Ko&apos;rinish</p>
                         </div>
                         <Link
                           href="/profile/employer"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium"
+                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
                         >
                           <Building2 className="w-5 h-5" />
                           Ish beruvchi
@@ -484,30 +484,30 @@ export default function Header() {
                         <Link
                           href="/profile/job-seeker"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium"
+                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
                         >
                           <User className="w-5 h-5" />
                           Ish qidiruvchi
                         </Link>
-                        <div className="border-t border-slate-200 my-2" />
+                        <div className="border-t border-border my-2" />
                       </>
                     )}
 
                     {/* User info (if logged in as user) */}
                     {!isAdmin && isAuthenticated && user && (
                       <>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-lg mb-2">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-background rounded-lg mb-2">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${user.active_role === 'employer'
-                            ? 'bg-gradient-to-br from-violet-500 to-purple-600'
-                            : 'bg-gradient-to-br from-sky-500 to-blue-600'
+                            ? 'bg-gradient-to-br from-primary to-primary'
+                            : 'bg-gradient-to-br from-primary to-primary'
                             }`}>
                             {getUserInitial()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {getUserDisplayName()}
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-muted-foreground">
                               {user.active_role === 'employer'
                                 ? (lang === 'ru' ? 'Работодатель' : 'Ish beruvchi')
                                 : (lang === 'ru' ? 'Соискатель' : 'Ish qidiruvchi')}
@@ -517,12 +517,12 @@ export default function Header() {
                         <Link
                           href={profilePath}
                           onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium"
+                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
                         >
                           <User className="w-5 h-5" />
                           {lang === 'ru' ? 'Мой профиль' : 'Mening profilim'}
                         </Link>
-                        <div className="border-t border-slate-200 my-2" />
+                        <div className="border-t border-border my-2" />
                       </>
                     )}
 
@@ -531,14 +531,14 @@ export default function Header() {
                         key={item.url}
                         href={item.url}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium"
+                        className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
                       >
                         <item.icon className="w-5 h-5" />
                         {item.name}
                       </Link>
                     ))}
 
-                    <div className="border-t border-slate-200 my-2" />
+                    <div className="border-t border-border my-2" />
 
                     {isAdmin ? (
                       <button
@@ -568,7 +568,7 @@ export default function Header() {
                           setMobileMenuOpen(false);
                           openModal();
                         }}
-                        className="w-full px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-3 font-medium text-left"
+                        className="w-full px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium text-left"
                       >
                         <LogIn className="w-5 h-5" />
                         {lang === 'uz' ? 'Kirish' : 'Войти'}

@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function JobCardSkeleton() {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+        <div className="bg-card rounded-xl border border-border p-5 space-y-4">
             {/* Header: Title + Company */}
             <div className="space-y-2">
                 <Skeleton className="h-6 w-3/4" />
@@ -31,7 +31,7 @@ export function JobCardSkeleton() {
             </div>
 
             {/* Footer: Date + Button */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-2 border-t border-border">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-9 w-28 rounded-lg" />
             </div>

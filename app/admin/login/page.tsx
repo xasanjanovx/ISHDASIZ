@@ -31,9 +31,9 @@ export default function AdminLoginPage(){
  }
  const visibleError=error||auth.error;
  const retry=auth.user&&!auth.adminProfile&&Boolean(auth.error)&&!(auth.error instanceof AccountApiError&&[401,403].includes(auth.error.status));
- return <div className="min-h-[75vh] flex items-center justify-center bg-gradient-to-br from-sky-50 to-slate-100 p-4"><Card className="w-full max-w-md rounded-2xl border-slate-200 shadow-sm">
-  <CardHeader className="text-center"><div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-sky-100 flex items-center justify-center"><Lock className="w-8 h-8 text-sky-600"/></div><CardTitle className="flex items-center justify-center gap-2">ISHDASIZ<BadgeCheck className="w-5 h-5 text-sky-600"/></CardTitle><CardDescription>{t.admin.loginTitle}</CardDescription></CardHeader>
-  <CardContent className="space-y-4">{auth.loading&&<p role="status" className="flex gap-2 text-sm text-slate-600"><Loader2 className="h-4 w-4 animate-spin"/>{ru?'Проверяем доступ…':'Kirish tekshirilmoqda…'}</p>}
+ return <div className="min-h-[75vh] flex items-center justify-center bg-gradient-to-br from-accent to-secondary p-4"><Card className="w-full max-w-md rounded-2xl border-border shadow-sm">
+  <CardHeader className="text-center"><div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center"><Lock className="w-8 h-8 text-primary"/></div><CardTitle className="flex items-center justify-center gap-2">ISHDASIZ<BadgeCheck className="w-5 h-5 text-primary"/></CardTitle><CardDescription>{t.admin.loginTitle}</CardDescription></CardHeader>
+  <CardContent className="space-y-4">{auth.loading&&<p role="status" className="flex gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>{ru?'Проверяем доступ…':'Kirish tekshirilmoqda…'}</p>}
    {Boolean(visibleError)&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{loginError(visibleError,ru)}</p>}
    {retry&&<Button variant="outline" disabled={busy||auth.loading} onClick={()=>{setError(null);void auth.refresh();}}>{ru?'Повторить проверку доступа':'Kirishni qayta tekshirish'}</Button>}
    <form onSubmit={submit} className="space-y-4"><div className="space-y-2"><Label htmlFor="admin-email">{t.admin.email}</Label><Input id="admin-email" type="email" autoComplete="username" maxLength={254} value={email} onChange={event=>setEmail(event.target.value)} required disabled={busy}/></div>

@@ -49,7 +49,7 @@ export function LocateControl() {
     return <div className="leaflet-top leaflet-right">
         <div className="leaflet-control leaflet-bar" ref={element => { if (element) L.DomEvent.disableClickPropagation(element); }}>
             <button type="button" aria-label={label} title={label} disabled={loading}
-                className="flex h-[34px] w-[34px] items-center justify-center bg-white p-2 text-slate-600 hover:bg-slate-50"
+                className="flex h-[34px] w-[34px] items-center justify-center bg-card p-2 text-muted-foreground hover:bg-background"
                 onClick={event => {
                     event.stopPropagation();
                     setLoading(true);
@@ -59,7 +59,7 @@ export function LocateControl() {
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Locate className="h-5 w-5" />}
             </button>
         </div>
-        {error && <p role="alert" className="leaflet-control max-w-48 rounded-lg bg-white p-2 text-xs text-red-700 shadow">
+        {error && <p role="alert" className="leaflet-control max-w-48 rounded-lg bg-card p-2 text-xs text-red-700 shadow">
             {lang === 'ru' ? 'Не удалось определить местоположение. Разрешите доступ или выберите место на карте.' : 'Joylashuv aniqlanmadi. Ruxsat bering yoki xaritadan joy tanlang.'}
         </p>}
     </div>;

@@ -170,7 +170,7 @@ export function SmsVerification() {
 
     if (needsRestoration) return <div className="space-y-5">
         <h2 className="text-xl font-semibold">{lang==='ru'?'Восстановить аккаунт?':'Akkaunt tiklansinmi?'}</h2>
-        <p className="text-slate-600">{lang==='ru'?'Номер подтверждён. Ваши профили и переписка сохранятся, а вакансии и резюме вернутся к прежним настройкам видимости.':'Raqam tasdiqlandi. Profillar va yozishmalar saqlanadi, vakansiyalar va rezyumelarning oldingi ko‘rinish sozlamalari qaytadi.'}</p>
+        <p className="text-muted-foreground">{lang==='ru'?'Номер подтверждён. Ваши профили и переписка сохранятся, а вакансии и резюме вернутся к прежним настройкам видимости.':'Raqam tasdiqlandi. Profillar va yozishmalar saqlanadi, vakansiyalar va rezyumelarning oldingi ko‘rinish sozlamalari qaytadi.'}</p>
         <Button disabled={isLoading} onClick={async()=>{
             if(requestLock.current)return;
             requestLock.current=true;setIsLoading(true);
@@ -196,21 +196,21 @@ export function SmsVerification() {
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                     </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900">
+                <h2 className="text-2xl font-bold text-foreground">
                     {getTitle()}
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                     {lang === 'ru' ? 'Код отправлен на номер' : 'Kod quyidagi raqamga yuborildi'}
                 </p>
 
                 {/* Phone number with edit button */}
                 <div className="flex items-center justify-center gap-2">
-                    <span className="font-semibold text-slate-700">+998 {phoneNumber}</span>
+                    <span className="font-semibold text-foreground">+998 {phoneNumber}</span>
                     <button
                         onClick={handleEditPhone}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                     >
-                        <Edit3 className="w-4 h-4 text-slate-400" />
+                        <Edit3 className="w-4 h-4 text-muted-foreground" />
                     </button>
                 </div>
             </div>
@@ -231,8 +231,8 @@ export function SmsVerification() {
                             w-14 h-16 text-center text-2xl font-bold rounded-xl border-2 transition-all duration-200
                             focus:outline-none focus:ring-2 focus:ring-offset-1
                             ${digit
-                                ? 'border-emerald-500 bg-emerald-50 focus:ring-emerald-500/30'
-                                : 'border-slate-200 bg-white focus:border-sky-500 focus:ring-sky-500/30'
+                                ? 'border-border bg-accent focus:ring-emerald-500/30'
+                                : 'border-border bg-card focus:border-primary focus:ring-primary/30'
                             }
                         `}
                     />
@@ -246,8 +246,8 @@ export function SmsVerification() {
                 className={`
                     w-full h-14 rounded-xl font-semibold text-base transition-all duration-300
                     ${isCodeComplete
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary shadow-lg shadow-primary/25'
+                        : 'bg-secondary text-muted-foreground cursor-not-allowed'
                     }
                 `}
             >
@@ -269,13 +269,13 @@ export function SmsVerification() {
                 {canResend ? (
                     <button
                         onClick={handleResend}
-                        className="inline-flex items-center gap-2 text-sky-600 hover:text-sky-700 font-medium transition-colors"
+                        className="inline-flex items-center gap-2 text-primary hover:text-primary font-medium transition-colors"
                     >
                         <RefreshCw className="w-4 h-4" />
                         <span>{lang === 'ru' ? 'Отправить повторно' : 'Qayta yuborish'}</span>
                     </button>
                 ) : (
-                    <p className="text-slate-500 text-sm">
+                    <p className="text-muted-foreground text-sm">
                         {lang === 'ru'
                             ? `Отправить повторно через ${timer} сек`
                             : `Qayta yuborish: ${timer} soniya`}

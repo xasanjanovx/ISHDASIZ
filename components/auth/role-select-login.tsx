@@ -27,10 +27,10 @@ export function RoleSelectLogin() {
         <div className="space-y-6">
             {/* Header */}
             <div className="text-center space-y-2">
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-foreground">
                     {lang === 'ru' ? 'Выберите режим входа' : 'Qaysi sifatda kirasiz?'}
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                     {lang === 'ru'
                         ? 'У вас есть оба профиля. Выберите, как войти:'
                         : "Sizda ikkala profil mavjud. Qaysi biri sifatida kirishni tanlang:"}
@@ -42,16 +42,16 @@ export function RoleSelectLogin() {
                 {/* Job Seeker */}
                 <button
                     onClick={() => handleSelectRole('job_seeker')}
-                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 transition-all duration-300"
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border hover:border-border hover:bg-accent/50 transition-all duration-300"
                 >
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg shadow-primary/25 group-hover:scale-110 transition-transform duration-300">
                         <User className="w-8 h-8 text-white" />
                     </div>
                     <div className="text-center">
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-semibold text-foreground">
                             {lang === 'ru' ? 'Соискатель' : 'Ish qidiruvchi'}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             {lang === 'ru' ? 'Искать работу' : 'Ish izlash'}
                         </p>
                     </div>
@@ -60,16 +60,16 @@ export function RoleSelectLogin() {
                 {/* Employer */}
                 <button
                     onClick={() => handleSelectRole('employer')}
-                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50/50 transition-all duration-300"
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border hover:border-primary hover:bg-accent/50 transition-all duration-300"
                 >
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg shadow-primary/25 group-hover:scale-110 transition-transform duration-300">
                         <Building2 className="w-8 h-8 text-white" />
                     </div>
                     <div className="text-center">
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-semibold text-foreground">
                             {lang === 'ru' ? 'Работодатель' : 'Ish beruvchi'}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             {lang === 'ru' ? 'Нанять работника' : 'Xodim izlash'}
                         </p>
                     </div>

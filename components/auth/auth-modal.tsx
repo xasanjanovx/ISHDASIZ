@@ -40,22 +40,22 @@ export function AuthModal() {
           <Dialog.Portal>
             {/* Backdrop with blur */}
             <Dialog.Overlay
-                className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+                className="fixed inset-0 z-50 bg-primary/60 backdrop-blur-sm animate-in fade-in duration-300"
             />
 
             {/* Modal Container */}
             <Dialog.Content
-              className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl outline-none animate-in fade-in duration-300"
+              className="site-auth-dialog fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl outline-none animate-in fade-in duration-300"
               onOpenAutoFocus={() => { previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
               onCloseAutoFocus={(event) => { if (previousFocus.current?.isConnected) { event.preventDefault(); previousFocus.current.focus(); } }}
             >
                 <Dialog.Title className="sr-only">{lang === 'ru' ? 'Вход и регистрация' : 'Kirish va ro‘yxatdan o‘tish'}</Dialog.Title>
                 <Dialog.Description className="sr-only">{lang === 'ru' ? 'Выберите роль и подтвердите вход в свой аккаунт.' : 'Rolni tanlang va akkauntingizga kirishni tasdiqlang.'}</Dialog.Description>
                 {/* Glassmorphic Card */}
-                <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-900/20 border border-white/50 overflow-clip">
+                <div className="relative bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-foreground/20 border border-white/50 overflow-clip">
                     {/* Decorative gradient orbs */}
-                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-sky-400/30 to-emerald-400/20 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-violet-400/20 to-sky-400/30 rounded-full blur-3xl" />
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-primary/30 to-primary/20 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-primary/20 to-primary/30 rounded-full blur-3xl" />
 
                     {/* Header */}
                     <div className="relative flex items-center justify-between p-5 pb-0">
@@ -65,9 +65,9 @@ export function AuthModal() {
                                 size="icon"
                                 onClick={handleBack}
                                 aria-label={lang === 'ru' ? 'Назад' : 'Orqaga'}
-                                className="w-10 h-10 rounded-xl hover:bg-slate-100 transition-colors"
+                                className="w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
                             >
-                                <ArrowLeft className="w-5 h-5 text-slate-600" />
+                                <ArrowLeft className="w-5 h-5 text-muted-foreground" />
                             </Button>
                         ) : (
                             <div className="w-10" />
@@ -78,9 +78,9 @@ export function AuthModal() {
                             size="icon"
                             onClick={closeModal}
                             aria-label={lang === 'ru' ? 'Закрыть окно входа' : 'Kirish oynasini yopish'}
-                            className="w-10 h-10 rounded-xl hover:bg-slate-100 transition-colors"
+                            className="w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
                         >
-                            <X className="w-5 h-5 text-slate-600" />
+                            <X className="w-5 h-5 text-muted-foreground" />
                         </Button>
                     </div>
 

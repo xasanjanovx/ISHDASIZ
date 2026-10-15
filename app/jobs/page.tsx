@@ -63,23 +63,23 @@ function JobsContent() {
   }, [referenceRevision]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="relative border-b border-slate-200 bg-white py-10 overflow-hidden">
+    <div className="min-h-screen bg-background">
+      <div className="site-page-banner relative border-b border-border bg-card py-10 overflow-hidden">
         {/* Animated mesh gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white to-blue-50/50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-card to-accent/50" />
         {/* Floating orbs */}
-        <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-blue-500/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
-        <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-teal-500/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
+        <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-primary/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
+        <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-primary/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
 
         <div className="container mx-auto px-4 relative z-10">
-          <p className="text-xs font-semibold text-teal-700 uppercase tracking-widest mb-2">
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">
             {lang === 'uz' ? 'Butun O‘zbekiston bo‘ylab' : 'По всему Узбекистану'}
           </p>
-          <h1 className="text-3xl md:text-4xl font-semibold text-slate-950 mb-2 tracking-tight">{t.nav.jobs}</h1>
-          <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full mb-6" />
+          <h1 className="text-3xl md:text-4xl font-semibold text-foreground mb-2 tracking-tight">{t.nav.jobs}</h1>
+          <div className="h-1 w-12 bg-gradient-to-r from-primary to-primary rounded-full mb-6" />
           <div className="flex gap-2 max-w-2xl">
             <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
                 value={searchQuery}
@@ -87,7 +87,7 @@ function JobsContent() {
                 onChange={(e) => change({ q: e.target.value })}
                 placeholder={t.hero.searchPlaceholder}
                 aria-label={lang === 'ru' ? 'Поиск вакансий' : 'Vakansiyalarni qidirish'}
-                className="pl-12 h-14 bg-white border-slate-200 text-slate-900 rounded-xl placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20 transition-all text-base"
+                className="pl-12 h-14 bg-card border-border text-foreground rounded-xl placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 transition-all text-base"
               />
             </div>
           </div>
@@ -138,7 +138,7 @@ function JobsContent() {
 
           <section className="min-w-0 flex-1" aria-label={lang === 'ru' ? 'Результаты поиска' : 'Qidiruv natijalari'}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 {loading ? (lang === 'ru' ? 'Загрузка вакансий…' : 'Vakansiyalar yuklanmoqda…') : loadError ? (lang === 'ru' ? 'Данные временно недоступны' : 'Ma’lumotlar vaqtincha mavjud emas') : lang === 'uz' ? `${totalCount} ta vakansiya topildi` : `Найдено ${totalCount} вакансий`}
               </p>
               <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ function JobsContent() {
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
             ) : loadError ? (
               <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
@@ -181,8 +181,8 @@ function JobsContent() {
                 <Button variant="outline" onClick={catalog.refresh}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button>
               </div>
             ) : jobs.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-                <p className="text-slate-500 mb-4">{t.job.noJobs}</p>
+              <div className="text-center py-12 bg-card rounded-lg shadow-sm">
+                <p className="text-muted-foreground mb-4">{t.job.noJobs}</p>
                 <Button variant="outline" onClick={page > 1 ? () => setPage(1) : clearFilters}>
                   {page > 1 ? (lang === 'ru' ? 'Первая страница' : 'Birinchi sahifa') : t.filters.clear}
                 </Button>
@@ -212,7 +212,7 @@ function JobsContent() {
                     >
                       {lang === 'uz' ? 'Oldingi' : 'Назад'}
                     </Button>
-                    <span className="text-sm text-slate-600 px-4">
+                    <span className="text-sm text-muted-foreground px-4">
                       {page} / {totalPages}
                     </span>
                     <Button

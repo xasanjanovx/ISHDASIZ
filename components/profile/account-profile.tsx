@@ -42,8 +42,8 @@ function ProfileStats({ role }: { role: Role }) {
   const ready = result?.revision === revision;
   const labels = [role === 'employer' ? (lang === 'ru' ? 'Всего вакансий' : 'Jami vakansiyalar') : (lang === 'ru' ? 'Всего резюме' : 'Jami rezyumelar'), lang === 'ru' ? 'Отклики' : 'Arizalar', lang === 'ru' ? 'Просмотры' : 'Ko‘rishlar'];
   return <div className="space-y-3">
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{['items', 'applications', 'views'].map((key, index) => <div key={key} className="rounded-2xl border border-slate-200 bg-white p-5">
-      <p className="text-sm text-slate-500">{labels[index]}</p><p className="text-2xl font-semibold text-slate-950 mt-2">{ready && result.stats ? result.stats[key].toLocaleString(lang === 'ru' ? 'ru-RU' : 'uz-UZ') : '—'}</p>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{['items', 'applications', 'views'].map((key, index) => <div key={key} className="rounded-2xl border border-border bg-card p-5">
+      <p className="text-sm text-muted-foreground">{labels[index]}</p><p className="text-2xl font-semibold text-foreground mt-2">{ready && result.stats ? result.stats[key].toLocaleString(lang === 'ru' ? 'ru-RU' : 'uz-UZ') : '—'}</p>
     </div>)}</div>
     {ready && Boolean(result.error) && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-red-700">
       {lang === 'ru' ? 'Не удалось загрузить статистику.' : 'Statistikani yuklab bo‘lmadi.'}
@@ -95,23 +95,23 @@ function ProfileEditor({ role, settings }: { role: Role; settings: boolean }) {
     <Label htmlFor={`profile-${key}`}>{lang === 'ru' ? ru : uz}</Label>
     <Input id={`profile-${key}`} type={options.type || 'text'} value={form[key] || ''} maxLength={options.max || 255}
       readOnly={options.locked} disabled={saving} onChange={event => change({ [key]: event.target.value })}
-      className="rounded-xl border-slate-200 bg-white" />
+      className="rounded-xl border-border bg-card" />
   </div>;
   const name = profile?.[employer ? 'company_name' : 'full_name'];
   return <ProfileLayout userType={role} userName={name || undefined}>
     <div className="space-y-6">
-      <div><p className="text-xs font-medium uppercase tracking-widest text-teal-700 mb-2">{lang === 'ru' ? 'Личный кабинет' : 'Shaxsiy kabinet'}</p>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-950">{settings ? (lang === 'ru' ? 'Настройки аккаунта' : 'Akkaunt sozlamalari') : employer ? (lang === 'ru' ? 'Профиль компании' : 'Kompaniya profili') : (lang === 'ru' ? 'Мой профиль' : 'Mening profilim')}</h1>
+      <div><p className="text-xs font-medium uppercase tracking-widest text-primary mb-2">{lang === 'ru' ? 'Личный кабинет' : 'Shaxsiy kabinet'}</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">{settings ? (lang === 'ru' ? 'Настройки аккаунта' : 'Akkaunt sozlamalari') : employer ? (lang === 'ru' ? 'Профиль компании' : 'Kompaniya profili') : (lang === 'ru' ? 'Мой профиль' : 'Mening profilim')}</h1>
       </div>
       {!settings && <ProfileStats role={role} />}
-      {!loaded || loaded.revision !== revision ? <div role="status" className="flex gap-3 justify-center py-16 text-slate-600"><Loader2 className="h-6 w-6 animate-spin text-sky-600" />{lang === 'ru' ? 'Загружаем профиль…' : 'Profil yuklanmoqda…'}</div>
+      {!loaded || loaded.revision !== revision ? <div role="status" className="flex gap-3 justify-center py-16 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin text-primary" />{lang === 'ru' ? 'Загружаем профиль…' : 'Profil yuklanmoqda…'}</div>
         : loaded.error ? <div role="alert" className="p-6 rounded-2xl border border-red-200 bg-red-50 space-y-4"><p className="text-red-700">{errorText(loaded.error, lang)}</p><Button variant="outline" onClick={reload}>{lang === 'ru' ? 'Повторить загрузку' : 'Qayta yuklash'}</Button></div>
         : <>
-          <form onSubmit={save} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 space-y-6">
+          <form onSubmit={save} className="rounded-2xl border border-border bg-card p-5 sm:p-7 space-y-6">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600">{employer ? <Building2 /> : <User />}</span>
-              <h2 className="text-xl font-semibold text-slate-900">{employer ? (lang === 'ru' ? 'Данные компании' : 'Kompaniya ma’lumotlari') : (lang === 'ru' ? 'Личные данные' : 'Shaxsiy ma’lumotlar')}</h2>
-              {verified && <span className="inline-flex gap-1 items-center text-sm rounded-full bg-teal-50 px-3 py-1 text-teal-700"><CheckCircle className="h-4 w-4" />{lang === 'ru' ? 'Компания подтверждена' : 'Kompaniya tasdiqlangan'}</span>}
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">{employer ? <Building2 /> : <User />}</span>
+              <h2 className="text-xl font-semibold text-foreground">{employer ? (lang === 'ru' ? 'Данные компании' : 'Kompaniya ma’lumotlari') : (lang === 'ru' ? 'Личные данные' : 'Shaxsiy ma’lumotlar')}</h2>
+              {verified && <span className="inline-flex gap-1 items-center text-sm rounded-full bg-accent px-3 py-1 text-primary"><CheckCircle className="h-4 w-4" />{lang === 'ru' ? 'Компания подтверждена' : 'Kompaniya tasdiqlangan'}</span>}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {employer ? <>{input('company_name','Название компании','Kompaniya nomi',{locked:verified})}{input('industry','Сфера деятельности','Faoliyat sohasi',{max:100})}
@@ -121,7 +121,7 @@ function ProfileEditor({ role, settings }: { role: Role; settings: boolean }) {
               {input('phone','Контактный телефон','Aloqa telefoni',{type:'tel',max:25})}
               {input('telegram','Telegram (имя пользователя)','Telegram (foydalanuvchi nomi)',{max:100})}
             </div>
-            <p className="text-sm text-slate-500">{lang === 'ru' ? 'Контактный телефон в профиле не меняет номер для входа.' : 'Profildagi aloqa telefoni kirish raqamini o‘zgartirmaydi.'}</p>
+            <p className="text-sm text-muted-foreground">{lang === 'ru' ? 'Контактный телефон в профиле не меняет номер для входа.' : 'Profildagi aloqa telefoni kirish raqamini o‘zgartirmaydi.'}</p>
             <LocationSelect selectedRegion={form.region_id} selectedDistrict={form.district_id} disabled={saving}
               onRegionChange={region_id => change({ region_id, district_id: '' })} onDistrictChange={district_id => change({ district_id })} />
             {employer && input('address','Адрес','Manzil',{max:1000})}
@@ -129,7 +129,7 @@ function ProfileEditor({ role, settings }: { role: Role; settings: boolean }) {
               <Textarea id="profile-description" value={form[employer ? 'description' : 'about'] || ''} disabled={saving} maxLength={10000} className="min-h-32 rounded-xl"
                 onChange={event => change({ [employer ? 'description' : 'about']: event.target.value })} />
             </div>
-            {employer && <p className="text-sm text-slate-500">{verified && (lang === 'ru' ? 'Подтверждённые реквизиты защищены от изменения. ' : 'Tasdiqlangan rekvizitlarni o‘zgartirishdan himoyalangan. ')}<Link href="/profile/employer/verification" className="text-sky-700 underline">{lang === 'ru' ? 'Подтверждение компании' : 'Kompaniyani tasdiqlash'}</Link></p>}
+            {employer && <p className="text-sm text-muted-foreground">{verified && (lang === 'ru' ? 'Подтверждённые реквизиты защищены от изменения. ' : 'Tasdiqlangan rekvizitlarni o‘zgartirishdan himoyalangan. ')}<Link href="/profile/employer/verification" className="text-primary underline">{lang === 'ru' ? 'Подтверждение компании' : 'Kompaniyani tasdiqlash'}</Link></p>}
             {saveError != null && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3 text-red-700"><p>{errorText(saveError, lang)}</p>
               <p className="text-sm">{lang === 'ru' ? 'Введённые данные остаются в форме.' : 'Kiritilgan ma’lumotlar formada qoladi.'}</p>
               {saveError instanceof AccountApiError && saveError.status === 409 && <AlertDialog>
@@ -140,28 +140,28 @@ function ProfileEditor({ role, settings }: { role: Role; settings: boolean }) {
                 </AlertDialogContent>
               </AlertDialog>}
             </div>}
-            {savedNotice && <p role="status" className="text-teal-700">{lang === 'ru' ? 'Профиль сохранён' : 'Profil saqlandi'}</p>}
+            {savedNotice && <p role="status" className="text-primary">{lang === 'ru' ? 'Профиль сохранён' : 'Profil saqlandi'}</p>}
             <div className="flex flex-wrap gap-3 justify-end">
               <Button type="button" variant="outline" disabled={!hasChanges || saving} onClick={() => { setForm(formOf(profile)); setSaveError(null); setSavedNotice(false); }}>{lang === 'ru' ? 'Отменить изменения' : 'O‘zgarishlarni bekor qilish'}</Button>
-              <Button type="submit" disabled={!hasChanges || saving} className="bg-sky-600 hover:bg-sky-700 rounded-xl">{saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{lang === 'ru' ? 'Сохранить изменения' : 'O‘zgarishlarni saqlash'}</Button>
+              <Button type="submit" disabled={!hasChanges || saving} className="bg-primary hover:bg-primary rounded-xl">{saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{lang === 'ru' ? 'Сохранить изменения' : 'O‘zgarishlarni saqlash'}</Button>
             </div>
           </form>
           {settings ? <>
-            <section className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-7 space-y-4"><h2 className="text-xl font-semibold">{lang === 'ru' ? 'Вход и безопасность' : 'Kirish va xavfsizlik'}</h2>
-              <div className="space-y-2"><Label htmlFor="account-phone">{lang === 'ru' ? 'Номер для входа' : 'Kirish raqami'}</Label><Input id="account-phone" value={profile.account_phone} readOnly className="max-w-sm bg-slate-50" /></div>
-              <p className="text-sm text-slate-500">{lang === 'ru' ? 'Смена номера для входа требует подтверждения нового номера по SMS.' : 'Kirish raqamini almashtirish yangi raqamni SMS orqali tasdiqlashni talab qiladi.'}</p>
+            <section className="rounded-2xl bg-card border border-border p-5 sm:p-7 space-y-4"><h2 className="text-xl font-semibold">{lang === 'ru' ? 'Вход и безопасность' : 'Kirish va xavfsizlik'}</h2>
+              <div className="space-y-2"><Label htmlFor="account-phone">{lang === 'ru' ? 'Номер для входа' : 'Kirish raqami'}</Label><Input id="account-phone" value={profile.account_phone} readOnly className="max-w-sm bg-background" /></div>
+              <p className="text-sm text-muted-foreground">{lang === 'ru' ? 'Смена номера для входа требует подтверждения нового номера по SMS.' : 'Kirish raqamini almashtirish yangi raqamni SMS orqali tasdiqlashni talab qiladi.'}</p>
               <Button type="button" variant="outline" onClick={exit} disabled={exiting}><LogOut className="h-4 w-4 mr-2" />{lang === 'ru' ? 'Выйти на этом устройстве' : 'Ushbu qurilmada chiqish'}</Button>
               {exitError && <p role="alert" className="text-red-700">{lang === 'ru' ? 'Не удалось завершить сеанс. Попробуйте ещё раз.' : 'Seansni yakunlab bo‘lmadi. Qayta urinib ko‘ring.'}</p>}
             </section>
-            <section className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-7 space-y-3"><h2 className="text-xl font-semibold">{lang === 'ru' ? 'Сообщения и отклики' : 'Xabarlar va arizalar'}</h2>
-              <p className="text-sm text-slate-500">{lang === 'ru' ? 'Новые сообщения и изменения статусов доступны в личном кабинете.' : 'Yangi xabarlar va holat o‘zgarishlari shaxsiy kabinetda mavjud.'}</p>
-              <div className="flex gap-4 flex-wrap"><Link href={`/profile/${role}/messages`} className="text-sky-700 underline">{lang === 'ru' ? 'Открыть сообщения' : 'Xabarlarni ochish'}</Link><Link href={`/profile/${role}/applications`} className="text-sky-700 underline">{lang === 'ru' ? 'Открыть отклики' : 'Arizalarni ochish'}</Link></div>
+            <section className="rounded-2xl bg-card border border-border p-5 sm:p-7 space-y-3"><h2 className="text-xl font-semibold">{lang === 'ru' ? 'Сообщения и отклики' : 'Xabarlar va arizalar'}</h2>
+              <p className="text-sm text-muted-foreground">{lang === 'ru' ? 'Новые сообщения и изменения статусов доступны в личном кабинете.' : 'Yangi xabarlar va holat o‘zgarishlari shaxsiy kabinetda mavjud.'}</p>
+              <div className="flex gap-4 flex-wrap"><Link href={`/profile/${role}/messages`} className="text-primary underline">{lang === 'ru' ? 'Открыть сообщения' : 'Xabarlarni ochish'}</Link><Link href={`/profile/${role}/applications`} className="text-primary underline">{lang === 'ru' ? 'Открыть отклики' : 'Arizalarni ochish'}</Link></div>
             </section>
             <AccountClosure />
-          </> : !employer && <section className="rounded-2xl border border-teal-200 bg-teal-50 p-5 space-y-3">
-            <h2 className="font-semibold text-teal-900">{lang === 'ru' ? 'Поиск работы' : 'Ish qidirish'}</h2>
-            <p className="text-sm text-teal-800">{lang === 'ru' ? 'Создайте резюме и управляйте его видимостью в разделе «Мои резюме».' : 'Rezyume yarating va uning ko‘rinishini «Mening rezyumelarim» bo‘limida boshqaring.'}</p>
-            <Link href="/profile/job-seeker/resumes" className="text-sky-700 underline">{lang === 'ru' ? 'Мои резюме' : 'Mening rezyumelarim'}</Link>
+          </> : !employer && <section className="rounded-2xl border border-border bg-accent p-5 space-y-3">
+            <h2 className="font-semibold text-primary">{lang === 'ru' ? 'Поиск работы' : 'Ish qidirish'}</h2>
+            <p className="text-sm text-primary">{lang === 'ru' ? 'Создайте резюме и управляйте его видимостью в разделе «Мои резюме».' : 'Rezyume yarating va uning ko‘rinishini «Mening rezyumelarim» bo‘limida boshqaring.'}</p>
+            <Link href="/profile/job-seeker/resumes" className="text-primary underline">{lang === 'ru' ? 'Мои резюме' : 'Mening rezyumelarim'}</Link>
           </section>}
         </>}
     </div>

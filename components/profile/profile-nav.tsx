@@ -77,21 +77,22 @@ export function ProfileNav({ userType }: ProfileNavProps) {
                     <Link
                         key={item.href}
                         href={item.href}
+                        aria-current={isActive ? "page" : undefined}
                         className={cn(
                             'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
                             isActive
-                                ? 'bg-sky-50 text-sky-700 shadow-sm'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'bg-accent text-primary shadow-sm'
+                                : 'text-muted-foreground hover:bg-background hover:text-foreground'
                         )}
                     >
-                        <Icon className={cn('w-5 h-5', isActive ? 'text-sky-600' : 'text-slate-400')} />
+                        <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : 'text-muted-foreground')} />
                         <span className="flex-1">{label}</span>
                         {count > 0 && (
-                            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full">
                                 {count > 99 ? '99+' : count}
                             </span>
                         )}
-                        {isActive && !count && <ChevronRight className="w-4 h-4 text-sky-400" />}
+                        {isActive && !count && <ChevronRight className="w-4 h-4 text-primary" />}
                     </Link>
                 );
             })}
@@ -106,7 +107,7 @@ export function ProfileTabs({ userType }: ProfileNavProps) {
     const navItems = userType === 'job_seeker' ? jobSeekerNav : employerNav;
 
     return (
-        <div className="flex overflow-x-auto gap-1 p-1 bg-slate-100 rounded-xl">
+        <div className="flex overflow-x-auto gap-1 p-1 bg-secondary rounded-xl">
             {navItems.slice(0, 4).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -119,11 +120,11 @@ export function ProfileTabs({ userType }: ProfileNavProps) {
                         className={cn(
                             'flex-1 flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-all min-w-fit',
                             isActive
-                                ? 'bg-white text-sky-700 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-card text-primary shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
-                        <Icon className={cn('w-5 h-5', isActive ? 'text-sky-600' : 'text-slate-400')} />
+                        <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : 'text-muted-foreground')} />
                         <span className="whitespace-nowrap">{label}</span>
                     </Link>
                 );
