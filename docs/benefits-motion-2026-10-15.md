@@ -1,0 +1,7 @@
+# Benefits ticker and site motion
+
+The homepage ticker explains existing site features instead of repeating profession names: countrywide vacancies, profession/region search, salary and conditions, map, resumes, favorites, the @ishdasiz channel and @ishdasizbot. Copy is provided in Russian and Uzbek. Two equal groups include all trailing spacing and run through one 50% translation, creating a continuous loop. A separate pause control does not affect the profession carousel. The duplicate group is hidden from screen readers and excluded from keyboard stops, while its visible links remain clickable. Keyboard focus pauses visible links. Reduced-motion users receive a static, horizontally scrollable list.
+
+SiteMotion adds progressive entry animation to public homepage sections and catalog cards, including cards inserted after a data request. Content is never hidden in the server output or with CSS awaiting JavaScript. IntersectionObserver triggers each card once, focused content is left still, and pending animations and observers are cleaned up on navigation. A changed reduced-motion preference cancels active motion. Hover/press feedback is restricted to devices with hover and no reduced-motion preference. The Telegram invitation ring runs twice rather than pulsing indefinitely.
+
+Validation covers truthful destination links, exact duplicate content, independent ticker/carousel pausing, reduced-motion changes, asynchronous cards, focused-link behavior and observer/animation teardown.

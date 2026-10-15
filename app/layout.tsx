@@ -1,5 +1,6 @@
 import "./globals.css";
 import "./site-theme.css";
+import "./site-motion.css";
 import type { Metadata } from "next";
 import { Onest } from "next/font/google";
 import { LanguageProvider } from "@/contexts/language-context";
@@ -16,6 +17,7 @@ import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { TelegramProvider } from "@/contexts/telegram-context";
 import { TelegramNotice } from "@/components/layout/telegram-notice";
+import { SiteMotion } from "@/components/layout/site-motion";
 
 const siteFont = Onest({
   subsets: ["latin", "cyrillic"],
@@ -83,6 +85,7 @@ export default function RootLayout({
                 <LanguageProvider>
                   <AuthModalProvider>
                     <Header />
+                    <SiteMotion />
                     <AdminViewBanner />
                     <main className="site-main flex-1 pt-16 pb-20 md:pb-0">
                       <TelegramNotice />
