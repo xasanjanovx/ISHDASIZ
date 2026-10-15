@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/language-context";
-import { supabase } from "@/lib/supabase";
+import { accountApi } from "@/lib/account-api";
 import { JobMap } from "@/components/map/job-map";
 import { JobCard } from "@/components/jobs/job-card";
 import { JobWithRelations } from "@/types/database";
@@ -11,9 +11,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MapPin, Loader2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { UZBEKISTAN_CENTER, MAP_COUNTRY_ZOOM } from "@/lib/constants";
-import { jobMapQuery } from "@/lib/job-map-query";
-
-const PAGE_SIZE = 100;
 
 export default function MapPage() {
   const { lang, t } = useLanguage();
@@ -29,17 +26,15 @@ export default function MapPage() {
     let cancelled = false;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-    const request = jobMapQuery(supabase, page, PAGE_SIZE).abortSignal(
-      controller.signal,
-    );
-    Promise.resolve(request)
-      .then(({ data, error: queryError, count }) => {
+    accountApi<{ jobs: JobWithRelations[]; total: number }>(`/api/map/jobs?page=${page}`, {
+      signal: controller.signal,
+    })
+      .then(({ jobs: rows, total: count }) => {
         if (cancelled) return;
-        if (queryError || !Array.isArray(data) || count === null) {
+        if (!Array.isArray(rows) || !Number.isSafeInteger(count) || count < 0) {
           setError(true);
           return;
         }
-        const rows = data as unknown as JobWithRelations[];
         setJobs((previous) =>
           page === 0
             ? rows
