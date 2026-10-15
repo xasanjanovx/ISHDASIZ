@@ -13,6 +13,7 @@ import {
   Play,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { BenefitsTicker } from "./benefits-ticker";
 interface HeroProps {
   regions?: { id: number; name_uz: string; name_ru: string }[];
   stats?: {
@@ -153,30 +154,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           />
         ))}
       </div>
-      <nav
-        className="poster-ticker"
-        aria-label={
-          ru ? "Вакансии по профессиям" : "Kasblar bo‘yicha vakansiyalar"
-        }
-      >
-        <div>
-          {[...scenes, ...scenes].map((item, index) => (
-            <span
-              key={index}
-              aria-hidden={index >= scenes.length ? true : undefined}
-            >
-              <Link
-                href={`/jobs?${new URLSearchParams({ category: item.category, ...(item.query ? { q: item.query } : {}) })}`}
-                tabIndex={index >= scenes.length ? -1 : undefined}
-              >
-                {item.name}
-                <ArrowUpRight size={15} />
-              </Link>
-              <i />
-            </span>
-          ))}
-        </div>
-      </nav>
+      <BenefitsTicker />
       <div className="poster-stage home-shell">
         <div className="poster-word" aria-hidden="true">
           ISHDASIZ

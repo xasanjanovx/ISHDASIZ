@@ -1,0 +1,107 @@
+/* Each complete group includes its trailing space, so the 50% hand-off has no seam. */
+.poster-ticker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #bfb5a455;
+  mask-image: none;
+}
+.poster-ticker > .poster-ticker-window {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  overflow: hidden;
+  animation: none;
+  mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+.poster-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: poster-marquee 100s linear infinite;
+}
+.poster-ticker-group {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: space-around;
+  min-width: 100vw;
+  gap: 34px;
+  padding-right: 34px;
+}
+.poster-ticker .poster-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 38px;
+  gap: 18px;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.poster-ticker-item i {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--profession-accent, #dd6c43);
+}
+.poster-ticker-pause {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #bfb5a4;
+  border-radius: 50%;
+  color: #263248;
+  background: #f5f1e9;
+  transition: background .2s, border-color .2s;
+}
+.poster-ticker-pause:hover { background: #fffdf7; border-color: #263248; }
+.poster-ticker[data-paused="true"] .poster-ticker-track,
+.poster-ticker:has(.poster-ticker-item:focus-visible) .poster-ticker-track { animation-play-state: paused; }
+.poster-ticker-pause:focus-visible,
+.poster-ticker-item:focus-visible { outline: 2px solid #263248; outline-offset: 3px; }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .home-category, .home-opportunity, .home-step, .home-telegram,
+  .site-button, .home-button, .home-telegram-button, .home-text-link svg,
+  .home-job-top > svg, .home-job-bottom svg, .home-seeker-bottom svg {
+    transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s, background-color .3s;
+  }
+  .home-category:hover { transform: translateX(5px); }
+  .home-opportunity:hover, .home-step:hover { transform: translateY(-5px); }
+  .home-telegram:hover { transform: translateY(-4px); box-shadow: 0 18px 40px #25314920; }
+  .site-button:hover:not(:disabled), .home-button:hover { transform: translateY(-2px); }
+  .site-button:active:not(:disabled), .home-button:active { transform: translateY(0) scale(.98); }
+  .home-text-link:hover svg, .home-job-card:hover .home-job-top > svg,
+  .home-job-card:hover .home-job-bottom svg, .home-seeker-card:hover .home-seeker-bottom svg { transform: translate(3px, -3px); }
+}
+.home-telegram-icon { position: relative; isolation: isolate; }
+.home-telegram-icon::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1px solid currentColor;
+  border-radius: inherit;
+  opacity: .2;
+  animation: telegram-invitation 4s ease-out 2;
+  pointer-events: none;
+}
+@keyframes telegram-invitation {
+  0% { transform: scale(.88); opacity: .35; }
+  70%, 100% { transform: scale(1.2); opacity: 0; }
+}
+@media (max-width: 767px) {
+  .poster-ticker { padding: 8px 12px; gap: 6px; }
+  .poster-ticker .poster-ticker-item { font-size: 15px; gap: 16px; }
+  .poster-ticker-group { gap: 26px; padding-right: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .poster-ticker-track, .home-telegram-icon::after { animation: none; }
+  .poster-ticker > .poster-ticker-window { overflow-x: auto; mask-image: none; }
+  .poster-ticker-group[aria-hidden="true"], .poster-ticker-pause { display: none; }
+}
