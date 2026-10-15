@@ -386,7 +386,7 @@
 }
 .poster-search-card {
   width: 350px;
-  top: 29%;
+  top: 24%;
   padding: 24px;
   background: #faf6eeeb;
   border-color: #bcb09b;
@@ -397,6 +397,21 @@
 }
 .poster-job-count strong {
   font-size: 36px;
+}
+.poster-job-count span { white-space: pre-line; }
+.poster-job-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0 8px;
+}
+.poster-job-breakdown > * { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; }
+.poster-job-breakdown strong { font-size: 18px; font-weight: 600; color: #263248; }
+.poster-job-breakdown span { font-size: 13px; color: #645c51; }
+.poster-job-breakdown a:hover span { text-decoration: underline; text-underline-offset: 3px; }
+@media (min-width: 360px) and (max-width: 767px) {
+  .poster-search-card .home-search-bottom { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .poster-search-card .home-button { width: auto; padding-inline: 12px; gap: 8px; }
 }
 .home-search-query input {
   font-size: 16px;

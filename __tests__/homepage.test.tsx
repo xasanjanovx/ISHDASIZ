@@ -67,13 +67,27 @@ it("keeps the database region ID and safely encodes the search", () => {
 it("uses supplied counts and omits employer promotion", () => {
   render(
     <HeroSection
-      stats={{ totalJobs: 24666, totalResumes: null, totalEmployers: 24 }}
+      stats={{ totalJobs: 24666, totalUsers: null, archivedJobs: 100, totalEmployers: 24 }}
     />,
   );
   expect(screen.getByText("24 666")).toBeInTheDocument();
+  expect(screen.getByText("24 766")).toBeInTheDocument();
   expect(screen.queryByText("24")).not.toBeInTheDocument();
   expect(screen.queryByText("Работодатели")).not.toBeInTheDocument();
   expect(screen.getByText("—")).toBeInTheDocument();
+});
+it("labels the combined historical total separately from current jobs and counts all registered users", () => {
+  const view = render(<HeroSection stats={{ totalJobs: 111, archivedJobs: 222, totalUsers: 614 }} />);
+  expect(view.container.querySelector('.poster-job-count')).toHaveTextContent('333');
+  expect(view.container.querySelector('.poster-job-breakdown')).toHaveTextContent('111актуальных222в архиве');
+  expect(screen.getByRole('link', { name: '111 актуальных' })).toHaveAttribute('href', '/jobs');
+  expect(view.container.querySelector('.poster-resumes-card')).toHaveTextContent('ПОЛЬЗОВАТЕЛИ614человек зарегистрировано');
+  expect(screen.queryByText(/резюме людей/)).not.toBeInTheDocument();
+});
+it("does not pretend a partial count is the combined total", () => {
+  const view = render(<HeroSection stats={{ totalJobs: 111, archivedJobs: null, totalUsers: 614 }} />);
+  expect(view.container.querySelector('.poster-job-count strong')).toHaveTextContent('—');
+  expect(view.container.querySelector('.poster-job-breakdown')).toHaveTextContent('111актуальных—в архиве');
 });
 
 it("preserves a manually selected profession without automatic navigation", () => {

@@ -18,7 +18,8 @@ interface HeroProps {
   regions?: { id: number; name_uz: string; name_ru: string }[];
   stats?: {
     totalJobs: number | null;
-    totalResumes: number | null;
+    totalUsers: number | null;
+    archivedJobs: number | null;
     totalEmployers?: number | null;
   };
 }
@@ -51,6 +52,9 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
   }, [playing]);
   const number = (value?: number | null) =>
     value == null ? "—" : value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
+  const allJobs = stats?.totalJobs != null && stats?.archivedJobs != null
+    && Number.isSafeInteger(stats.totalJobs + stats.archivedJobs)
+    ? stats.totalJobs + stats.archivedJobs : null;
   const search = (event: React.FormEvent) => {
     event.preventDefault();
     const params = new URLSearchParams();
@@ -203,8 +207,12 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             <ArrowUpRight size={17} />
           </div>
           <div className="poster-job-count">
-            <strong>{number(stats?.totalJobs)}</strong>
-            <span>{ru ? "открытых вакансий" : "ochiq vakansiyalar"}</span>
+            <strong>{number(allJobs)}</strong>
+            <span>{ru ? "вакансий собрано\nза всё время" : "jami yig‘ilgan\nvakansiyalar"}</span>
+          </div>
+          <div className="poster-job-breakdown">
+            <Link href="/jobs"><strong>{number(stats?.totalJobs)}</strong><span>{ru ? "актуальных" : "dolzarb"}</span></Link>
+            <div><strong>{number(stats?.archivedJobs)}</strong><span>{ru ? "в архиве" : "arxivda"}</span></div>
           </div>
           <form onSubmit={search} className="home-search">
             <div className="home-search-query">
@@ -252,14 +260,14 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
         <Link href="/resumes" className="poster-resumes-card">
           <div className="poster-card-label">
             <ArrowUpRight size={17} />
-            <span>{ru ? "СОИСКАТЕЛИ" : "ISH IZLOVCHILAR"}</span>
+            <span>{ru ? "ПОЛЬЗОВАТЕЛИ" : "FOYDALANUVCHILAR"}</span>
           </div>
           <div className="poster-resume-count">
-            <strong>{number(stats?.totalResumes)}</strong>
+            <strong>{number(stats?.totalUsers)}</strong>
             <span>
               {ru
-                ? "резюме людей, открытых\nк новой работе"
-                : "yangi ishga tayyor\ninsonlarning rezyumelari"}
+                ? "человек зарегистрировано\nна ISHDASIZ"
+                : "ISHDASIZ’da ro‘yxatdan\no‘tgan insonlar"}
             </span>
           </div>
         </Link>

@@ -10,23 +10,20 @@ import { HomeDataNotice } from "@/components/home/home-data-notice";
 import { SeekersSection } from "@/components/home/seekers-section";
 import { catalogFilters, searchResumes } from "@/lib/resume-catalog";
 import { HowItWorksSection } from "@/components/home/how-it-works-section";
+import { loadHomeTotals } from "@/lib/home-totals";
 export const revalidate = 60;
 
-async function countPublicResumes() {
+async function countHomeTotals() {
   try {
-    return await getAuthClient()
-      .from("resumes")
-      .select("id", { count: "exact", head: true })
-      .eq("ishdasiz_resume_available", true)
-      .abortSignal(AbortSignal.timeout(15000));
+    return await loadHomeTotals(getAuthClient());
   } catch {
-    return { count: null, error: true };
+    return { totalUsers: null, archivedJobs: null };
   }
 }
 
 export default async function HomePage() {
   const [data, seekers] = await Promise.all([
-    loadHomeData(supabase, countPublicResumes),
+    loadHomeData(supabase, countHomeTotals),
     loadSeekers(),
   ]);
   return (

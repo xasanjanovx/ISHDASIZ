@@ -77,7 +77,7 @@ export function parseHomeCounts(value: any): HomeCounts {
 
 export async function loadHomeData(
   client: SupabaseClient,
-  countResumes: () => PromiseLike<{ count: number | null; error: unknown }>,
+  countTotals: () => PromiseLike<{ totalUsers: number | null; archivedJobs: number | null }>,
 ) {
   const fallback = {
     jobs: [],
@@ -85,11 +85,11 @@ export async function loadHomeData(
     regions: [],
     jobCounts: {} as Record<string, number | null>,
     specialCounts: { students: null, disabled: null, women: null },
-    stats: { totalJobs: null, totalResumes: null },
+    stats: { totalJobs: null, totalUsers: null, archivedJobs: null },
     unavailable: true,
   };
   try {
-    const [jobs, categories, regions, resumes, counts] = await Promise.all([
+    const [jobs, categories, regions, totals, counts] = await Promise.all([
       client
         .from("jobs")
         .select(HOME_JOB_FIELDS)
@@ -102,7 +102,7 @@ export async function loadHomeData(
         .neq("id", "a0000011-0011-4000-8000-000000000011")
         .order("name_uz"),
       client.from("regions").select("id, name_uz, name_ru").order("name_uz"),
-      countResumes(),
+      countTotals(),
       client
         .rpc("ishdasiz_public_home_counts")
         .abortSignal(AbortSignal.timeout(15000)),
@@ -128,7 +128,8 @@ export async function loadHomeData(
       specialCounts: aggregate?.special || fallback.specialCounts,
       stats: {
         totalJobs: aggregate?.total ?? null,
-        totalResumes: resumes.error ? null : resumes.count,
+        totalUsers: validCount(totals.totalUsers) ? totals.totalUsers : null,
+        archivedJobs: validCount(totals.archivedJobs) ? totals.archivedJobs : null,
       },
       unavailable: !!(
         jobs.error ||
