@@ -82,7 +82,7 @@ function JobDetail({id}: {id:string}) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
@@ -91,7 +91,7 @@ function JobDetail({id}: {id:string}) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-500 mb-4">
+          <p className="text-muted-foreground mb-4">
             {failure instanceof AccountApiError && failure.status === 404 ? (lang === 'uz' ? 'Vakansiya mavjud emas' : 'Вакансия недоступна') : (lang === 'uz' ? 'Vakansiyani yuklab bo‘lmadi' : 'Не удалось загрузить вакансию')}
           </p>
           {!(failure instanceof AccountApiError && failure.status === 404) && <Button className="mb-3" onClick={()=>{setLoading(true);setRevision(value=>value+1);}}>{lang==='ru'?'Повторить загрузку':'Qayta yuklash'}</Button>}
@@ -277,20 +277,20 @@ function JobDetail({id}: {id:string}) {
 
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="relative overflow-hidden py-5 md:py-6 text-slate-950 border-b border-sky-100">
+      <div className="relative overflow-hidden py-5 md:py-6 text-foreground border-b border-border">
         {/* Animated mesh gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-white to-teal-50" style={{ backgroundSize: '200% 200%' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent via-card to-accent" style={{ backgroundSize: '200% 200%' }} />
         {/* Floating orbs */}
-        <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-blue-500/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
-        <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-teal-500/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
+        <div className="absolute top-0 right-[15%] w-[250px] h-[250px] bg-primary/15 rounded-full blur-[80px] animate-float-slow pointer-events-none" />
+        <div className="absolute bottom-0 left-[10%] w-[200px] h-[200px] bg-primary/10 rounded-full blur-[60px] animate-float-medium pointer-events-none" />
 
         <div className="container relative mx-auto px-4 z-10">
           <Button
             variant="ghost"
             onClick={() => router.push('/jobs')}
-            className="text-slate-600 hover:text-sky-800 hover:bg-sky-100 mb-4 -ml-2"
+            className="text-muted-foreground hover:text-primary hover:bg-accent mb-4 -ml-2"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             {t.nav.jobs}
@@ -300,12 +300,12 @@ function JobDetail({id}: {id:string}) {
             <div className="space-y-4 max-w-3xl">
               <div className="flex flex-wrap gap-2 mb-2">
                 {categoryName && (
-                  <Badge className="bg-white text-sky-800 hover:bg-sky-50 border-sky-200 backdrop-blur-sm px-3 py-1 font-medium">
+                  <Badge className="bg-card text-primary hover:bg-accent border-border backdrop-blur-sm px-3 py-1 font-medium">
                     {categoryName}
                   </Badge>
                 )}
                 {job.employment_type && (
-                  <Badge className="bg-sky-100 text-sky-800 border-sky-200 backdrop-blur-sm px-3 py-1 font-medium capitalize">
+                  <Badge className="bg-accent text-primary border-border backdrop-blur-sm px-3 py-1 font-medium capitalize">
                     {(job.employment_type as string) === 'full_time' ? (lang === 'uz' ? 'To\'liq stavka' : "Полная занятость") :
                       (job.employment_type as string) === 'part_time' ? (lang === 'uz' ? 'Yarim stavka' : "Частичная занятость") :
                         (job.employment_type as string) === 'contract' ? (lang === 'uz' ? 'Shartnoma' : "Контракт") :
@@ -313,7 +313,7 @@ function JobDetail({id}: {id:string}) {
                   </Badge>
                 )}
                 {((job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count) && (
-                  <Badge className="bg-teal-100 text-teal-800 border-teal-200 backdrop-blur-sm px-3 py-1 font-medium">
+                  <Badge className="bg-accent text-primary border-border backdrop-blur-sm px-3 py-1 font-medium">
                     {(job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count} {lang === 'ru' ? "мест" : "o'rin"}
                   </Badge>
                 )}
@@ -321,21 +321,21 @@ function JobDetail({id}: {id:string}) {
               <h1 className="text-xl md:text-2xl font-extrabold tracking-tight leading-tight">
                 {title}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-slate-600 text-xs md:text-sm">
+              <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center backdrop-blur-md">
+                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center backdrop-blur-md">
                     <Building2 className="w-4 h-4" />
                   </div>
-                  <span className="font-semibold text-slate-800 text-sm">{job.company_name || 'ISHDASIZ'}</span>
+                  <span className="font-semibold text-foreground text-sm">{job.company_name || 'ISHDASIZ'}</span>
                 </div>
                 {locationLabel && (
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-sky-600" />
+                    <MapPin className="w-5 h-5 text-primary" />
                     <span>{locationLabel}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-sky-600" />
+                  <Eye className="w-5 h-5 text-primary" />
                   <span>{job.views_count} {lang === 'uz' ? 'marta ko\'rildi' : "просмотров"}</span>
                 </div>
               </div>
@@ -352,54 +352,54 @@ function JobDetail({id}: {id:string}) {
           {/* MAIN CONTENT */}
           <div className="lg:col-span-2 space-y-8">
             {/* Job Details Table (Osonish Style) */}
-            <Card className="border-slate-200 shadow-sm overflow-hidden text-sm">
-              <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
-                <CardTitle className="text-lg text-slate-900">{lang === 'ru' ? "Детали вакансии" : "Vakansiya ma'lumotlari"}</CardTitle>
+            <Card className="border-border shadow-sm overflow-hidden text-sm">
+              <CardHeader className="bg-background/50 pb-4 border-b border-border">
+                <CardTitle className="text-lg text-foreground">{lang === 'ru' ? "Детали вакансии" : "Vakansiya ma'lumotlari"}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-slate-100">
                   {/* Company */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Компания" : 'Tashkilot'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{job.company_name}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Компания" : 'Tashkilot'}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0">{job.company_name}</span>
                   </div>
 
                   {/* Position */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Должность" : 'Lavozim'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{(job as any).raw_source_json?.position_name || title}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Должность" : 'Lavozim'}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0">{(job as any).raw_source_json?.position_name || title}</span>
                   </div>
 
                   {/* Vacancy Count */}
                   {((job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Количество мест" : 'Vakansiyalar soni'}:</span>
-                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                      <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Количество мест" : 'Vakansiyalar soni'}:</span>
+                      <span className="font-semibold text-foreground mt-1 sm:mt-0">
                         {(job as any).raw_source_json?.vacancy_count || (job as any).vacancy_count}
                       </span>
                     </div>
                   )}
 
                   {/* Experience */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Опыт работы" : 'Ish tajribasi'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getExperienceLabel(job, lang)}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Опыт работы" : 'Ish tajribasi'}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0">{getExperienceLabel(job, lang)}</span>
                   </div>
 
                   {/* Payment Type */}
                   {(getPaymentTypeLabel(job, lang)) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Форма оплаты" : "To'lov shakli"}:</span>
-                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                      <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Форма оплаты" : "To'lov shakli"}:</span>
+                      <span className="font-semibold text-foreground mt-1 sm:mt-0">
                         {getPaymentTypeLabel(job, lang)}
                       </span>
                     </div>
                   )}
 
                   {/* Employment Type */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Тип занятости" : 'Bandlik turi'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0 capitalize">
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Тип занятости" : 'Bandlik turi'}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0 capitalize">
                       {(() => {
                         const type = job.employment_type as string;
                         if (type === 'full_time') return lang === 'uz' ? 'To\'liq stavka (shtat asosida)' : "Полная занятость";
@@ -413,9 +413,9 @@ function JobDetail({id}: {id:string}) {
 
                   {/* Work Mode */}
                   {(getWorkModeLabel(job, lang)) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Режим работы" : 'Ish usuli (rejimi)'}:</span>
-                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                      <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Режим работы" : 'Ish usuli (rejimi)'}:</span>
+                      <span className="font-semibold text-foreground mt-1 sm:mt-0">
                         {getWorkModeLabel(job, lang)}
                       </span>
                     </div>
@@ -424,25 +424,25 @@ function JobDetail({id}: {id:string}) {
                   {/* Working Days - REMOVED (duplicate with Ish kunlari va vaqti below) */}
 
                   {/* Schedule (Ish kunlari va vaqti) - Always show */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'График работы' : 'Ish kunlari va vaqti'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{scheduleLabel}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? 'График работы' : 'Ish kunlari va vaqti'}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0">{scheduleLabel}</span>
                   </div>
 
                   {/* Probation Period (Sinov muddati) */}
                   {((job as any).raw_source_json?.test_period_id || (job as any).raw_source_json?.test_period) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Испытательный срок" : "Sinov muddati"}:</span>
-                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                      <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Испытательный срок" : "Sinov muddati"}:</span>
+                      <span className="font-semibold text-foreground mt-1 sm:mt-0">
                         {getMappedValue('test_period', (job as any).raw_source_json?.test_period_id, lang) || (job as any).raw_source_json?.test_period}
                       </span>
                     </div>
                   )}
 
                   {/* Education */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Образование" : "Ma'lumot darajasi"}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getEducationLabel(job, lang)}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Образование" : "Ma'lumot darajasi"}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0">{getEducationLabel(job, lang)}</span>
                   </div>
 
                   {/* Mutaxassisligi - REMOVED per user request */}
@@ -450,16 +450,16 @@ function JobDetail({id}: {id:string}) {
                   {/* Languages - handled in Languages section below */}
 
                   {/* Gender - Always show with correct label */}
-                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                    <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Пол" : 'Jinsi'}:</span>
-                    <span className="font-semibold text-slate-900 mt-1 sm:mt-0">{getGenderLabel((job as any).gender, lang)}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                    <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Пол" : 'Jinsi'}:</span>
+                    <span className="font-semibold text-foreground mt-1 sm:mt-0">{getGenderLabel((job as any).gender, lang)}</span>
                   </div>
 
                   {/* Age - Only show if age is specified */}
                   {(job.age_min || job.age_max) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? "Возраст" : 'Yoshi'}:</span>
-                      <span className="font-semibold text-slate-900 mt-1 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors">
+                      <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? "Возраст" : 'Yoshi'}:</span>
+                      <span className="font-semibold text-foreground mt-1 sm:mt-0">
                         {job.age_min && job.age_max ? `${job.age_min}-${job.age_max} ${lang === 'ru' ? "лет" : 'yosh'}` :
                           job.age_min ? `${job.age_min}+ ${lang === 'ru' ? "лет" : 'yosh'}` :
                             `${lang === 'ru' ? "до" : ''} ${job.age_max} ${lang === 'ru' ? "лет" : 'yosh'}`}
@@ -471,17 +471,17 @@ function JobDetail({id}: {id:string}) {
 
                   {/* Alohida toifalar (mos kelishi mumkin bo'lgan nomzodlar) */}
                   {((job as any).is_for_students || (job as any).is_for_graduates || (job as any).is_for_disabled) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-slate-50/50 transition-colors border-t border-slate-100">
-                      <span className="text-slate-500 min-w-[200px] font-medium">{lang === 'ru' ? 'Для кого может подойти' : "Kimlar uchun mos kelishi mumkin"}:</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center py-3 px-5 hover:bg-background/50 transition-colors border-t border-border">
+                      <span className="text-muted-foreground min-w-[200px] font-medium">{lang === 'ru' ? 'Для кого может подойти' : "Kimlar uchun mos kelishi mumkin"}:</span>
                       <div className="flex flex-wrap gap-2 mt-1 sm:mt-0">
                         {(job as any).is_for_students && (
-                          <Badge className="bg-purple-50 text-purple-700 border-purple-200">{lang === 'ru' ? 'Могут подойти студенты' : 'Talabalar ham mos kelishi mumkin'}</Badge>
+                          <Badge className="bg-accent text-primary border-border">{lang === 'ru' ? 'Могут подойти студенты' : 'Talabalar ham mos kelishi mumkin'}</Badge>
                         )}
                         {(job as any).is_for_graduates && (
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">{lang === 'ru' ? 'Могут подойти выпускники' : 'Bitiruvchilar ham mos kelishi mumkin'}</Badge>
+                          <Badge className="bg-accent text-primary border-border">{lang === 'ru' ? 'Могут подойти выпускники' : 'Bitiruvchilar ham mos kelishi mumkin'}</Badge>
                         )}
                         {(job as any).is_for_disabled && (
-                          <Badge className="bg-teal-50 text-teal-700 border-teal-200">{lang === 'ru' ? 'Могут подойти люди с инвалидностью' : "Nogironligi bo'lgan shaxslar ham mos kelishi mumkin"}</Badge>
+                          <Badge className="bg-accent text-primary border-border">{lang === 'ru' ? 'Могут подойти люди с инвалидностью' : "Nogironligi bo'lgan shaxslar ham mos kelishi mumkin"}</Badge>
                         )}
                       </div>
                     </div>
@@ -497,11 +497,11 @@ function JobDetail({id}: {id:string}) {
             {/* TALABLAR (Requirements) */}
             {/* VAZIFALAR VA TALABLAR (Unified Section) */}
             {(combinedDuties.length > 0 || description || requirements || (job as any).raw_source_json?.html_responsibilities || (job as any).raw_source_json?.html_requirements) && (
-              <Card className="border-slate-200 shadow-lg overflow-hidden bg-gradient-to-br from-white to-indigo-50/30">
+              <Card className="border-border shadow-lg overflow-hidden bg-gradient-to-br from-card to-accent/30">
                 <CardContent className="p-5 md:p-6">
-                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-indigo-600" />
+                  <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-primary" />
                     </div>
                     {lang === 'ru' ? "Обязанности и Требования" : 'Vazifalar va talablar'}
                   </h2>
@@ -509,8 +509,8 @@ function JobDetail({id}: {id:string}) {
                   {combinedDuties.length > 0 ? (
                     <ul className="space-y-2 list-none">
                       {combinedDuties.map((item, idx) => (
-                        <li key={idx} className="flex gap-3 text-slate-700">
-                          <span className="text-indigo-500 font-bold text-lg leading-6">•</span>
+                        <li key={idx} className="flex gap-3 text-foreground">
+                          <span className="text-primary font-bold text-lg leading-6">•</span>
                           <span className="leading-relaxed">{item}</span>
                         </li>
                       ))}
@@ -518,13 +518,13 @@ function JobDetail({id}: {id:string}) {
                   ) : (
                     <div className="space-y-6">
                       {/* Description Fallback */}
-                      <div className="bg-white p-4 md:p-5 rounded-2xl border border-indigo-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                      <div className="bg-card p-4 md:p-5 rounded-2xl border border-border text-foreground text-base leading-relaxed whitespace-pre-wrap shadow-sm">
                         {((job as any).raw_source_json?.html_responsibilities || description || '').replace(/\\n/g, '\n')}
                       </div>
 
                       {/* Requirements Fallback (if separate from description) */}
                       {!requirementsIsDuplicate && (requirements || (job as any).raw_source_json?.html_requirements) && (
-                        <div className="bg-white p-4 md:p-5 rounded-2xl border border-indigo-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                        <div className="bg-card p-4 md:p-5 rounded-2xl border border-border text-foreground text-base leading-relaxed whitespace-pre-wrap shadow-sm">
                           <h3 className="font-semibold mb-2">{lang === 'ru' ? "Требования:" : 'Talablar:'}</h3>
                           {((requirements || (job as any).raw_source_json?.html_requirements || '').replace(/\\n/g, '\n'))}
                         </div>
@@ -537,9 +537,9 @@ function JobDetail({id}: {id:string}) {
 
             {/* ISH SHAROITLARI -> QULAYLIKLAR (Conditions/Benefits) */}
             {(benefitsList.length > 0 || (job as any).raw_source_json?.html_conditions) && (
-              <Card className="border-slate-200 shadow-lg overflow-hidden bg-gradient-to-br from-white to-emerald-50/30">
+              <Card className="border-border shadow-lg overflow-hidden bg-gradient-to-br from-card to-emerald-50/30">
                 <CardContent className="p-5 md:p-6">
-                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
                       <CheckCircle className="w-5 h-5 text-emerald-600" />
                     </div>
@@ -550,7 +550,7 @@ function JobDetail({id}: {id:string}) {
                   {benefitsList.length > 0 && (
                     <ul className="space-y-2">
                       {benefitsList.map((item, idx) => (
-                        <li key={`benefit-${idx}`} className="text-slate-700 leading-relaxed">
+                        <li key={`benefit-${idx}`} className="text-foreground leading-relaxed">
                           - {item}
                         </li>
                       ))}
@@ -558,7 +558,7 @@ function JobDetail({id}: {id:string}) {
                   )}
 
                   {benefitsList.length === 0 && (job as any).raw_source_json?.html_conditions && (
-                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-emerald-100 text-slate-700 text-base leading-relaxed whitespace-pre-wrap shadow-sm">
+                    <div className="bg-card p-4 md:p-5 rounded-2xl border border-emerald-100 text-foreground text-base leading-relaxed whitespace-pre-wrap shadow-sm">
                       {String((job as any).raw_source_json?.html_conditions || '').replace(/\\n/g, '\n')}
                     </div>
                   )}
@@ -569,18 +569,18 @@ function JobDetail({id}: {id:string}) {
             {/* Skills & Languages section (Benefits removed - only show once in Qulayliklar above) */}
             {(((job as any).raw_source_json?.skills_details?.length > 0) ||
               ((job as any).raw_source_json?.languages?.length > 0)) && (
-                <Card className="border-slate-200 shadow-sm overflow-hidden mb-6">
+                <Card className="border-border shadow-sm overflow-hidden mb-6">
                   <CardContent className="p-5 md:p-6 space-y-6">
                     {/* Skills (use skills_details from API) */}
                     {(job as any).raw_source_json?.skills_details?.length > 0 && (
                       <section>
-                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? "Профессиональные навыки" : "Kasbiy bilim va ko'nikmalar"}</h3>
+                        <h3 className="font-semibold text-foreground mb-3">{lang === 'ru' ? "Профессиональные навыки" : "Kasbiy bilim va ko'nikmalar"}</h3>
                         <div className="flex flex-wrap gap-2">
                           {(job as any).raw_source_json.skills_details.map((skill: any, idx: number) => {
                             const skillName = skill.skill_name || skill.name || (typeof skill === 'string' ? skill : null);
                             if (!skillName || typeof skillName === 'number') return null;
                             return (
-                              <Badge key={idx} variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5">
+                              <Badge key={idx} variant="secondary" className="bg-secondary text-foreground hover:bg-secondary px-3 py-1.5">
                                 {skillName}
                               </Badge>
                             );
@@ -592,7 +592,7 @@ function JobDetail({id}: {id:string}) {
                     {/* Languages (API uses "language" key, not "id") */}
                     {(job as any).raw_source_json?.languages?.length > 0 && (
                       <section>
-                        <h3 className="font-semibold text-slate-900 mb-3">{lang === 'ru' ? "Знание языков" : "Tillarni bilishi"}</h3>
+                        <h3 className="font-semibold text-foreground mb-3">{lang === 'ru' ? "Знание языков" : "Tillarni bilishi"}</h3>
                         <div className="flex flex-wrap gap-2">
                           {(job as any).raw_source_json.languages.map((langItem: any, idx: number) => {
                             // OsonIsh API uses "language" key (not "id")
@@ -608,9 +608,9 @@ function JobDetail({id}: {id:string}) {
                             if (!displayName || typeof displayName === 'number') return null;
 
                             return (
-                              <Badge key={idx} variant="outline" className="px-3 py-1.5 border-slate-200 text-slate-700">
+                              <Badge key={idx} variant="outline" className="px-3 py-1.5 border-border text-foreground">
                                 <span className="font-bold mr-1">{displayName}</span>
-                                {levelName && <span className="text-slate-500">- {levelName}</span>}
+                                {levelName && <span className="text-muted-foreground">- {levelName}</span>}
                               </Badge>
                             );
                           })}
@@ -627,15 +627,15 @@ function JobDetail({id}: {id:string}) {
           {/* SIDEBAR */}
           <div className="space-y-6">
             {/* Salary Widget */}
-            <Card className="border border-slate-200 shadow-xl shadow-indigo-100/30 bg-white overflow-hidden">
+            <Card className="border border-border shadow-xl shadow-primary/30 bg-card overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
-                <Banknote className="w-24 h-24 rotate-12 text-indigo-900" />
+                <Banknote className="w-24 h-24 rotate-12 text-primary" />
               </div>
               <CardContent className="p-6 relative">
-                <h3 className="text-2xl font-extrabold mb-1 text-slate-900">
+                <h3 className="text-2xl font-extrabold mb-1 text-foreground">
                   {formatSalary(job.salary_min, job.salary_max, lang)}
                 </h3>
-                <p className="text-slate-500 text-sm mb-6">{t.job.perMonth}</p>
+                <p className="text-muted-foreground text-sm mb-6">{t.job.perMonth}</p>
 
                 {/* Removed Apply button and footer as requested by user ("tut ne nado Ariza qoldirish") */}
               </CardContent>
@@ -643,21 +643,21 @@ function JobDetail({id}: {id:string}) {
 
             {/* Contact Card */}
             {(job.contact_phone || job.contact_telegram || (job as any).phone || (job as any).email || (job as any).contact_email || (job as any).hr_name || (job as any).raw_source_json?.hr_name) && (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900">{lang === 'ru' ? "Контактная информация" : 'Bog\'lanish uchun'}</h3>
+              <Card className="border-border shadow-sm overflow-hidden">
+                <div className="bg-background px-6 py-4 border-b border-border">
+                  <h3 className="font-bold text-foreground">{lang === 'ru' ? "Контактная информация" : 'Bog\'lanish uchun'}</h3>
                 </div>
                 <CardContent className="p-6 space-y-5">
                   {/* Only show HR name if it was explicitly provided by source API */}
                   {(job as any).raw_source_json?.hr?.fio && (
                     <div className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center transition-transform group-hover:scale-110">
+                        <div className="w-10 h-10 rounded-xl bg-accent text-primary flex items-center justify-center transition-transform group-hover:scale-110">
                           <User className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? "Контактное лицо" : "Vakansiya HR menejeri"}</p>
-                          <p className="font-bold text-slate-900 text-sm">{(job as any).raw_source_json.hr.fio}</p>
+                          <p className="text-xs text-muted-foreground font-medium">{lang === 'ru' ? "Контактное лицо" : "Vakansiya HR menejeri"}</p>
+                          <p className="font-bold text-foreground text-sm">{(job as any).raw_source_json.hr.fio}</p>
                         </div>
                       </div>
                     </div>
@@ -672,13 +672,13 @@ function JobDetail({id}: {id:string}) {
                             <Phone className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500 font-medium">{lang === 'ru' ? "Телефон" : 'Telefon'}</p>
-                            <p className="font-bold text-slate-900">{job.contact_phone || job.phone}</p>
+                            <p className="text-xs text-muted-foreground font-medium">{lang === 'ru' ? "Телефон" : 'Telefon'}</p>
+                            <p className="font-bold text-foreground">{job.contact_phone || job.phone}</p>
                           </div>
                         </div>
                         <a
                           href={`tel:${job.contact_phone || job.phone}`}
-                          className="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"
+                          className="p-2.5 bg-secondary text-muted-foreground rounded-xl hover:bg-emerald-600 hover:text-white transition-all"
                         >
                           <Phone className="w-5 h-5" />
                         </a>
@@ -689,19 +689,19 @@ function JobDetail({id}: {id:string}) {
                   {job.contact_telegram && (
                     <div className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center transition-transform group-hover:scale-110">
+                        <div className="w-10 h-10 rounded-xl bg-accent text-primary flex items-center justify-center transition-transform group-hover:scale-110">
                           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.48-.94-2.4-1.55-1.07-.7-.37-1.09.24-1.72.14-.15 2.54-2.32 2.59-2.52.01-.03.01-.15-.06-.21-.07-.06-.18-.04-.26-.02-.11.02-1.91 1.2-5.4 3.56-.51.35-.96.52-1.37.51-.45-.01-1.32-.26-1.96-.46-.79-.25-1.42-.38-1.36-.8.03-.21.32-.42.88-.63 3.44-1.5 5.75-2.49 6.92-2.97 3.29-1.35 3.98-1.58 4.43-1.58.1 0 .32.02.46.12.12.08.15.2.16.28 0 .09.01.27 0 .44z"></path></svg>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500 font-medium">Telegram</p>
-                          <p className="font-bold text-slate-900">@{job.contact_telegram.replace('@', '')}</p>
+                          <p className="text-xs text-muted-foreground font-medium">Telegram</p>
+                          <p className="font-bold text-foreground">@{job.contact_telegram.replace('@', '')}</p>
                         </div>
                       </div>
                       <a
                         href={`https://t.me/${job.contact_telegram.replace('@', '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-sky-500 hover:text-white transition-all"
+                        className="p-2.5 bg-secondary text-muted-foreground rounded-xl hover:bg-primary hover:text-white transition-all"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </a>
@@ -711,17 +711,17 @@ function JobDetail({id}: {id:string}) {
                   {((job as any).contact_email || (job as any).email) && (
                     <div className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center transition-transform group-hover:scale-110">
+                        <div className="w-10 h-10 rounded-xl bg-accent text-primary flex items-center justify-center transition-transform group-hover:scale-110">
                           <Mail className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500 font-medium">Email</p>
-                          <p className="font-bold text-slate-900 truncate max-w-[150px]">{(job as any).contact_email || (job as any).email}</p>
+                          <p className="text-xs text-muted-foreground font-medium">Email</p>
+                          <p className="font-bold text-foreground truncate max-w-[150px]">{(job as any).contact_email || (job as any).email}</p>
                         </div>
                       </div>
                       <a
                         href={`mailto:${(job as any).contact_email || (job as any).email}`}
-                        className="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-violet-600 hover:text-white transition-all"
+                        className="p-2.5 bg-secondary text-muted-foreground rounded-xl hover:bg-primary hover:text-white transition-all"
                       >
                         <Mail className="w-5 h-5" />
                       </a>
@@ -733,19 +733,19 @@ function JobDetail({id}: {id:string}) {
 
             {/* Map (Moved to Sidebar) */}
             {(job.latitude && job.longitude) && (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900">{lang === 'ru' ? "Местоположение" : 'Manzil'}</h3>
+              <Card className="border-border shadow-sm overflow-hidden">
+                <div className="bg-background px-6 py-4 border-b border-border">
+                  <h3 className="font-bold text-foreground">{lang === 'ru' ? "Местоположение" : 'Manzil'}</h3>
                 </div>
                 <div className="h-[250px] relative">
                   <JobMap jobs={[job]} selectedJobId={job.id} height="100%" />
                 </div>
-                <div className="p-4 bg-white border-t space-y-3">
+                <div className="p-4 bg-card border-t space-y-3">
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-indigo-600 mt-0.5" />
+                    <MapPin className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <p className="font-semibold text-slate-900 text-sm">{lang === 'ru' ? "Адрес" : 'Aniq manzil'}</p>
-                      <p className="text-slate-600 text-sm">{(job as any).address || (job as any).raw_source_json?.address || locationLabel}</p>
+                      <p className="font-semibold text-foreground text-sm">{lang === 'ru' ? "Адрес" : 'Aniq manzil'}</p>
+                      <p className="text-muted-foreground text-sm">{(job as any).address || (job as any).raw_source_json?.address || locationLabel}</p>
                     </div>
                   </div>
                 </div>
@@ -753,21 +753,21 @@ function JobDetail({id}: {id:string}) {
             )}
 
             {/* Similar Jobs Widget */}
-            {similarError && <p role="status" className="text-sm text-slate-500">{lang==='ru'?'Похожие вакансии временно недоступны.':'O‘xshash vakansiyalar vaqtincha mavjud emas.'}</p>}
+            {similarError && <p role="status" className="text-sm text-muted-foreground">{lang==='ru'?'Похожие вакансии временно недоступны.':'O‘xshash vakansiyalar vaqtincha mavjud emas.'}</p>}
             {similarJobs.length > 0 && (
               <section className="space-y-4">
-                <h3 className="font-bold text-slate-900 px-1">{lang === 'ru' ? "Похожие вакансии" : 'O\'xshash e\'lonlar'}</h3>
+                <h3 className="font-bold text-foreground px-1">{lang === 'ru' ? "Похожие вакансии" : 'O\'xshash e\'lonlar'}</h3>
                 <div className="space-y-3">
                   {similarJobs.map((sj) => (
                     <Link
                       key={sj.id}
                       href={`/jobs/${sj.id}`}
-                      className="group block p-4 bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all"
+                      className="group block p-4 bg-card rounded-2xl border border-border hover:border-border hover:shadow-md transition-all"
                     >
-                      <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                      <h4 className="font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                         {lang === 'ru' ? sj.title_ru : sj.title_uz}
                       </h4>
-                      <p className="text-xs text-slate-500 mt-1 mb-2">{sj.company_name}</p>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">{sj.company_name}</p>
                       <p className="text-sm font-bold text-emerald-600">
                         {formatSalary(sj.salary_min, sj.salary_max, lang)}
                       </p>

@@ -19,8 +19,8 @@ export interface JobMapProps {
 
 function MapLoading() {
   const { lang } = useLanguage();
-  return <div role="status" className="flex h-full items-center justify-center gap-2 text-slate-500">
-      <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+  return <div role="status" className="flex h-full items-center justify-center gap-2 text-muted-foreground">
+      <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       {lang === 'uz' ? 'Xarita yuklanmoqda…' : 'Загрузка карты…'}
   </div>;
 }
@@ -28,7 +28,7 @@ function MapLoading() {
 const ClientMap = dynamic(() => import('./job-map-client'), { ssr: false, loading: MapLoading });
 
 export function JobMap(props: JobMapProps) {
-  return <div style={{ height: props.height || '500px' }} className="rounded-lg bg-slate-100">
+  return <div style={{ height: props.height || '500px' }} className="rounded-lg bg-secondary">
     <ClientMap {...props} />
   </div>;
 }

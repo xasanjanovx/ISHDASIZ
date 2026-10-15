@@ -110,28 +110,28 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
         <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl max-w-lg w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto">
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl max-w-lg w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto">
                 <Dialog.Description className="sr-only">{job.title}</Dialog.Description>
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                    <Dialog.Title className="text-xl font-bold text-slate-900">
+                <div className="flex items-center justify-between p-6 border-b border-border">
+                    <Dialog.Title className="text-xl font-bold text-foreground">
                         {lang === 'ru' ? 'Заявка на вакансию' : 'Vakansiyaga ariza'}
                     </Dialog.Title>
-                    <button aria-label={lang === 'ru' ? 'Закрыть' : 'Yopish'} onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <X className="w-5 h-5 text-slate-400" />
+                    <button aria-label={lang === 'ru' ? 'Закрыть' : 'Yopish'} onClick={onClose} className="p-2 hover:bg-secondary rounded-lg transition-colors">
+                        <X className="w-5 h-5 text-muted-foreground" />
                     </button>
                 </div>
 
                 {/* Job Info */}
-                <div className="p-6 bg-slate-50 border-b border-slate-100">
+                <div className="p-6 bg-background border-b border-border">
                     <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
-                            <Briefcase className="w-5 h-5 text-sky-600" />
+                        <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center shrink-0">
+                            <Briefcase className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-slate-900">{job.title}</h3>
+                            <h3 className="font-semibold text-foreground">{job.title}</h3>
                             {job.company_name && (
-                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5">
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                                     <Building2 className="w-3.5 h-3.5" />
                                     {job.company_name}
                                 </p>
@@ -150,7 +150,7 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
 
                         {isLoadingResumes ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                             </div>
                         ) : resumeError ? (
                             <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
@@ -158,12 +158,12 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
                                 {user && <Button variant="outline" className="mt-3" onClick={() => { setIsLoadingResumes(true); setAttempt(value => value + 1); }}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button>}
                             </div>
                         ) : resumes.length === 0 ? (
-                            <div className="text-center py-8 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
-                                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                                <p className="text-slate-600 font-medium mb-1">
+                            <div className="text-center py-8 bg-background rounded-xl border-2 border-dashed border-border">
+                                <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                                <p className="text-muted-foreground font-medium mb-1">
                                     {lang === 'ru' ? 'У вас нет резюме' : "Sizda hali rezyume yo'q"}
                                 </p>
-                                <p className="text-sm text-slate-400 mb-4">
+                                <p className="text-sm text-muted-foreground mb-4">
                                     {lang === 'ru'
                                         ? 'Создайте резюме для отправки заявки'
                                         : 'Ariza yuborish uchun rezyume yarating'}
@@ -180,9 +180,9 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
                                 {resumes.map((resume) => (
                                     <label
                                         key={resume.id}
-                                        className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 ${selectedResumeId === resume.id
-                                            ? 'border-sky-500 bg-sky-50'
-                                            : 'border-slate-200 hover:border-slate-300'
+                                        className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ${selectedResumeId === resume.id
+                                            ? 'border-primary bg-accent'
+                                            : 'border-border hover:border-border'
                                             }`}
                                     >
                                         <input
@@ -194,16 +194,16 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
                                             className="sr-only"
                                         />
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedResumeId === resume.id
-                                            ? 'border-sky-500 bg-sky-500'
-                                            : 'border-slate-300'
+                                            ? 'border-primary bg-primary'
+                                            : 'border-border'
                                             }`}>
                                             {selectedResumeId === resume.id && (
-                                                <div className="w-2 h-2 rounded-full bg-white" />
+                                                <div className="w-2 h-2 rounded-full bg-card" />
                                             )}
                                         </div>
                                         <div className="flex-1">
-                                            <p className="font-medium text-slate-900">{resume.title}</p>
-                                            <p className="text-sm text-slate-500">
+                                            <p className="font-medium text-foreground">{resume.title}</p>
+                                            <p className="text-sm text-muted-foreground">
                                                 {typeof resume.experience_years==='number' && Number.isFinite(resume.experience_years) ? `💼 ${resume.experience_years} ${lang === 'ru' ? 'лет опыта' : 'yil tajriba'}` : (lang==='ru'?'Опыт не указан':'Tajriba ko‘rsatilmagan')}
                                                 {resume.updated_at && Number.isFinite(Date.parse(resume.updated_at)) && <>{lang === 'ru' ? ' • Обновлено: ' : ' • Yangilangan: '}{new Date(resume.updated_at).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'uz-UZ')}</>}
                                             </p>
@@ -212,7 +212,7 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
                                 ))}
 
                                 <Link href="/profile/job-seeker/resumes/new" className="block">
-                                    <button className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 hover:border-slate-300 hover:text-slate-600 transition-colors flex items-center justify-center gap-2">
+                                    <button className="w-full p-3 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-border hover:text-muted-foreground transition-colors flex items-center justify-center gap-2">
                                         <Plus className="w-4 h-4" />
                                         {lang === 'ru' ? 'Создать новое резюме' : 'Yangi rezyume yaratish'}
                                     </button>
@@ -250,14 +250,14 @@ function ApplicationForm({ onClose, onSuccess, job, user }: Omit<ApplicationModa
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 flex gap-3">
+                <div className="p-6 border-t border-border flex gap-3">
                     <Button variant="outline" onClick={onClose} className="flex-1">
                         {lang === 'ru' ? 'Отмена' : 'Bekor qilish'}
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={isLoading || isLoadingResumes || resumeError || !selectedResumeId}
-                        className="flex-1 bg-sky-500 hover:bg-sky-600 gap-2"
+                        className="flex-1 bg-primary hover:bg-primary gap-2"
                     >
                         {isLoading ? (
                             <>

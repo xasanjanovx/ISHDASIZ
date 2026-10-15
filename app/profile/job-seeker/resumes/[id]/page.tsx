@@ -405,13 +405,13 @@ function EditResumeContent() {
         finally { saveLock.current = false; if (alive.current) setSaving(false); }
     };
 
-    if (loadError) return <ProfileLayout userType="job_seeker"><div role="alert" className="space-y-4 rounded-xl border border-rose-200 bg-white p-6"><p>{resumeErrorText(loadError, lang)}</p><Button type="button" onClick={() => { setLoadError(null); setLoading(true); setRevision(value => value + 1); }}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button><Button type="button" variant="outline" asChild><Link href="/profile/job-seeker/resumes">{lang === 'ru' ? 'Мои резюме' : 'Mening rezyumelarim'}</Link></Button></div></ProfileLayout>;
+    if (loadError) return <ProfileLayout userType="job_seeker"><div role="alert" className="space-y-4 rounded-xl border border-rose-200 bg-card p-6"><p>{resumeErrorText(loadError, lang)}</p><Button type="button" onClick={() => { setLoadError(null); setLoading(true); setRevision(value => value + 1); }}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button><Button type="button" variant="outline" asChild><Link href="/profile/job-seeker/resumes">{lang === 'ru' ? 'Мои резюме' : 'Mening rezyumelarim'}</Link></Button></div></ProfileLayout>;
 
     if (loading) {
         return (
             <ProfileLayout userType="job_seeker" userName="Foydalanuvchi">
                 <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
             </ProfileLayout>
         );
@@ -426,7 +426,7 @@ function EditResumeContent() {
                     <Card className="w-full max-w-2xl animate-in fade-in zoom-in duration-200">
                         <CardHeader className="flex flex-row items-center justify-between pb-4">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+                                <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
                                     <Wand2 className="w-7 h-7 text-white" />
                                 </div>
                                 <div>
@@ -444,16 +444,16 @@ function EditResumeContent() {
                                 onChange={(e) => setAiPrompt(e.target.value)}
                                 placeholder={lang === 'ru' ? 'Я работал бухгалтером 3 года, знаю 1С, Excel...' : 'Masalan: Men 3 yil hisobchi bo\'lib ishlaganman, 1C, Excel dasturlarini bilaman...'}
                                 rows={8}
-                                className="text-base p-4 border-slate-200 focus:border-sky-500 transition-colors"
+                                className="text-base p-4 border-border focus:border-primary transition-colors"
                             />
                             <div className="flex justify-between items-center pt-2">
-                                <span className="text-sm text-slate-400">
+                                <span className="text-sm text-muted-foreground">
                                     {MAX_AI_USES - aiUsageCount} {lang === 'ru' ? 'попыток осталось' : 'ta imkoniyat qoldi'}
                                 </span>
                                 <Button type="button"
                                     onClick={handleAIGenerate}
                                     disabled={aiGenerating || !aiPrompt.trim()}
-                                    className="bg-sky-600 hover:bg-sky-700 px-8 h-11 text-base shadow-lg shadow-sky-500/20 transition-all hover:scale-[1.02]"
+                                    className="bg-primary hover:bg-primary px-8 h-11 text-base shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
                                 >
                                     {aiGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
                                     {lang === 'ru' ? 'Заполнить' : 'To\'ldirish'}
@@ -476,7 +476,7 @@ function EditResumeContent() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-900">
+                            <h1 className="text-2xl font-bold text-foreground">
                                 {lang === 'ru' ? 'Редактировать резюме' : 'Rezyume tahrirlash'}
                             </h1>
                         </div>
@@ -486,12 +486,12 @@ function EditResumeContent() {
                     <div className="w-full md:w-auto flex justify-center">
                         <Button type="button"
                             onClick={() => setShowAIModal(true)}
-                            className="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 gap-3 px-8 h-12 text-base shadow-lg shadow-sky-500/20 text-white transition-all hover:scale-[1.02]"
+                            className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary gap-3 px-8 h-12 text-base shadow-lg shadow-primary/20 text-white transition-all hover:scale-[1.02]"
                         >
                             <Wand2 className="w-5 h-5" />
                             <div className="flex flex-col items-center leading-tight">
-                                <span className="font-bold text-sm bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-200">AI Yordamchi</span>
-                                <span className="text-[10px] opacity-90 font-light">Sun&apos;iy intellekt yordamida to&apos;ldirish</span>
+                                <span className="font-bold text-sm bg-clip-text text-transparent bg-gradient-to-r from-card to-secondary">AI Yordamchi</span>
+                                <span className="text-xs opacity-90 font-light">Sun&apos;iy intellekt yordamida to&apos;ldirish</span>
                             </div>
                         </Button>
                     </div>
@@ -506,27 +506,27 @@ function EditResumeContent() {
                         <div className="lg:col-span-2 space-y-8">
 
                             {/* Target & Salary Card (New Top Section) */}
-                            <Card className="border-sky-100 shadow-sm">
-                                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg text-slate-800">
-                                        <Briefcase className="w-5 h-5 text-sky-600" />
+                            <Card className="border-border shadow-sm">
+                                <CardHeader className="bg-background/50 border-b border-border pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg text-foreground">
+                                        <Briefcase className="w-5 h-5 text-primary" />
                                         {lang === 'ru' ? 'Желаемая должность и Зарплата' : 'Istalgan lavozim va Maosh'}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6 pt-6">
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 font-semibold text-base">{lang === 'ru' ? 'Желаемая должность' : 'Istalgan lavozim'} <span className="text-red-500">*</span></Label>
+                                        <Label className="text-foreground font-semibold text-base">{lang === 'ru' ? 'Желаемая должность' : 'Istalgan lavozim'} <span className="text-red-500">*</span></Label>
                                         <Input
                                             placeholder={lang === 'ru' ? 'Например: Бухгалтер' : 'Masalan: Hisobchi'}
                                             aria-label={lang === 'ru' ? 'Название резюме' : 'Rezyume nomi'} value={form.title}
                                             onChange={(e) => setForm({ ...form, title: e.target.value })}
-                                            className="h-12 text-lg border-slate-300 focus:border-sky-500"
+                                            className="h-12 text-lg border-border focus:border-primary"
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <Label className="text-slate-700 font-medium">{lang === 'ru' ? 'Ожидаемая зарплата (UZS)' : 'Kutilayotgan maosh (UZS)'}</Label>
+                                            <Label className="text-foreground font-medium">{lang === 'ru' ? 'Ожидаемая зарплата (UZS)' : 'Kutilayotgan maosh (UZS)'}</Label>
                                             <div className="flex items-center gap-2">
                                                 <div className="relative w-full">
                                                     <Input
@@ -535,11 +535,11 @@ function EditResumeContent() {
                                                         onChange={(e) => handleSalaryChange(e.target.value, 'min')}
                                                         className="h-11 pl-3 font-medium"
                                                     />
-                                                    <span className="absolute right-3 top-3 text-xs text-slate-400">
+                                                    <span className="absolute right-3 top-3 text-xs text-muted-foreground">
                                                         {formatCurrency(form.salary_min)}
                                                     </span>
                                                 </div>
-                                                <span className="text-slate-400">-</span>
+                                                <span className="text-muted-foreground">-</span>
                                                 <div className="relative w-full">
                                                     <Input
                                                         placeholder="Max"
@@ -547,17 +547,17 @@ function EditResumeContent() {
                                                         onChange={(e) => handleSalaryChange(e.target.value, 'max')}
                                                         className="h-11 pl-3 font-medium"
                                                     />
-                                                    <span className="absolute right-3 top-3 text-xs text-slate-400">
+                                                    <span className="absolute right-3 top-3 text-xs text-muted-foreground">
                                                         {formatCurrency(form.salary_max)}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-slate-700 font-medium">
+                                            <Label className="text-foreground font-medium">
                                                 {lang === 'ru' ? 'Ближайшая профессия' : 'Lavozimga yaqin kasb'} <span className="text-red-500">*</span>
                                             </Label>
-                                            <select aria-label={lang === 'ru' ? 'Сфера деятельности' : 'Faoliyat sohasi'} value={form.category_id} onChange={event => { const value = event.target.value; setForm(previous => ({ ...previous, category_id: value })); setFieldCategory(categories.find(category => category.id === value) || null); setSelectedField(null); }} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                            <select aria-label={lang === 'ru' ? 'Сфера деятельности' : 'Faoliyat sohasi'} value={form.category_id} onChange={event => { const value = event.target.value; setForm(previous => ({ ...previous, category_id: value })); setFieldCategory(categories.find(category => category.id === value) || null); setSelectedField(null); }} className="w-full rounded-xl border border-border bg-card px-3 py-3">
                                                 <option value="">{lang === 'ru' ? 'Выберите сферу деятельности' : 'Faoliyat sohasini tanlang'}</option>
                                                 {categories.map(category => <option key={category.id} value={category.id}>{lang === 'ru' ? category.name_ru || category.name_uz : category.name_uz || category.name_ru}</option>)}
                                             </select>
@@ -573,14 +573,14 @@ function EditResumeContent() {
                                                 className="h-11"
                                             />
                                             {filteredFields.length > 0 && (!selectedField || normalizeField(fieldQuery) !== normalizeField(selectedField.title_uz || selectedField.title_ru || selectedField.title)) && (
-                                                <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+                                                <div className="max-h-72 overflow-y-auto rounded-lg border border-border bg-card shadow-sm">
                                                     {filteredFields.map(field => {
                                                         const label = field.title_uz || field.title_ru || field.title;
                                                         return (
                                                             <button
                                                                 key={String(field.id)}
                                                                 onClick={() => handleFieldPick(field)}
-                                                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                                                                className="w-full text-left px-3 py-2 text-sm hover:bg-background"
                                                             >
                                                                 {label}
                                                             </button>
@@ -589,7 +589,7 @@ function EditResumeContent() {
                                                 </div>
                                             )}
                                             {fieldCategory && (
-                                                <p className="text-xs text-slate-500">
+                                                <p className="text-xs text-muted-foreground">
                                                     {lang === 'ru' ? 'Сфера:' : 'Soha:'} {lang === 'uz' ? fieldCategory.name_uz : fieldCategory.name_ru}
                                                 </p>
                                             )}
@@ -602,14 +602,14 @@ function EditResumeContent() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-lg">
-                                        <User className="w-5 h-5 text-sky-500" />
+                                        <User className="w-5 h-5 text-primary" />
                                         {lang === 'ru' ? 'Личные данные' : 'Shaxsiy ma\'lumotlar'}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <Label className="text-slate-600">{lang === 'ru' ? 'ФИО' : 'To\'liq ismingiz'} *</Label>
+                                            <Label className="text-muted-foreground">{lang === 'ru' ? 'ФИО' : 'To\'liq ismingiz'} *</Label>
                                             <Input
                                                 aria-label={lang === 'ru' ? 'ФИО' : 'To‘liq ism'} value={form.full_name}
                                                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -617,7 +617,7 @@ function EditResumeContent() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-slate-600">{lang === 'ru' ? 'Телефон' : 'Telefon raqam'} *</Label>
+                                            <Label className="text-muted-foreground">{lang === 'ru' ? 'Телефон' : 'Telefon raqam'} *</Label>
                                             <Input
                                                 aria-label={lang === 'ru' ? 'Телефон' : 'Telefon'} value={form.phone}
                                                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -640,7 +640,7 @@ function EditResumeContent() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-slate-600">{lang === 'ru' ? 'Дата рождения' : 'Tug\'ilgan sana'}</Label>
+                                            <Label className="text-muted-foreground">{lang === 'ru' ? 'Дата рождения' : 'Tug\'ilgan sana'}</Label>
                                             <Input
                                                 type="date"
                                                 aria-label={lang === 'ru' ? 'Дата рождения' : 'Tug‘ilgan sana'} value={form.birth_date}
@@ -648,7 +648,7 @@ function EditResumeContent() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-slate-600">{lang === 'ru' ? 'Пол' : 'Jinsi'}</Label>
+                                            <Label className="text-muted-foreground">{lang === 'ru' ? 'Пол' : 'Jinsi'}</Label>
                                             <Select value={form.gender} onValueChange={(val) => setForm({ ...form, gender: val })}>
                                                 <SelectTrigger>
                                                     <SelectValue />
@@ -664,8 +664,8 @@ function EditResumeContent() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 pt-2 border-t border-slate-100 mt-4">
-                                        <Label className="text-slate-600 block mb-2 font-medium">{lang === 'ru' ? 'О себе' : 'O\'zingiz haqingizda'}</Label>
+                                    <div className="space-y-2 pt-2 border-t border-border mt-4">
+                                        <Label className="text-muted-foreground block mb-2 font-medium">{lang === 'ru' ? 'О себе' : 'O\'zingiz haqingizda'}</Label>
                                         <Textarea
                                             rows={5}
                                             placeholder={lang === 'ru' ? 'Коротко о ваших сильных сторонах...' : 'Kuchli tomonlaringiz, yutuqlaringiz va maqsadlaringiz haqida...'}
@@ -681,22 +681,22 @@ function EditResumeContent() {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="flex items-center gap-2 text-lg">
-                                        <Briefcase className="w-5 h-5 text-sky-500" />
+                                        <Briefcase className="w-5 h-5 text-primary" />
                                         {lang === 'ru' ? 'Опыт работы' : 'Ish tajribasi'}
                                     </CardTitle>
-                                    <Button type="button" variant="ghost" size="sm" onClick={addExperience} className="text-sky-600">
+                                    <Button type="button" variant="ghost" size="sm" onClick={addExperience} className="text-primary">
                                         <Plus className="w-4 h-4 mr-1" />
                                         {lang === 'ru' ? 'Добавить' : 'Qo\'shish'}
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    <label className="flex flex-wrap items-center gap-3 text-sm text-slate-600">{lang === 'ru' ? 'Общий стаж' : 'Umumiy tajriba'}
-                                        <select className="rounded-lg border border-slate-200 bg-white px-3 py-2" value={form.experience_level} onChange={event => setForm(previous => ({ ...previous, experience_level: event.target.value }))}>
+                                    <label className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">{lang === 'ru' ? 'Общий стаж' : 'Umumiy tajriba'}
+                                        <select className="rounded-lg border border-border bg-card px-3 py-2" value={form.experience_level} onChange={event => setForm(previous => ({ ...previous, experience_level: event.target.value }))}>
                                             {['no_experience', '1_year', '3_years', '5_years', '10_years'].map((value, index) => <option key={value} value={value}>{index === 0 ? (lang === 'ru' ? 'Без опыта' : 'Tajribasiz') : `${[0, 1, 3, 5, 10][index]} ${lang === 'ru' ? (index === 1 ? 'год' : 'лет') : 'yil'}`}</option>)}
                                         </select>
                                     </label>
                                     {experiences.map((exp, idx) => (
-                                        <div key={exp.id} className="p-5 rounded-xl border border-slate-100 bg-slate-50 space-y-4 relative transition-all hover:border-sky-100 hover:shadow-sm">
+                                        <div key={exp.id} className="p-5 rounded-xl border border-border bg-background space-y-4 relative transition-all hover:border-border hover:shadow-sm">
                                             <Button type="button"
                                                 variant="ghost"
                                                 size="icon"
@@ -707,48 +707,48 @@ function EditResumeContent() {
                                             </Button>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-1.5">
-                                                    <Label className="text-xs text-slate-500 font-semibold uppercase">{lang === 'ru' ? 'Место работы' : 'Ish joyi'}</Label>
+                                                    <Label className="text-xs text-muted-foreground font-semibold uppercase">{lang === 'ru' ? 'Место работы' : 'Ish joyi'}</Label>
                                                     <Input
                                                         value={exp.company}
                                                         onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
-                                                        className="bg-white"
+                                                        className="bg-card"
                                                         placeholder={lang === 'ru' ? 'Название компании' : 'Kompaniya nomi'}
                                                     />
                                                 </div>
                                                 <div className="space-y-1.5">
-                                                    <Label className="text-xs text-slate-500 font-semibold uppercase">{lang === 'ru' ? 'Должность' : 'Lavozim'}</Label>
+                                                    <Label className="text-xs text-muted-foreground font-semibold uppercase">{lang === 'ru' ? 'Должность' : 'Lavozim'}</Label>
                                                     <Input
                                                         value={exp.position}
                                                         onChange={(e) => updateExperience(exp.id, 'position', e.target.value)}
-                                                        className="bg-white"
+                                                        className="bg-card"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1.5">
-                                                    <Label className="text-xs text-slate-500 font-semibold uppercase">{lang === 'ru' ? 'Начало (Год)' : 'Boshlangan yili'}</Label>
-                                                    <Input type="number" value={exp.start_date} onChange={(e) => updateExperience(exp.id, 'start_date', e.target.value)} placeholder="2020" className="bg-white text-sm" />
+                                                    <Label className="text-xs text-muted-foreground font-semibold uppercase">{lang === 'ru' ? 'Начало (Год)' : 'Boshlangan yili'}</Label>
+                                                    <Input type="number" value={exp.start_date} onChange={(e) => updateExperience(exp.id, 'start_date', e.target.value)} placeholder="2020" className="bg-card text-sm" />
                                                 </div>
                                                 <div className="space-y-1.5">
-                                                    <Label className="text-xs text-slate-500 font-semibold uppercase">{lang === 'ru' ? 'Окончание (Год)' : 'Tugagan yili'}</Label>
-                                                    <Input type="number" value={exp.end_date} onChange={(e) => updateExperience(exp.id, 'end_date', e.target.value)} disabled={exp.is_current} placeholder={lang === 'ru' ? '2023 или пусто' : '2023 yoki bo\'sh'} className="bg-white text-sm" />
+                                                    <Label className="text-xs text-muted-foreground font-semibold uppercase">{lang === 'ru' ? 'Окончание (Год)' : 'Tugagan yili'}</Label>
+                                                    <Input type="number" value={exp.end_date} onChange={(e) => updateExperience(exp.id, 'end_date', e.target.value)} disabled={exp.is_current} placeholder={lang === 'ru' ? '2023 или пусто' : '2023 yoki bo\'sh'} className="bg-card text-sm" />
                                                 </div>
                                             </div>
                                             <div className="space-y-1.5">
-                                                <Label className="text-xs text-slate-500 font-semibold uppercase">{lang === 'ru' ? 'Обязанности' : 'Vazifalar'}</Label>
+                                                <Label className="text-xs text-muted-foreground font-semibold uppercase">{lang === 'ru' ? 'Обязанности' : 'Vazifalar'}</Label>
                                                 <Textarea
                                                     value={exp.description}
                                                     onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
                                                     rows={3}
-                                                    className="resize-y bg-white"
+                                                    className="resize-y bg-card"
                                                 />
                                             </div>
                                         </div>
                                     ))}
                                     {experiences.length === 0 && (
-                                        <div className="text-center py-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                                            <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                            <p className="text-slate-500 text-sm">
+                                        <div className="text-center py-6 bg-background/50 rounded-xl border border-dashed border-border">
+                                            <Briefcase className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                            <p className="text-muted-foreground text-sm">
                                                 {lang === 'ru' ? 'Добавьте опыт работы' : 'Ish tajribasi kiritilmagan'}
                                             </p>
                                         </div>
@@ -761,12 +761,12 @@ function EditResumeContent() {
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                                     <div className="space-y-1">
                                         <CardTitle className="flex items-center gap-2 text-lg">
-                                            <GraduationCap className="w-5 h-5 text-sky-500" />
+                                            <GraduationCap className="w-5 h-5 text-primary" />
                                             {lang === 'ru' ? 'Ваше образование' : 'Ma\'lumotingiz'}
                                         </CardTitle>
                                     </div>
                                     {form.education_level !== 'secondary' && (
-                                        <Button type="button" variant="ghost" size="sm" onClick={addEducation} className="text-sky-600">
+                                        <Button type="button" variant="ghost" size="sm" onClick={addEducation} className="text-primary">
                                             <Plus className="w-4 h-4 mr-1" />
                                             {lang === 'ru' ? 'Добавить' : 'Qo\'shish'}
                                         </Button>
@@ -775,13 +775,13 @@ function EditResumeContent() {
                                 <CardContent className="space-y-6">
 
                                     {/* Level Select Inside Card */}
-                                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                                        <Label className="mb-2 block text-sm font-medium text-slate-700">{lang === 'ru' ? 'Уровень образования' : 'Ma\'lumot darajasi'}</Label>
+                                    <div className="p-4 bg-background rounded-lg border border-border">
+                                        <Label className="mb-2 block text-sm font-medium text-foreground">{lang === 'ru' ? 'Уровень образования' : 'Ma\'lumot darajasi'}</Label>
                                         <Select
                                             value={form.education_level}
                                             onValueChange={(val) => { setForm({ ...form, education_level: val }); if (val !== 'secondary' && !educations.length) addEducation(); }}
                                         >
-                                            <SelectTrigger className="bg-white">
+                                            <SelectTrigger className="bg-card">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -797,7 +797,7 @@ function EditResumeContent() {
                                     {form.education_level !== 'secondary' ? (
                                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                                             {educations.map((edu, idx) => (
-                                                <div key={edu.id} className="p-5 rounded-xl border border-slate-100 bg-slate-50/50 space-y-4 relative">
+                                                <div key={edu.id} className="p-5 rounded-xl border border-border bg-background/50 space-y-4 relative">
                                                     <Button type="button"
                                                         variant="ghost"
                                                         size="icon"
@@ -811,31 +811,31 @@ function EditResumeContent() {
                                                             placeholder={lang === 'ru' ? 'Учебное заведение' : 'O\'quv yurti'}
                                                             value={edu.institution}
                                                             onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)}
-                                                            className="bg-white font-medium"
+                                                            className="bg-card font-medium"
                                                         />
                                                         <Input
                                                             placeholder={lang === 'ru' ? 'Факультет / Специальность' : 'Fakultet / Yo\'nalish'}
                                                             value={edu.field}
                                                             onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
-                                                            className="bg-white text-sm"
+                                                            className="bg-card text-sm"
                                                         />
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div className="space-y-1">
-                                                            <Label className="text-xs text-slate-500">{lang === 'ru' ? 'Начало' : 'Kirgan yili'}</Label>
-                                                            <Input type="number" value={edu.start_year} onChange={(e) => updateEducation(edu.id, 'start_year', e.target.value)} placeholder="2018" className="bg-white" />
+                                                            <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Начало' : 'Kirgan yili'}</Label>
+                                                            <Input type="number" value={edu.start_year} onChange={(e) => updateEducation(edu.id, 'start_year', e.target.value)} placeholder="2018" className="bg-card" />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <Label className="text-xs text-slate-500">{lang === 'ru' ? 'Окончание' : 'Bitirgan yili'}</Label>
-                                                            <Input type="number" value={edu.end_year} onChange={(e) => updateEducation(edu.id, 'end_year', e.target.value)} placeholder="2022" className="bg-white" />
+                                                            <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Окончание' : 'Bitirgan yili'}</Label>
+                                                            <Input type="number" value={edu.end_year} onChange={(e) => updateEducation(edu.id, 'end_year', e.target.value)} placeholder="2022" className="bg-card" />
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
                                             {educations.length === 0 && (
-                                                <div className="text-center py-6 border border-dashed border-slate-200 rounded-lg">
-                                                    <GraduationCap className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                                    <p className="text-slate-500 text-sm">{lang === 'ru' ? 'Укажите историю обучения' : 'O\'qish tarixini kiriting'}</p>
+                                                <div className="text-center py-6 border border-dashed border-border rounded-lg">
+                                                    <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                                    <p className="text-muted-foreground text-sm">{lang === 'ru' ? 'Укажите историю обучения' : 'O\'qish tarixini kiriting'}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -858,7 +858,7 @@ function EditResumeContent() {
                                 <Button type="button"
                                     onClick={() => handleSubmit(false)}
                                     disabled={saving}
-                                    className="w-full bg-sky-600 hover:bg-sky-700 text-white gap-2 h-12 text-base shadow-md transition-all hover:scale-[1.02]"
+                                    className="w-full bg-primary hover:bg-primary text-white gap-2 h-12 text-base shadow-md transition-all hover:scale-[1.02]"
                                 >
                                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                                     {lang === 'ru' ? 'Сохранить изменения' : 'Saqlash'}
@@ -870,7 +870,7 @@ function EditResumeContent() {
                             <Card>
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg flex items-center gap-2">
-                                        <Tag className="w-5 h-5 text-sky-500" />
+                                        <Tag className="w-5 h-5 text-primary" />
                                         {lang === 'ru' ? 'Навыки' : 'Ko\'nikmalar'}
                                     </CardTitle>
                                 </CardHeader>
@@ -888,7 +888,7 @@ function EditResumeContent() {
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {skills.map(skill => (
-                                            <Badge key={skill} variant="secondary" className="px-3 py-1 bg-white border cursor-default flex items-center gap-2">
+                                            <Badge key={skill} variant="secondary" className="px-3 py-1 bg-card border cursor-default flex items-center gap-2">
                                                 {skill}
                                                 <button onClick={() => removeSkill(skill)} className="hover:text-red-500 transition-colors">
                                                     <X className="w-3 h-3" />
@@ -903,13 +903,13 @@ function EditResumeContent() {
                             <Card>
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg flex items-center gap-2">
-                                        <Languages className="w-5 h-5 text-sky-500" />
+                                        <Languages className="w-5 h-5 text-primary" />
                                         {lang === 'ru' ? 'Языки' : 'Tillar'}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {languages.map(langItem => (
-                                        <div key={langItem.id} className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg relative group border border-slate-100">
+                                        <div key={langItem.id} className="flex flex-col gap-2 p-3 bg-background rounded-lg relative group border border-border">
                                             <Button type="button"
                                                 variant="ghost"
                                                 size="icon"
@@ -924,7 +924,7 @@ function EditResumeContent() {
                                                     value={langItem.name}
                                                     onValueChange={(val) => updateLanguage(langItem.id, 'name', val)}
                                                 >
-                                                    <SelectTrigger className="h-9 bg-white">
+                                                    <SelectTrigger className="h-9 bg-card">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -941,7 +941,7 @@ function EditResumeContent() {
                                                     value={langItem.level}
                                                     onValueChange={(value) => updateLanguage(langItem.id, 'level', value)}
                                                 >
-                                                    <SelectTrigger className="h-9 bg-white">
+                                                    <SelectTrigger className="h-9 bg-card">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -955,7 +955,7 @@ function EditResumeContent() {
                                             </div>
                                         </div>
                                     ))}
-                                    <Button type="button" variant="outline" size="sm" onClick={addLanguage} className="w-full text-sky-600 border-sky-200 border-dashed hover:bg-sky-50">
+                                    <Button type="button" variant="outline" size="sm" onClick={addLanguage} className="w-full text-primary border-border border-dashed hover:bg-accent">
                                         <Plus className="w-4 h-4 mr-2" />
                                         {lang === 'ru' ? 'Добавить язык' : 'Til qo\'shish'}
                                     </Button>

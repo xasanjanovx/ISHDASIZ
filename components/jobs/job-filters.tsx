@@ -146,7 +146,7 @@ export function JobFilters({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="w-5 h-5 text-sky-600" />
+            <Filter className="w-5 h-5 text-primary" />
             {t.filters.title}
           </CardTitle>
           {hasActiveFilters && (
@@ -154,7 +154,7 @@ export function JobFilters({
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              className="text-slate-500 hover:text-slate-700 -mr-2"
+              className="text-muted-foreground hover:text-foreground -mr-2"
             >
               <X className="w-4 h-4 mr-1" />
               {t.filters.clear}
@@ -424,7 +424,7 @@ export function JobFilters({
                 />
                 <Label
                   htmlFor={`cat-${cat.slug}`}
-                  className="text-sm font-normal leading-tight cursor-pointer text-slate-600"
+                  className="text-sm font-normal leading-tight cursor-pointer text-muted-foreground"
                 >
                   {lang === 'uz' ? cat.label_uz : cat.label_ru}
                 </Label>

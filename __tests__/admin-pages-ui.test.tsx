@@ -6,7 +6,7 @@ import {accountApi,AccountApiError} from '@/lib/account-api';
 const mockAdminRequest=jest.fn(),mockPush=jest.fn();let mockAuth:any,mockLang='ru';
 jest.mock('@/contexts/auth-context',()=>({useAuth:()=>mockAuth}));
 jest.mock('@/contexts/language-context',()=>({useLanguage:()=>({lang:mockLang})}));
-jest.mock('next/navigation',()=>({useRouter:()=>({push:mockPush})}));
+jest.mock('next/navigation',()=>({usePathname:()=>'/admin',useRouter:()=>({push:mockPush})}));
 jest.mock('@/lib/admin-api',()=>({...jest.requireActual('@/lib/admin-api'),adminApi:(token:string,...args:any[])=>mockAdminRequest(token,...args)}));
 jest.mock('@/lib/account-api',()=>({...jest.requireActual('@/lib/account-api'),accountApi:jest.fn()}));
 jest.mock('@/components/profile/vacancy-ai',()=>({VacancyAI:({endpoint}:any)=><p>{endpoint}</p>}));

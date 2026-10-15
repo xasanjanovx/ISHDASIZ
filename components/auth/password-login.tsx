@@ -158,13 +158,13 @@ export function PasswordLogin() {
             }}>{lang==='ru'?'Восстановить аккаунт по SMS':'Akkauntni SMS orqali tiklash'}</Button>}
             {/* Header */}
             <div className="text-center space-y-2">
-                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg shadow-sky-500/30">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg shadow-primary/30">
                     <Lock className="w-7 h-7 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-foreground">
                     {lang === 'ru' ? 'Вход' : 'Kirish'}
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                     {formattedPhone}
                 </p>
             </div>
@@ -203,7 +203,7 @@ export function PasswordLogin() {
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                     >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -214,7 +214,7 @@ export function PasswordLogin() {
             <div className="text-center">
                 <button
                     onClick={handleForgotPassword}
-                    className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                    className="text-sm text-primary hover:text-primary hover:underline"
                 >
                     {lang === 'ru' ? 'Забыли пароль?' : 'Parolni unutdingizmi?'}
                 </button>
@@ -227,8 +227,8 @@ export function PasswordLogin() {
                 className={`
                     w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300
                     ${password.trim() && attemptsRemaining !== 0
-                        ? 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 shadow-lg shadow-sky-500/25'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary shadow-lg shadow-primary/25'
+                        : 'bg-secondary text-muted-foreground cursor-not-allowed'
                     }
                 `}
             >

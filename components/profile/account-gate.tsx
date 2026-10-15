@@ -10,5 +10,5 @@ export function AccountGate({ children, role = 'job_seeker' }: { children: React
   const { user, isLoading } = useUserAuth(); const { lang } = useLanguage(); const { openModal } = useAuthModal();
   if (isLoading) return <PageLoading />;
   if (user) return <Fragment key={`${user.id}:${role}`}>{children}</Fragment>;
-  return <ProfileLayout userType={role}><div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-8 text-center"><h1 className="text-xl font-semibold">{lang === 'ru' ? 'Войдите, чтобы открыть личный кабинет' : 'Shaxsiy kabinetni ochish uchun kiring'}</h1><Button onClick={openModal}>{lang === 'ru' ? 'Войти' : 'Kirish'}</Button></div></ProfileLayout>;
+  return <ProfileLayout userType={role}><div className="space-y-4 rounded-2xl border border-border bg-card p-8 text-center"><h1 className="text-xl font-semibold">{lang === 'ru' ? 'Войдите, чтобы открыть личный кабинет' : 'Shaxsiy kabinetni ochish uchun kiring'}</h1><Button onClick={openModal}>{lang === 'ru' ? 'Войти' : 'Kirish'}</Button></div></ProfileLayout>;
 }

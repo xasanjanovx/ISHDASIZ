@@ -71,13 +71,13 @@ export function PasswordCreate() {
         <div className="space-y-5">
             {/* Header */}
             <div className="text-center space-y-2">
-                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg shadow-primary/30">
                     <Lock className="w-7 h-7 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-foreground">
                     {lang === 'ru' ? 'Создайте пароль' : 'Parol yarating'}
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                     {lang === 'ru' ? 'Минимум 6 символов' : 'Kamida 6 ta belgi'}
                 </p>
             </div>
@@ -97,7 +97,7 @@ export function PasswordCreate() {
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                     >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -108,7 +108,7 @@ export function PasswordCreate() {
                     </p>
                 )}
                 {isPasswordValid && (
-                    <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    <p className="text-xs text-primary flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
                         {lang === 'ru' ? 'Пароль подходит' : 'Parol mos'}
                     </p>
@@ -129,7 +129,7 @@ export function PasswordCreate() {
                     <button
                         type="button"
                         onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                     >
                         {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -140,7 +140,7 @@ export function PasswordCreate() {
                     </p>
                 )}
                 {confirmPassword.length > 0 && doPasswordsMatch && (
-                    <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    <p className="text-xs text-primary flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
                         {lang === 'ru' ? 'Пароли совпадают' : 'Parollar mos'}
                     </p>
@@ -154,8 +154,8 @@ export function PasswordCreate() {
                 className={`
                     w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300
                     ${canSubmit
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary shadow-lg shadow-primary/25'
+                        : 'bg-secondary text-muted-foreground cursor-not-allowed'
                     }
                 `}
             >

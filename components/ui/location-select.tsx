@@ -63,7 +63,7 @@ export function LocationSelect({ selectedRegion, selectedDistrict, onRegionChang
             <Select value={regionKey || (showAllOption ? 'all' : '')} disabled={disabled || regionsLoading} onValueChange={value => {
                 onRegionChange(value); if (value === 'all') onDistrictChange('all');
             }}>
-                <SelectTrigger id={`${id}-region`} aria-label={regionLabel} className="h-12 bg-white rounded-xl">
+                <SelectTrigger id={`${id}-region`} aria-label={regionLabel} className="h-12 bg-card rounded-xl">
                     <SelectValue placeholder={showAllOption ? all : lang === 'ru' ? 'Выберите регион' : 'Viloyatni tanlang'} />
                 </SelectTrigger>
                 <SelectContent>{showAllOption && <SelectItem value="all">{all}</SelectItem>}{regions.map(region => <SelectItem key={region.id} value={String(region.id)}>{lang === 'ru' ? region.name_ru : region.name_uz}</SelectItem>)}</SelectContent>
@@ -73,7 +73,7 @@ export function LocationSelect({ selectedRegion, selectedDistrict, onRegionChang
         <div className="space-y-2">
             {showLabels && <Label htmlFor={`${id}-district`}>{districtLabel} {required && '*'}</Label>}
             <Select value={selectedDistrict?.toString() || (showAllOption ? 'all' : '')} onValueChange={onDistrictChange} disabled={disabled || !validRegion || districtsLoading || Boolean(districtError)}>
-                <SelectTrigger id={`${id}-district`} aria-label={districtLabel} className="h-12 bg-white rounded-xl"><SelectValue placeholder={!validRegion ? (showAllOption ? all : '—') : lang === 'ru' ? 'Выберите район' : 'Tumanni tanlang'} /></SelectTrigger>
+                <SelectTrigger id={`${id}-district`} aria-label={districtLabel} className="h-12 bg-card rounded-xl"><SelectValue placeholder={!validRegion ? (showAllOption ? all : '—') : lang === 'ru' ? 'Выберите район' : 'Tumanni tanlang'} /></SelectTrigger>
                 <SelectContent>{showAllOption && <SelectItem value="all">{all}</SelectItem>}{districts.map(district => <SelectItem key={district.id} value={String(district.id)}>{lang === 'ru' ? district.name_ru : district.name_uz}</SelectItem>)}</SelectContent>
             </Select>
             {districtError && <div role="alert" className="space-y-2 text-sm text-red-700"><p>{lang === 'ru' ? 'Не удалось загрузить районы.' : 'Tumanlarni yuklab bo‘lmadi.'}</p><Button type="button" variant="outline" onClick={() => setDistrictRevision(value => value + 1)}>{lang === 'ru' ? 'Повторить районы' : 'Tumanlarni qayta yuklash'}</Button></div>}

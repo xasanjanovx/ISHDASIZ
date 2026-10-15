@@ -55,15 +55,15 @@ export function AiAssistantWidget() {
                         initial={{ opacity: 0, x: 20, scale: 0.8 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="bg-white px-4 py-3 rounded-2xl rounded-tr-sm shadow-xl border border-blue-100 max-w-[200px] text-sm text-slate-700 font-medium relative mr-2"
+                        className="bg-card px-4 py-3 rounded-2xl rounded-tr-sm shadow-xl border border-border max-w-[200px] text-sm text-foreground font-medium relative mr-2"
                     >
                         <div className="absolute -right-2 top-0 w-0 h-0 border-t-[10px] border-t-white border-r-[10px] border-r-transparent" />
                         {lang === 'uz' ? 'Men sizga ish topishda yordam beraman!' : 'Я помогу вам найти работу!'}
                         <button
                             onClick={() => setShowGreeting(false)}
-                            className="absolute -top-2 -left-2 bg-slate-100 hover:bg-slate-200 rounded-full p-0.5"
+                            className="absolute -top-2 -left-2 bg-secondary hover:bg-secondary rounded-full p-0.5"
                         >
-                            <X className="w-3 h-3 text-slate-400" />
+                            <X className="w-3 h-3 text-muted-foreground" />
                         </button>
                     </motion.div>
                 )}
@@ -76,10 +76,10 @@ export function AiAssistantWidget() {
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="w-[350px] md:w-[400px] h-[500px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+                        className="w-[350px] md:w-[400px] h-[500px] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col"
                     >
                         {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between text-white">
+                        <div className="bg-gradient-to-r from-primary to-primary p-4 flex items-center justify-between text-white">
                             <div className="flex items-center gap-2">
                                 <Image src="/ai-sparkle.png" alt="AI" width={32} height={32} className="w-8 h-8" />
                                 <div>
@@ -90,15 +90,15 @@ export function AiAssistantWidget() {
                                     </div>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 rounded-full" onClick={toggleChat}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-card/20 rounded-full" onClick={toggleChat}>
                                 <X className="w-5 h-5" />
                             </Button>
                         </div>
 
                         {/* Welcome Message */}
-                        <div className="flex-1 p-4 bg-slate-50 flex flex-col items-center justify-center text-center">
+                        <div className="flex-1 p-4 bg-background flex flex-col items-center justify-center text-center">
                             <Image src="/ai-sparkle.png" alt="AI" width={48} height={48} className="w-12 h-12 mb-3" />
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-muted-foreground">
                                 {lang === 'uz'
                                     ? "Salom! Men sizga mos ish topishda yordam beraman. Menga qanday ish qidirayotganingizni yozing."
                                     : "Привет! Я помогу вам найти подходящую работу. Напишите мне, какую работу вы ищете."}
@@ -106,7 +106,7 @@ export function AiAssistantWidget() {
                         </div>
 
                         {/* Input */}
-                        <div className="p-3 bg-white border-t border-slate-100">
+                        <div className="p-3 bg-card border-t border-border">
                             <form
                                 onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                                 className="flex gap-2"
@@ -115,9 +115,9 @@ export function AiAssistantWidget() {
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     placeholder="Yozing..."
-                                    className="flex-1 h-10 text-sm bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
+                                    className="flex-1 h-10 text-sm bg-background border-border focus-visible:ring-primary"
                                 />
-                                <Button type="submit" size="icon" className="h-10 w-10 shrink-0 bg-blue-600 hover:bg-blue-700 rounded-lg">
+                                <Button type="submit" size="icon" className="h-10 w-10 shrink-0 bg-primary hover:bg-primary rounded-lg">
                                     <Send className="w-4 h-4" />
                                 </Button>
                             </form>
@@ -131,7 +131,7 @@ export function AiAssistantWidget() {
                 onClick={toggleChat}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-2xl shadow-blue-600/30 flex items-center justify-center relative overflow-hidden"
+                className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-primary text-white shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
             >
                 {isOpen ? <X className="w-7 h-7" /> : <Image src="/ai-sparkle.png" alt="AI" width={36} height={36} className="w-9 h-9 brightness-0 invert" />}
             </motion.button>

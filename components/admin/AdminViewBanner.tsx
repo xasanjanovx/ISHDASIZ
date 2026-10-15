@@ -32,7 +32,7 @@ export function AdminViewBanner() {
                 </div>
                 <Link
                     href="/admin"
-                    className="flex items-center gap-1 text-sm font-medium bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
+                    className="flex items-center gap-1 text-sm font-medium bg-card/20 hover:bg-card/30 px-3 py-1 rounded-full transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     {lang === 'ru' ? 'В админ панель' : 'Admin panelga qaytish'}

@@ -25,7 +25,7 @@ export function JobDetailSkeleton() {
                     </div>
 
                     {/* Company Card */}
-                    <div className="bg-white rounded-xl border p-6 space-y-4">
+                    <div className="bg-card rounded-xl border p-6 space-y-4">
                         <div className="flex items-center gap-4">
                             <Skeleton className="h-16 w-16 rounded-xl" />
                             <div className="flex-1 space-y-2">
@@ -36,7 +36,7 @@ export function JobDetailSkeleton() {
                     </div>
 
                     {/* Description */}
-                    <div className="bg-white rounded-xl border p-6 space-y-4">
+                    <div className="bg-card rounded-xl border p-6 space-y-4">
                         <Skeleton className="h-6 w-32" />
                         <div className="space-y-3">
                             <Skeleton className="h-4 w-full" />
@@ -58,14 +58,14 @@ export function JobDetailSkeleton() {
                 {/* Sidebar */}
                 <div className="space-y-6">
                     {/* Salary Card */}
-                    <div className="bg-white rounded-xl border p-6 space-y-4">
+                    <div className="bg-card rounded-xl border p-6 space-y-4">
                         <Skeleton className="h-6 w-24" />
                         <Skeleton className="h-10 w-full" />
                         <Skeleton className="h-12 w-full rounded-lg" />
                     </div>
 
                     {/* Details Card */}
-                    <div className="bg-white rounded-xl border p-6 space-y-4">
+                    <div className="bg-card rounded-xl border p-6 space-y-4">
                         <Skeleton className="h-6 w-32" />
                         <div className="space-y-3">
                             {[...Array(4)].map((_, i) => (
@@ -78,7 +78,7 @@ export function JobDetailSkeleton() {
                     </div>
 
                     {/* Share Card */}
-                    <div className="bg-white rounded-xl border p-6 space-y-4">
+                    <div className="bg-card rounded-xl border p-6 space-y-4">
                         <Skeleton className="h-6 w-28" />
                         <div className="flex gap-2">
                             <Skeleton className="h-10 w-10 rounded-lg" />

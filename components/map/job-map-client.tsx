@@ -104,7 +104,7 @@ export default function JobMapClient({
                 <p className="font-medium text-sm">
                   {lang === 'uz' ? 'Tanlangan joy' : 'Выбранное место'}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {validMarker.lat.toFixed(4)}, {validMarker.lng.toFixed(4)}
                 </p>
               </div>
@@ -128,8 +128,8 @@ export default function JobMapClient({
             >
               <Popup>
                 <div className="p-3 min-w-[200px]">
-                  <h3 className="font-semibold text-slate-900 mb-1">{title}</h3>
-                  <p className="text-sm text-slate-600 flex items-center gap-1 mb-1">
+                  <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
                     <Building2 className="w-3.5 h-3.5" />
                     {job.company_name}
                   </p>
@@ -138,7 +138,7 @@ export default function JobMapClient({
                     {formatSalary(job.salary_min, job.salary_max, lang)}
                   </p>
                   {job.address && (
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mb-3">
                       <MapPin className="w-3 h-3" />
                       {job.address}
                     </p>

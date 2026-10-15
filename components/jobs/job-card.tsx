@@ -77,7 +77,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
   const specialCategories = getActiveSpecialCategories(job);
 
   return (
-    <Card className="group relative h-full hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-200 overflow-hidden border-slate-200 hover:border-blue-300 bg-white rounded-2xl">
+    <Card className="catalog-job-card group relative h-full hover:shadow-lg hover:shadow-foreground/50 transition-all duration-200 overflow-hidden border-border hover:border-border bg-card rounded-2xl">
       {/* Gradient left accent — blue to teal */}
 
       <Link href={`/jobs/${job.id}`} className="absolute inset-0 z-0" aria-label={title} />
@@ -87,14 +87,14 @@ export function JobCard({ job, compact = false }: JobCardProps) {
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex min-w-0 items-start gap-3 flex-1">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center text-slate-500 group-hover:text-blue-600 group-hover:from-blue-50 group-hover:to-indigo-50 transition-all duration-300 shrink-0 group-hover:scale-105 shadow-sm">
+              <div className="catalog-company-icon w-11 h-11 rounded-xl bg-gradient-to-br from-background to-secondary flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:from-accent group-hover:to-accent transition-all duration-300 shrink-0 group-hover:scale-105 shadow-sm">
                 <IconComponent className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0 pt-0.5">
-                <h3 className="font-semibold text-base text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug mb-1">
+                <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-1">
                   {title}
                 </h3>
-                <div className="flex items-center gap-1.5 text-slate-500">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Building2 className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-sm line-clamp-1">{job.company_name}</span>
                 </div>
@@ -102,7 +102,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
             </div>
             {/* Salary badge — green accent */}
             <div className={compact ? 'hidden' : 'hidden md:block text-right shrink-0'}>
-              <div className="text-sm font-bold text-emerald-700 bg-gradient-to-br from-emerald-50 to-emerald-100/50 px-3 py-1.5 rounded-lg border border-emerald-200/60 shadow-sm">
+              <div className="catalog-salary text-sm font-bold text-primary bg-accent px-3 py-1.5 rounded-lg border border-emerald-200/60 shadow-sm">
                 {formatSalary(job.salary_min, job.salary_max, lang)}
               </div>
             </div>
@@ -110,42 +110,42 @@ export function JobCard({ job, compact = false }: JobCardProps) {
 
           {/* Description */}
           {description && (
-            <p className="text-sm text-slate-500 line-clamp-2 mb-3 leading-relaxed">
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
               {description}
             </p>
           )}
 
           {/* Metadata Pills — differentiated subtle colors */}
-          <div className="flex flex-wrap items-center gap-1.5 mb-3 text-xs font-medium">
+          <div className="catalog-meta flex flex-wrap items-center gap-1.5 mb-3 text-xs font-medium">
             {locationLabel && (
-              <div className="flex items-center gap-1 bg-teal-50/60 text-teal-700 px-2 py-1 rounded-md border border-teal-200/50">
-                <MapPin className="w-3 h-3 shrink-0 text-teal-500" />
+              <div className="flex items-center gap-1 bg-accent/60 text-primary px-2 py-1 rounded-md border border-border/50">
+                <MapPin className="w-3 h-3 shrink-0 text-primary" />
                 <span>{locationLabel}</span>
               </div>
             )}
             {categoryName && (
-              <div className="bg-blue-50/60 text-blue-700 px-2 py-1 rounded-md border border-blue-200/50">
+              <div className="bg-accent/60 text-primary px-2 py-1 rounded-md border border-border/50">
                 {categoryName}
               </div>
             )}
-            <div className="flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-1 rounded-md border border-slate-200/60">
-              <Clock className="w-3 h-3 text-slate-400" />
+            <div className="flex items-center gap-1 bg-background text-muted-foreground px-2 py-1 rounded-md border border-border/60">
+              <Clock className="w-3 h-3 text-muted-foreground" />
               {employmentLabel}
             </div>
             {job.work_mode && job.work_mode !== 'onsite' && (
-              <div className="flex items-center gap-1.5 bg-indigo-50/60 text-indigo-700 px-2 py-1 rounded-md border border-indigo-200/50">
+              <div className="flex items-center gap-1.5 bg-accent/60 text-primary px-2 py-1 rounded-md border border-border/50">
                 {/* Animated pulse dot for remote */}
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
                 </span>
                 {job.work_mode === 'remote' && (lang === 'uz' ? 'Masofaviy' : 'Удалённо')}
                 {job.work_mode === 'hybrid' && (lang === 'uz' ? 'Aralash' : 'Гибрид')}
               </div>
             )}
             {job.payment_type && job.payment_type !== 1 && (
-              <div className="flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-1 rounded-md border border-slate-200/60">
-                <Wallet className="w-3 h-3 text-slate-400" />
+              <div className="flex items-center gap-1 bg-background text-muted-foreground px-2 py-1 rounded-md border border-border/60">
+                <Wallet className="w-3 h-3 text-muted-foreground" />
                 <span>
                   {getMappedValue('payment_type', typeof job.payment_type === 'number' ? job.payment_type : undefined, lang) ||
                     (typeof job.payment_type === 'string' ? job.payment_type :
@@ -158,7 +158,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
 
           {/* Mobile salary */}
           <div className={compact ? 'mb-3' : 'md:hidden mb-3'}>
-            <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/60">
+            <span className="catalog-salary text-sm font-bold text-primary bg-accent px-2.5 py-1 rounded-md border border-emerald-200/60">
               {formatSalary(job.salary_min, job.salary_max, lang)}
             </span>
           </div>
@@ -168,7 +168,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
             <div className="flex flex-wrap items-center gap-1.5 mb-4 relative z-10">
               {specialCategories.map((cat: any) => (
                 <Link key={cat.key} href={`/jobs?special=${cat.slug}`} onClick={(e) => e.stopPropagation()}>
-                  <Badge className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200/50 hover:from-blue-100 hover:to-indigo-100 transition-all py-0.5 px-2.5 font-semibold">
+                  <Badge className="text-xs bg-gradient-to-r from-accent to-accent text-primary border border-border/50 hover:from-accent hover:to-accent transition-all py-0.5 px-2.5 font-semibold">
                     {lang === 'ru' ? cat.badge_ru : cat.badge_uz}
                   </Badge>
                 </Link>
@@ -177,8 +177,8 @@ export function JobCard({ job, compact = false }: JobCardProps) {
           )}
 
           {/* Footer */}
-          <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100/80">
-            <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/80">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-3 h-3" />
                 {formatDate(job.created_at, lang)}
@@ -193,7 +193,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1 text-blue-600 text-xs font-bold group-hover:gap-2 transition-all duration-300">
+            <div className="flex items-center gap-1 text-primary text-xs font-bold group-hover:gap-2 transition-all duration-300">
               {t.job.details}
               <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />

@@ -181,7 +181,7 @@ export function SeekerQuestionnaire() {
                         {STEPS.map((_, i) => (
                             <div
                                 key={i}
-                                className={`flex-1 h-1 rounded-full ${i <= currentStep ? 'bg-sky-500' : 'bg-slate-200'
+                                className={`flex-1 h-1 rounded-full ${i <= currentStep ? 'bg-primary' : 'bg-secondary'
                                     }`}
                             />
                         ))}
@@ -191,12 +191,12 @@ export function SeekerQuestionnaire() {
                     {step === 'district' && (
                         <div>
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
-                                    <MapPin className="w-5 h-5 text-sky-600" />
+                                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                                    <MapPin className="w-5 h-5 text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-900">{t.district.title}</h3>
-                                    <p className="text-sm text-slate-500">{t.district.subtitle}</p>
+                                    <h3 className="font-semibold text-foreground">{t.district.title}</h3>
+                                    <p className="text-sm text-muted-foreground">{t.district.subtitle}</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -205,8 +205,8 @@ export function SeekerQuestionnaire() {
                                         key={d.id}
                                         onClick={() => setSelectedDistrict(d.id.toString())}
                                         className={`p-2 rounded-lg text-center text-sm transition-all ${selectedDistrict === d.id.toString()
-                                            ? 'bg-sky-500 text-white'
-                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                            ? 'bg-primary text-white'
+                                            : 'bg-secondary hover:bg-secondary text-foreground'
                                             }`}
                                     >
                                         {lang === 'ru' ? d.name_ru : d.name_uz}
@@ -224,8 +224,8 @@ export function SeekerQuestionnaire() {
                                     <Briefcase className="w-5 h-5 text-emerald-600" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-900">{t.category.title}</h3>
-                                    <p className="text-sm text-slate-500">{t.category.subtitle}</p>
+                                    <h3 className="font-semibold text-foreground">{t.category.title}</h3>
+                                    <p className="text-sm text-muted-foreground">{t.category.subtitle}</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -241,7 +241,7 @@ export function SeekerQuestionnaire() {
                                         }}
                                         className={`p-3 rounded-lg text-left text-sm transition-all ${selectedCategories.includes(c.id)
                                             ? 'bg-emerald-500 text-white'
-                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                            : 'bg-secondary hover:bg-secondary text-foreground'
                                             }`}
                                     >
                                         {lang === 'ru' ? c.name_ru : c.name_uz}
@@ -259,14 +259,14 @@ export function SeekerQuestionnaire() {
                                     <Wallet className="w-5 h-5 text-amber-600" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-900">{t.salary.title}</h3>
-                                    <p className="text-sm text-slate-500">{t.salary.subtitle}</p>
+                                    <h3 className="font-semibold text-foreground">{t.salary.title}</h3>
+                                    <p className="text-sm text-muted-foreground">{t.salary.subtitle}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
                                 <div className="text-center">
-                                    <span className="text-3xl font-bold text-slate-900">
+                                    <span className="text-3xl font-bold text-foreground">
                                         {formatSalary(selectedSalary)}
                                     </span>
                                 </div>
@@ -282,7 +282,7 @@ export function SeekerQuestionnaire() {
                                     />
                                 </div>
 
-                                <div className="flex justify-between text-xs text-slate-400 px-2">
+                                <div className="flex justify-between text-xs text-muted-foreground px-2">
                                     <span>{t.salary.negotiable}</span>
                                     <span>15 {t.salary.million}</span>
                                 </div>
@@ -293,10 +293,10 @@ export function SeekerQuestionnaire() {
                     {/* Geolocation Step */}
                     {step === 'geolocation' && (
                         <div className="text-center py-6">
-                            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-sky-100 flex items-center justify-center">
-                                <Navigation className="w-8 h-8 text-sky-600" />
+                            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-accent flex items-center justify-center">
+                                <Navigation className="w-8 h-8 text-primary" />
                             </div>
-                            <p className="text-slate-700 mb-8 text-lg leading-relaxed">
+                            <p className="text-foreground mb-8 text-lg leading-relaxed">
                                 {t.geolocation.title}
                             </p>
                             <Button

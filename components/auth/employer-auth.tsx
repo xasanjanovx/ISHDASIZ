@@ -108,13 +108,13 @@ export function EmployerAuth() {
         <div className="space-y-4">
             {/* Header */}
             <div className="text-center space-y-1">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg shadow-primary/30">
                     <Building2 className="w-7 h-7 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-foreground">
                     {lang === 'ru' ? 'Вход для работодателя' : 'Ish beruvchi sifatida kirish'}
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                     {lang === 'ru' ? 'Введите номер телефона' : 'Telefon raqamingizni kiriting'}
                 </p>
             </div>
@@ -131,11 +131,11 @@ export function EmployerAuth() {
 
             {/* Phone Input */}
             <div className="space-y-2">
-                <Label htmlFor="employer-login-phone" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="employer-login-phone" className="text-sm font-medium text-foreground">
                     {lang === 'ru' ? 'Номер телефона' : 'Telefon raqami'}
                 </Label>
                 <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-600 font-medium pointer-events-none text-sm">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-muted-foreground font-medium pointer-events-none text-sm">
                         <span>🇺🇿</span>
                         <span>+998</span>
                     </div>
@@ -146,7 +146,7 @@ export function EmployerAuth() {
                         value={phone}
                         onChange={handlePhoneChange}
                         placeholder="91 234-56-78"
-                        className="pl-20 h-12 text-base font-medium rounded-xl border-slate-200 focus:border-violet-500 focus:ring-violet-500/20"
+                        className="pl-20 h-12 text-base font-medium rounded-xl border-border focus:border-primary focus:ring-primary/20"
                         autoFocus
                     />
                 </div>
@@ -159,8 +159,8 @@ export function EmployerAuth() {
                 className={`
                     w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300
                     ${isPhoneValid
-                        ? 'bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/25'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary shadow-lg shadow-primary/25'
+                        : 'bg-secondary text-muted-foreground cursor-not-allowed'
                     }
                 `}
             >
@@ -180,10 +180,10 @@ export function EmployerAuth() {
             {/* Divider */}
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200" />
+                    <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-3 bg-white text-slate-400">
+                    <span className="px-3 bg-card text-muted-foreground">
                         {lang === 'ru' ? 'или войти через' : 'yoki orqali kirish'}
                     </span>
                 </div>
@@ -193,26 +193,26 @@ export function EmployerAuth() {
             <div className="grid grid-cols-2 gap-3">
                 <Button
                     variant="outline"
-                    className="h-12 rounded-xl border-sky-200 bg-sky-50/50 hover:bg-sky-100 hover:border-sky-300"
+                    className="h-12 rounded-xl border-border bg-accent/50 hover:bg-accent hover:border-border"
                     onClick={handleOneIdClick}
                 >
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-sky-500 flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
                             <Fingerprint className="w-4 h-4 text-white" />
                         </div>
-                        <span className="font-medium text-sm text-slate-700">OneID</span>
+                        <span className="font-medium text-sm text-foreground">OneID</span>
                     </div>
                 </Button>
                 <Button
                     variant="outline"
-                    className="h-12 rounded-xl border-violet-200 bg-violet-50/50 hover:bg-violet-100 hover:border-violet-300"
+                    className="h-12 rounded-xl border-border bg-accent/50 hover:bg-accent hover:border-border"
                     onClick={handleEriClick}
                 >
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-violet-500 flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
                             <Key className="w-4 h-4 text-white" />
                         </div>
-                        <span className="font-medium text-sm text-slate-700">ERI</span>
+                        <span className="font-medium text-sm text-foreground">ERI</span>
                     </div>
                 </Button>
             </div>

@@ -9,6 +9,7 @@ const config = {
   ],
   theme: {
     extend: {
+      fontSize: { xs: ['0.8125rem', { lineHeight: '1.5' }], sm: ['0.9375rem', { lineHeight: '1.6' }], base: ['1rem', { lineHeight: '1.65' }] },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
