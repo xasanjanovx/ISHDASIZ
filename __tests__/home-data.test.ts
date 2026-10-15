@@ -9,16 +9,16 @@ function fixture(countError = false, malformed = false) {
   return { client, chains };
 }
 test('loads homepage cards once without a REST count and shares one aggregate across all counters', async () => {
-  const { client, chains } = fixture(); const data = await loadHomeData(client as unknown as SupabaseClient, async () => ({ count: 106, error: null }));
+  const { client, chains } = fixture(); const data = await loadHomeData(client as unknown as SupabaseClient, async () => ({ totalUsers: 614, archivedJobs: 37069 }));
   expect(client.rpc).toHaveBeenCalledTimes(1); expect(client.rpc).toHaveBeenCalledWith('ishdasiz_public_home_counts');
   expect(client.from.mock.calls.filter(([table]) => table === 'jobs')).toHaveLength(1);
   expect(chains.jobs.select).toHaveBeenCalledWith(HOME_JOB_FIELDS);
   expect(client.from).not.toHaveBeenCalledWith('employer_profiles');
   expect(HOME_JOB_FIELDS).not.toMatch(/\*|phone|raw_source_json|user_id/);
-  expect(data).toMatchObject({ stats: { totalJobs: 24666, totalResumes: 106 }, jobCounts: { [category]: 101 }, specialCounts: { students: 2002, disabled: 637, women: 18000 }, unavailable: false });
+  expect(data).toMatchObject({ stats: { totalJobs: 24666, totalUsers: 614, archivedJobs: 37069 }, jobCounts: { [category]: 101 }, specialCounts: { students: 2002, disabled: 637, women: 18000 }, unavailable: false });
 });
 test.each([[true, false], [false, true]])('keeps unavailable counters explicit when the aggregate fails or is malformed', async (error, malformed) => {
-  const { client } = fixture(error, malformed); const data = await loadHomeData(client as unknown as SupabaseClient, async () => ({ count: 106, error: null }));
+  const { client } = fixture(error, malformed); const data = await loadHomeData(client as unknown as SupabaseClient, async () => ({ totalUsers: 614, archivedJobs: 37069 }));
   expect(data.jobs).toHaveLength(1); expect(data.stats.totalJobs).toBeNull(); expect(data.jobCounts[category]).toBeNull(); expect(data.specialCounts.women).toBeNull(); expect(data.unavailable).toBe(true);
 });
 test('validates category totals and overlapping special groups without inventing data', () => {

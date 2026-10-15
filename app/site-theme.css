@@ -386,7 +386,7 @@
 }
 .poster-search-card {
   width: 350px;
-  top: 29%;
+  top: 24%;
   padding: 24px;
   background: #faf6eeeb;
   border-color: #bcb09b;
@@ -398,6 +398,19 @@
 .poster-job-count strong {
   font-size: 36px;
 }
+.poster-job-count span { white-space: pre-line; }
+.poster-job-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #c9bfae;
+}
+.poster-job-breakdown > * { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; }
+.poster-job-breakdown strong { font-size: 18px; font-weight: 600; color: #263248; }
+.poster-job-breakdown span { font-size: 13px; color: #645c51; }
+.poster-job-breakdown a:hover span { text-decoration: underline; text-underline-offset: 3px; }
 .home-search-query input {
   font-size: 16px;
   height: 42px;
