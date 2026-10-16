@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useHydratedPathname } from '@/hooks/use-hydrated-pathname';
 import { useLanguage } from '@/contexts/language-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
@@ -36,7 +37,7 @@ export default function Header() {
   const { user, isAuthenticated, isLoading, logout, switchRole } = useUserAuth();
   const { isTelegram } = useTelegram();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
+  const pathname = useHydratedPathname();
   const router = useRouter();
   const { openModal } = useAuthModal();
 

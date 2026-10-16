@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useHydratedPathname } from '@/hooks/use-hydrated-pathname';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { useAuthModal } from '@/contexts/auth-modal-context';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 
 export function MobileNav() {
-    const pathname = usePathname();
+    const pathname = useHydratedPathname();
     const { lang } = useLanguage();
     const { user, isAuthenticated } = useUserAuth();
     const { user: adminUser, adminProfile, signOut: adminSignOut } = useAuth(); // Admin auth
@@ -25,7 +25,7 @@ export function MobileNav() {
 
     const isAdmin = !!adminUser && !!adminProfile;
 
-    const isActive = (path: string) => pathname === path;
+    const isActive = (path: string) => Boolean(path && pathname === path);
 
     // Determination of "Add" button action
     const getAddLink = () => {
