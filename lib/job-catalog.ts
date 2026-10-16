@@ -41,7 +41,7 @@ export function encodeJobFilters(filters: JobFiltersState) {
   if (filters.page !== 1) params.set('page', String(filters.page));
   return params.toString();
 }
-export function jobCatalogQuery(client: SupabaseClient, filters: JobFiltersState) {
+export function jobCatalogQuery(client: SupabaseClient, filters: JobFiltersState, options: { remoteIds?: string[] } = {}) {
   let query = client.from('jobs').select(JOB_CATALOG_FIELDS, { count: 'exact' }).eq('ishdasiz_job_available', true);
   const clauses: string[] = [];
   const anyGender = 'gender.eq.any,gender.eq.3,gender.is.null';
@@ -53,10 +53,14 @@ export function jobCatalogQuery(client: SupabaseClient, filters: JobFiltersState
   for (const [key, field] of [['category', 'category_id'], ['education', 'education_level'], ['working_days', 'working_days']] as const)
     if (filters[key] !== 'all') query = query.eq(field, filters[key]);
   const location = [['region', 'region_id'], ['district', 'district_id']].filter(([key]) => filters[key as 'region' | 'district'] !== 'all').map(([key, field]) => field + '.eq.' + filters[key as 'region' | 'district']);
-  if (location.length) clauses.push('or(' + (location.length > 1 ? 'and(' + location.join(',') + ')' : location[0]) + ',ishdasiz_job_work_mode.eq.remote)');
-  if (filters.type === 'remote') query = query.eq('ishdasiz_job_work_mode', 'remote');
+  const remoteIds = options.remoteIds;
+  const remoteClause = remoteIds === undefined ? 'ishdasiz_job_work_mode.eq.remote'
+    : remoteIds.length ? `id.in.(${remoteIds.join(',')})` : null;
+  if (location.length) clauses.push('or(' + (location.length > 1 ? 'and(' + location.join(',') + ')' : location[0]) + (remoteClause ? ',' + remoteClause : '') + ')');
+  if (filters.type === 'remote') query = remoteIds === undefined ? query.eq('ishdasiz_job_work_mode', 'remote') : query.in('id', remoteIds);
   else if (filters.type !== 'all') query = query.eq('employment_type', filters.type);
-  if (filters.work_mode !== 'all') query = query.eq('ishdasiz_job_work_mode', filters.work_mode);
+  if (filters.work_mode !== 'all') query = filters.work_mode === 'remote' && remoteIds !== undefined
+    ? query.in('id', remoteIds) : query.eq('ishdasiz_job_work_mode', filters.work_mode);
   if (filters.experience !== 'all') query = query.in('experience', expandExperienceFilterValues(filters.experience));
   if (filters.payment_type !== 'all') query = query.eq('payment_type', Number(filters.payment_type));
   const selectedGender = ({ '1': 'male', '2': 'female', '3': 'any' } as Record<string, string>)[filters.gender] || filters.gender;

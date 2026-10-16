@@ -1,25 +1,21 @@
-/* Each scene changes the canvas, typography and line illustration together. */
+/* Quiet profession palettes keep the character and content in focus. */
 .poster-hero { --scene-canvas: #eee8de; --scene-art: #a77b5a; background: var(--scene-canvas); transition: background-color .9s ease; }
 .poster-hero[data-profession="1"] { --scene-canvas: #eee0c7; --scene-art: #9b6932; }
 .poster-hero[data-profession="2"] { --scene-canvas: #e1eeea; --scene-art: #43897d; }
 .poster-hero[data-profession="3"] { --scene-canvas: #e0e7f2; --scene-art: #5679ad; }
 .poster-hero[data-profession="4"] { --scene-canvas: #e9e9d8; --scene-art: #7a8150; }
-.poster-word { top: 20px; width: 100%; font-size: min(22vw, calc(142vw / var(--profession-length)), calc(2556px / var(--profession-length))); letter-spacing: -.055em; line-height: 1.1; text-align: center; text-transform: uppercase; color: var(--profession-ink); opacity: .9; }
+.poster-word { top: 20px; width: 100%; font-size: min(22vw, calc(142vw / var(--profession-length)), calc(2556px / var(--profession-length))); letter-spacing: -.055em; line-height: 1.1; text-align: center; text-transform: uppercase; color: var(--profession-ink); opacity: .18; }
 .poster-hero[data-profession="1"] .poster-word { color: var(--profession-ink); }
-.poster-hero[data-profession="2"] .poster-word { font-weight: 650; letter-spacing: -.06em; }
-.poster-hero[data-profession="3"] .poster-word { font-family: ui-monospace, monospace; letter-spacing: -.08em; }
-.poster-hero[data-profession="4"] .poster-word { font-family: Georgia, serif; font-style: italic; font-weight: 600; }
+
 .poster-hero[data-profession="5"] { --scene-canvas: #e1ebe7; --scene-art: #47796f; --profession-ink: #24483e; --profession-accent: #47796f; --profession-tint: #c8dbd3; }
 .poster-hero[data-profession="6"] { --scene-canvas: #e3e8ee; --scene-art: #637c96; --profession-ink: #2b4058; --profession-accent: #52789b; --profession-tint: #cfdbe7; }
 .poster-hero[data-profession="7"] { --scene-canvas: #f0e2da; --scene-art: #b17458; --profession-ink: #643f32; --profession-accent: #b17458; --profession-tint: #e7cfc0; }
-.poster-hero[data-profession="5"] .poster-word { font-family: Georgia, serif; font-style: italic; }
+
 .poster-hero[data-profession="6"] .poster-word { letter-spacing: -.065em; }
-.poster-scene-art { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--scene-art); stroke-width: 1.5; opacity: .32; pointer-events: none; }
-.poster-scene-art .scene-panel { fill: color-mix(in srgb, var(--scene-art) 16%, transparent); stroke: none; }
 .poster-search-card { padding: 20px; }
-.poster-search-card, .poster-resumes-card { border-color: color-mix(in srgb, var(--profession-accent) 35%, #c9c4bb); background: color-mix(in srgb, var(--scene-canvas) 25%, #fffdf6); transition: border-color .8s, background-color .8s; }
+.poster-search-card { border-color: color-mix(in srgb, var(--profession-accent) 35%, #c9c4bb); background: color-mix(in srgb, var(--scene-canvas) 25%, #fffdf6); transition: border-color .8s, background-color .8s; }
 .poster-search-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.poster-search-summary .poster-card-label { font-size: 11px; line-height: 1.5; letter-spacing: .8px; max-width: 135px; }
+.poster-search-summary .poster-card-label { display: grid; gap: 5px; font-size: 11px; line-height: 1.5; letter-spacing: .8px; max-width: none; }
 .poster-search-summary .poster-job-count { margin: 0; flex-shrink: 0; }
 .poster-search-summary .poster-job-count strong { font-size: 32px; letter-spacing: -1px; }
 .poster-search-card .home-search { margin-top: 14px; }
@@ -27,24 +23,42 @@
 .poster-search-card .home-search-bottom { padding-top: 4px; gap: 8px; }
 .poster-search-card .home-button { min-height: 46px; padding-block: 11px; }
 .home-search-label-short { display: none; }
-.poster-controls { gap: 14px; padding: 12px; border: 1px solid #bfb5a480; border-radius: 22px; background: #fffcf5a6; backdrop-filter: blur(16px); }
+.poster-controls { gap: 14px; padding: 12px; border: 0; border-radius: 22px; background: #fffcf57a; box-shadow: inset 0 0 0 1px #ffffff80; backdrop-filter: none; }
 .poster-controls .poster-avatars { display: grid; grid-template-columns: repeat(4, minmax(44px, 1fr)); width: 100%; gap: 8px; }
 .poster-controls .poster-avatars button { width: 100%; height: 48px; border: 2px solid transparent; border-radius: 12px; overflow: hidden; }
-.poster-controls .poster-avatars button img { object-position: center top; transform: none; }
+.poster-controls .poster-avatars button img { object-position: center top; transform: scale(1.65); transform-origin: 50% 0; }
 .poster-avatars button.is-active { border-color: var(--profession-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--profession-accent) 18%, transparent); }
-.poster-pause { background: var(--profession-ink); border-color: var(--profession-ink); color: #fffdf7; }
 .poster-progress { background: color-mix(in srgb, var(--profession-accent) 18%, transparent); }
 .poster-feature .poster-action { min-height: 48px; }
 @media (max-width: 1500px) { .poster-slide-number { display: none; } }
-@media (min-width: 1101px) { .poster-resumes-card { top: 22%; } }
 
 @media (prefers-reduced-motion: no-preference) {
   .poster-word { animation: profession-word-in .8s cubic-bezier(.2,.7,.2,1) both; }
-  .poster-scene-art { animation: profession-art-drift 14s ease-in-out infinite; }
-  .poster-scene-art > g { animation: profession-art-in 1s ease both; }
-  .poster-hero[data-playing="false"] .poster-scene-art { animation-play-state: paused; }
 }
-@keyframes profession-word-in { from { opacity: 0; translate: 0 14px; filter: blur(5px); } to { opacity: .9; translate: 0 0; filter: blur(0); } }
-@keyframes profession-art-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
-@keyframes profession-art-in { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .poster-hero, .poster-search-card, .poster-resumes-card { transition: none; } }
+@keyframes profession-word-in { from { opacity: 0; translate: 0 14px; filter: blur(5px); } to { opacity: .18; translate: 0 0; filter: blur(0); } }
+@media (prefers-reduced-motion: reduce) { .poster-hero, .poster-search-card { transition: none; } }
+
+/* The secondary count stays with the search rather than covering the portrait. */
+.poster-search-card .poster-resumes-card { position: static; display: inline-flex; width: auto; align-items: center; justify-content: flex-start; gap: 5px; padding: 0; border: 0; border-radius: 0; background: transparent; backdrop-filter: none; box-shadow: none; text-align: left; color: #6d675f; text-transform: none; font-size: 11px; letter-spacing: 0; line-height: 1.4; }
+.poster-resumes-card strong { font-weight: 650; color: var(--profession-ink); }
+.poster-search-summary .poster-job-count strong { color: var(--profession-ink); }
+.poster-controls .poster-avatars button { height: 54px; background: color-mix(in srgb, var(--profession-tint) 55%, #fffdf7); }
+.poster-feature .poster-action { border-radius: 14px; }
+@media (min-width: 1101px) {
+  .poster-stage { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(320px, 1.35fr) minmax(250px, 1fr); grid-template-rows: 165px auto 1fr; column-gap: 32px; row-gap: 28px; min-height: 810px; padding-block: 24px 48px; }
+  .poster-character { position: relative; grid-column: 2; grid-row: 1 / 4; inset: auto; width: 100%; max-width: none; min-height: 720px; height: 100%; transform: none; }
+  .poster-character-layer { inset: 0 -28px; }
+  .poster-search-card { position: relative; grid-column: 1; grid-row: 2; inset: auto; width: 100%; align-self: start; padding: 20px; }
+  .poster-copy { position: relative; grid-column: 1; grid-row: 3; inset: auto; max-width: 100%; align-self: end; }
+  .poster-copy h1 { font-size: clamp(27px, 2.3vw, 34px); margin-top: 10px; }
+  .poster-copy .home-eyebrow { font-size: 10px; letter-spacing: .6px; }
+  .poster-feature { position: relative; grid-column: 3; grid-row: 2 / 4; inset: auto; width: 100%; padding-top: 12px; align-self: end; text-align: left; }
+  .poster-feature-copy { min-height: 0; }
+  .poster-feature h2 { font-size: clamp(22px, 1.9vw, 28px); }
+  .poster-feature p { margin-left: 0; font-size: 15px; max-width: 100%; }
+  .poster-feature .poster-action { display: flex; justify-content: space-between; padding-inline: 18px; }
+  .poster-slide-number { display: none; }
+}
+@media (max-width: 1100px) and (min-width: 768px) {
+  .poster-search-card .poster-resumes-card { top: auto; }
+}

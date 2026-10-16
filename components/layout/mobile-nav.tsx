@@ -5,7 +5,7 @@ import { useHydratedPathname } from '@/hooks/use-hydrated-pathname';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { useAuthModal } from '@/contexts/auth-modal-context';
-import { Home, Search, PlusCircle, User, Menu, FileText, Briefcase, MapIcon, LogIn } from '@/components/ui/icons';
+import { Home, Search, Plus, User, Menu, FileText, Briefcase, MapIcon, LogIn } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useState } from 'react';
@@ -94,7 +94,7 @@ export function MobileNav() {
                             ? "bg-primary text-white"
                             : "bg-primary text-white hover:bg-primary"
                     )}>
-                        <PlusCircle className="w-6 h-6" />
+                        <Plus className="w-6 h-6" />
                     </div>
                     <span className="text-xs font-medium text-muted-foreground">{lang === 'uz' ? 'Joylash' : 'Создать'}</span>
                 </Link>
@@ -116,7 +116,7 @@ export function MobileNav() {
                 {/* Menu (Sheet) */}
                 <Sheet open={open} onOpenChange={setOpen}>
                     <SheetTrigger asChild>
-                        <button className={cn(
+                        <button data-active={open || undefined} className={cn(
                             "mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1",
                             open ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         )}>

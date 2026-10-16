@@ -59,3 +59,19 @@ test('a legacy remote link searches normalized work mode and keeps full-time rem
   expect(requests[0].searchParams.get('ishdasiz_job_work_mode')).toBe('eq.remote');
   expect(requests[0].searchParams.has('employment_type')).toBe(false);
 });
+
+test('a regional lookup uses precomputed remote IDs while retaining every other filter and availability check', async () => {
+  const remoteId = '30000000-0000-4000-8000-000000000003';
+  await jobCatalogQuery(client(), readJobFilters('region=12&district=100&special=disabled&q=tikuvchi'), { remoteIds: [remoteId] });
+  const params = requests[0].searchParams;
+  expect(params.get('or')).toContain(`or(and(region_id.eq.12,district_id.eq.100),id.in.(${remoteId}))`);
+  expect(params.get('or')).not.toContain('ishdasiz_job_work_mode');
+  expect(params.get('ishdasiz_job_available')).toBe('eq.true');
+  expect(params.get('is_for_disabled')).toBe('eq.true');
+  expect(params.get('or')).toContain('title_uz.ilike.%tikuvchi%');
+});
+test('an empty remote set keeps regional results and an explicit remote filter stays empty', async () => {
+  await jobCatalogQuery(client(), readJobFilters('region=12&type=remote'), { remoteIds: [] });
+  expect(requests[0].searchParams.get('or')).toBe('(and(or(region_id.eq.12)))');
+  expect(requests[0].searchParams.get('id')).toBe('in.()');
+});

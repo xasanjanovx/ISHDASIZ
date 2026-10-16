@@ -73,7 +73,7 @@ it("shows only the combined total without current/archive breakdown and counts r
   expect(view.container.querySelector('.poster-job-breakdown')).not.toBeInTheDocument();
   expect(screen.queryByText(/актуальных|в архиве/)).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: '333 вакансий за всё время' })).toHaveAttribute('href', '/jobs');
-  expect(view.container.querySelector('.poster-resumes-card')).toHaveTextContent('ПОЛЬЗОВАТЕЛИ614человек зарегистрировано');
+  expect(view.container.querySelector('.poster-resumes-card')).toHaveTextContent('614участников');
   expect(screen.queryByText(/резюме людей/)).not.toBeInTheDocument();
 });
 it("does not pretend a partial count is the combined total", () => {

@@ -179,7 +179,7 @@ function JobsContent() {
               </div>
             ) : loadError ? (
               <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
-                <p className="mb-4 text-sm text-amber-900">{lang === 'ru' ? 'Не удалось загрузить вакансии. Проверьте соединение и повторите попытку.' : 'Vakansiyalarni yuklab bo‘lmadi. Internetni tekshiring va qayta urinib ko‘ring.'}</p>
+                <p className="mb-4 text-sm text-amber-900">{lang === 'ru' ? 'Не удалось загрузить вакансии. Повторите попытку.' : 'Vakansiyalarni yuklab bo‘lmadi. Qayta urinib ko‘ring.'}</p>
                 <Button variant="outline" onClick={catalog.refresh}>{lang === 'ru' ? 'Повторить' : 'Qayta urinish'}</Button>
               </div>
             ) : jobs.length === 0 ? (

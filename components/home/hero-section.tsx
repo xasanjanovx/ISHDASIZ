@@ -9,6 +9,7 @@ import {
   MapPin,
   ArrowUpRight,
   ArrowRight,
+  Users,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { BenefitsTicker } from "./benefits-ticker";
@@ -160,16 +161,6 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     >
       <BenefitsTicker />
       <div className="poster-stage home-shell">
-        <svg key={`art-${active}`} className="poster-scene-art" viewBox="0 0 1440 820" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          {active === 0 && <g><path className="scene-panel" d="M420 100h480v550H420z" /><path d="M480 150v450m-25-390h150m-150 25h120M990 190l160-45v300l-160 45zM1015 230l100-28m-100 70 100-28m-100 70 70-20M180 530l170-45 50 145-170 45z" /></g>}
-          {active === 1 && <g><path className="scene-panel" d="m450 80 450 65-70 570-450-65z" /><path d="M470 200h370v360H470zM490 580h340m-340 20h340M1020 560V240h180v320m-150-280h120m-120 55h120m-120 55h120m-120 55h120M160 350h180v130H160zM180 370h140v90H180z" /><path d="M1010 205h200m-195-10v20m190-20v20" strokeDasharray="5 8" /></g>}
-          {active === 2 && <g><path className="scene-panel" d="M460 90h430v610H460z" /><path d="M1040 190h60v-60h55v60h60v55h-60v60h-55v-60h-60ZM160 485h90l30-65 40 130 35-75h90M500 150h110m-110 25h70M1020 540h170m-170 25h110" /></g>}
-          {active === 3 && <g><path className="scene-panel" d="m420 150 520-70 65 520-520 70z" /><path d="m280 230-65 60 65 60m115-120 65 60-65 60m-65-135-25 150M1010 470h100l45 45h120m-255 55h70l45 45h140M1050 210h140m-140 30h95m-95 30h115" /><path d="M480 180h80m-80 25h120m-120 25h95" strokeDasharray="12 8" /></g>}
-          {active === 4 && <g><path className="scene-panel" d="M430 100h490l-40 580H390z" /><path d="M1030 430h210l-30 100h-150zM1065 380q-40-35 0-70t0-70m65 140q-40-35 0-70t0-70m65 140q-40-35 0-70t0-70M200 210v170m25-170v170m25-170v170m-50-75q25 30 50 0m-25 75v150" /></g>}
-          {active === 5 && <g><path className="scene-panel" d="m480 85 430 100-130 560-430-100z" /><path d="m1020 200 130 30 55 110-100 40-85-180v340M180 260l155 40-65 250-155-40z" /><path d="m480 120 350 80-110 490-330-80zM1040 245l90 20 40 65" strokeDasharray="6 9" /></g>}
-          {active === 6 && <g><path className="scene-panel" d="M450 100h470l100 600H350z" /><path d="m520 100-110 600m440-600 110 600M1080 220h135v100h-135zM1080 245h135m-100 30h65M150 490h170m-130 30h130" /><path d="M680 120v80m0 55v100m0 60v120m0 60v130" strokeWidth="5" /></g>}
-          {active === 7 && <g><path className="scene-panel" d="m420 130 440-50 70 580-440 50z" /><path d="M1020 270h190v240h-190zM1060 275v-35q0-55 55-55t55 55v35M165 220h170v70H165zM190 240h85m-85 25h120M160 450h30v90h-30zm55-40h30v130h-30zm55-70h30v200h-30z" /></g>}
-        </svg>
         <div key={scene.name} className="poster-word" aria-hidden="true" style={{ "--profession-length": scene.name.length } as CSSProperties}>
           {scene.name}
         </div>
@@ -195,6 +186,10 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           <div className="poster-search-summary">
             <div className="poster-card-label">
               <span>{ru ? "ВСЕГО ВАКАНСИЙ" : "JAMI VAKANSIYALAR"}</span>
+              <Link href="/resumes" className="poster-resumes-card" aria-label={ru ? `${number(stats?.totalUsers)} зарегистрированных пользователей` : `${number(stats?.totalUsers)} foydalanuvchi`}>
+                <Users size={13} aria-hidden="true" /><strong>{number(stats?.totalUsers)}</strong>
+                <span>{ru ? "участников" : "foydalanuvchi"}</span>
+              </Link>
             </div>
             <Link href="/jobs" className="poster-job-count"
               aria-label={ru ? `${number(allJobs)} вакансий за всё время` : `Jami ${number(allJobs)} ta vakansiya`}>
@@ -245,20 +240,6 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             </div>
           </form>
         </div>
-        <Link href="/resumes" className="poster-resumes-card">
-          <div className="poster-card-label">
-            <ArrowUpRight size={17} />
-            <span>{ru ? "ПОЛЬЗОВАТЕЛИ" : "FOYDALANUVCHILAR"}</span>
-          </div>
-          <div className="poster-resume-count">
-            <strong>{number(stats?.totalUsers)}</strong>
-            <span>
-              {ru
-                ? "человек зарегистрировано\nна ISHDASIZ"
-                : "ISHDASIZ’da ro‘yxatdan\no‘tgan insonlar"}
-            </span>
-          </div>
-        </Link>
         <div className="poster-copy">
           <div className="home-eyebrow">
             <span className="home-status-dot" />
