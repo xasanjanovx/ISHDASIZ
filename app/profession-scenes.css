@@ -5,11 +5,17 @@
 .poster-hero[data-profession="3"] { --scene-canvas: #e0e7f2; --scene-art: #5679ad; }
 .poster-hero[data-profession="4"] { --scene-canvas: #e9e9d8; --scene-art: #7a8150; }
 .poster-word { top: 20px; width: 100%; font-size: min(22vw, calc(142vw / var(--profession-length)), calc(2556px / var(--profession-length))); letter-spacing: -.055em; line-height: 1.1; text-align: center; text-transform: uppercase; color: var(--profession-ink); opacity: .9; }
-.poster-hero[data-profession="1"] .poster-word { -webkit-text-stroke: 2px var(--profession-ink); color: transparent; }
+.poster-hero[data-profession="1"] .poster-word { color: var(--profession-ink); }
 .poster-hero[data-profession="2"] .poster-word { font-weight: 650; letter-spacing: -.06em; }
 .poster-hero[data-profession="3"] .poster-word { font-family: ui-monospace, monospace; letter-spacing: -.08em; }
 .poster-hero[data-profession="4"] .poster-word { font-family: Georgia, serif; font-style: italic; font-weight: 600; }
-.poster-scene-art { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--scene-art); stroke-width: 1.5; opacity: .3; pointer-events: none; }
+.poster-hero[data-profession="5"] { --scene-canvas: #e1ebe7; --scene-art: #47796f; --profession-ink: #24483e; --profession-accent: #47796f; --profession-tint: #c8dbd3; }
+.poster-hero[data-profession="6"] { --scene-canvas: #e3e8ee; --scene-art: #637c96; --profession-ink: #2b4058; --profession-accent: #52789b; --profession-tint: #cfdbe7; }
+.poster-hero[data-profession="7"] { --scene-canvas: #f0e2da; --scene-art: #b17458; --profession-ink: #643f32; --profession-accent: #b17458; --profession-tint: #e7cfc0; }
+.poster-hero[data-profession="5"] .poster-word { font-family: Georgia, serif; font-style: italic; }
+.poster-hero[data-profession="6"] .poster-word { letter-spacing: -.065em; }
+.poster-scene-art { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--scene-art); stroke-width: 1.5; opacity: .32; pointer-events: none; }
+.poster-scene-art .scene-panel { fill: color-mix(in srgb, var(--scene-art) 16%, transparent); stroke: none; }
 .poster-search-card { padding: 20px; }
 .poster-search-card, .poster-resumes-card { border-color: color-mix(in srgb, var(--profession-accent) 35%, #c9c4bb); background: color-mix(in srgb, var(--scene-canvas) 25%, #fffdf6); transition: border-color .8s, background-color .8s; }
 .poster-search-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -21,14 +27,16 @@
 .poster-search-card .home-search-bottom { padding-top: 4px; gap: 8px; }
 .poster-search-card .home-button { min-height: 46px; padding-block: 11px; }
 .home-search-label-short { display: none; }
-.poster-controls { gap: 8px; padding: 9px; border: 1px solid #bfb5a480; border-radius: 50px; background: #fffcf5a6; backdrop-filter: blur(16px); }
-.poster-avatars { gap: 5px; }
-.poster-avatars button { width: 44px; height: 44px; border: 2px solid transparent; }
+.poster-controls { gap: 14px; padding: 12px; border: 1px solid #bfb5a480; border-radius: 22px; background: #fffcf5a6; backdrop-filter: blur(16px); }
+.poster-controls .poster-avatars { display: grid; grid-template-columns: repeat(4, minmax(44px, 1fr)); width: 100%; gap: 8px; }
+.poster-controls .poster-avatars button { width: 100%; height: 48px; border: 2px solid transparent; border-radius: 12px; overflow: hidden; }
+.poster-controls .poster-avatars button img { object-position: center top; transform: none; }
 .poster-avatars button.is-active { border-color: var(--profession-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--profession-accent) 18%, transparent); }
 .poster-pause { background: var(--profession-ink); border-color: var(--profession-ink); color: #fffdf7; }
 .poster-progress { background: color-mix(in srgb, var(--profession-accent) 18%, transparent); }
 .poster-feature .poster-action { min-height: 48px; }
 @media (max-width: 1500px) { .poster-slide-number { display: none; } }
+@media (min-width: 1101px) { .poster-resumes-card { top: 22%; } }
 
 @media (prefers-reduced-motion: no-preference) {
   .poster-word { animation: profession-word-in .8s cubic-bezier(.2,.7,.2,1) both; }

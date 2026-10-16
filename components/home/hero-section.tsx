@@ -9,8 +9,6 @@ import {
   MapPin,
   ArrowUpRight,
   ArrowRight,
-  Pause,
-  Play,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { BenefitsTicker } from "./benefits-ticker";
@@ -29,6 +27,9 @@ const professionals = [
   "/profession-doctor.webp",
   "/profession-programmer.webp",
   "/profession-chef.webp",
+  "/profession-tailor-v1.webp",
+  "/profession-driver-v1.webp",
+  "/profession-salesperson-v1.webp",
 ];
 export function HeroSection({ regions = [], stats }: HeroProps) {
   const { lang } = useLanguage();
@@ -38,20 +39,17 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("all");
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [motionEnabled, setMotionEnabled] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const stopped = paused || (reducedMotion && !motionEnabled);
-  const playing = !stopped && !hovered && !focused;
+  const playing = !reducedMotion && !hovered && !focused;
   useEffect(() => {
     if (!playing) return;
-    const timer = setInterval(
+    const timer = setTimeout(
       () => setActive((value) => (value + 1) % professionals.length),
       7000,
     );
-    return () => clearInterval(timer);
-  }, [playing]);
+    return () => clearTimeout(timer);
+  }, [playing, active]);
   const number = (value?: number | null) =>
     value == null ? "—" : value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
   const allJobs = stats?.totalJobs != null && stats?.archivedJobs != null
@@ -102,6 +100,9 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           category: "a0000003-0003-4000-8000-000000000003",
           query: "oshpaz",
         },
+        { name: "Швея", title: "Создавайте с мастерством.\nРастите в своём деле.", text: "Ваши навыки нужны производству. Найдите работу в швейном деле рядом с вами.", action: "Вакансии швеи", category: "", query: "tikuvchi" },
+        { name: "Водитель", title: "Выбирайте свой маршрут.\nДвигайтесь к новому.", text: "Найдите работу водителем с подходящим графиком и удобным маршрутом.", action: "Вакансии водителя", category: "", query: "haydovchi" },
+        { name: "Продавец", title: "Общайтесь с людьми.\nРастите вместе с командой.", text: "Посмотрите предложения в торговле и найдите команду, где ценят ваше общение и опыт.", action: "Вакансии продавца", category: "", query: "sotuvchi" },
       ]
     : [
         {
@@ -140,9 +141,13 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           category: "a0000003-0003-4000-8000-000000000003",
           query: "oshpaz",
         },
+        { name: "Tikuvchi", title: "Mahorat bilan yarating.\nKasbingizda o‘sing.", text: "Mahoratingiz ishlab chiqarishga kerak. Yaqin atrofdagi tikuvchilik ishlarini toping.", action: "Tikuvchi vakansiyalari", category: "", query: "tikuvchi" },
+        { name: "Haydovchi", title: "Yo‘lingizni tanlang.\nYangi imkoniyat sari.", text: "Qulay jadval va yo‘nalishga mos haydovchilik ishini toping.", action: "Haydovchi vakansiyalari", category: "", query: "haydovchi" },
+        { name: "Sotuvchi", title: "Insonlar bilan ishlang.\nJamoa bilan o‘sing.", text: "Savdodagi takliflarni ko‘ring. Muloqotingiz va tajribangizni qadrlaydigan jamoani toping.", action: "Sotuvchi vakansiyalari", category: "", query: "sotuvchi" },
       ];
   const scene = scenes[active];
-  const professionParams = new URLSearchParams({ category: scene.category });
+  const professionParams = new URLSearchParams();
+  if (scene.category) professionParams.set("category", scene.category);
   if (scene.query) professionParams.set("q", scene.query);
   if (region !== "all") professionParams.set("region", region);
   return (
@@ -150,40 +155,24 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
       id="home-top"
       className="poster-hero"
       data-playing={playing}
-      data-motion={motionEnabled ? "enabled" : "system"}
+      data-motion="system"
       data-profession={active}
     >
-      <div className="poster-atmospheres" aria-hidden="true">
-        {professionals.map((src, index) => (
-          <div
-            key={src}
-            className={`poster-atmosphere theme-${index} ${index === active ? "is-active" : ""}`}
-          />
-        ))}
-      </div>
       <BenefitsTicker />
       <div className="poster-stage home-shell">
-        <svg className="poster-scene-art" viewBox="0 0 1440 820" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          {active === 0 && <g><circle cx="720" cy="390" r="290" /><circle cx="720" cy="390" r="250" strokeDasharray="2 16" /><path d="M160 400q80-35 160 0v145q-80-35-160 0Zm160 0q80-35 160 0v145q-80-35-160 0M190 430l95 0m-95 28h95m65-28h95m-95 28h95" /><path d="M1120 230h140m-70-70v140" /></g>}
-          {active === 1 && <g><path d="M170 80v650m150-650v650m150-650v650m150-650v650m150-650v650m150-650v650m150-650v650m150-650v650M110 150h1200M110 300h1200M110 450h1200M110 600h1200" opacity=".5" /><path d="m1070 480 115-190 115 190ZM180 600V360h140v240m-110-205h80m-80 50h80m-80 50h80" /><circle cx="720" cy="390" r="280" strokeDasharray="10 14" /></g>}
-          {active === 2 && <g><circle cx="720" cy="390" r="285" /><path d="M1120 260h70v-70h65v70h70v65h-70v70h-65v-70h-70ZM145 520h80l30-65 40 125 35-70h110" /><circle cx="380" cy="180" r="30" /><circle cx="1070" cy="620" r="55" strokeDasharray="3 10" /></g>}
-          {active === 3 && <g><path d="m270 235-75 65 75 65m140-130 75 65-75 65m-65-150-25 170M1070 450h75l40 40h110m-210 70h100l40 40h70M1000 210h-60l-60 60" /><rect x="440" y="105" width="560" height="590" rx="36" strokeDasharray="3 12" /><circle cx="1070" cy="450" r="8" /><circle cx="1295" cy="600" r="8" /><path d="M1090 250h110m-110 30h65" /></g>}
-          {active === 4 && <g><ellipse cx="720" cy="430" rx="300" ry="245" /><ellipse cx="720" cy="430" rx="260" ry="205" strokeDasharray="2 14" /><path d="M1090 440q120-150 220 0Zm40-50q-35-40 0-70t0-70m60 130q-35-40 0-70t0-70M190 260v180m30-180v180m30-180v180m-60-80q30 35 60 0m-30 80v120" /></g>}
+        <svg key={`art-${active}`} className="poster-scene-art" viewBox="0 0 1440 820" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          {active === 0 && <g><path className="scene-panel" d="M420 100h480v550H420z" /><path d="M480 150v450m-25-390h150m-150 25h120M990 190l160-45v300l-160 45zM1015 230l100-28m-100 70 100-28m-100 70 70-20M180 530l170-45 50 145-170 45z" /></g>}
+          {active === 1 && <g><path className="scene-panel" d="m450 80 450 65-70 570-450-65z" /><path d="M470 200h370v360H470zM490 580h340m-340 20h340M1020 560V240h180v320m-150-280h120m-120 55h120m-120 55h120m-120 55h120M160 350h180v130H160zM180 370h140v90H180z" /><path d="M1010 205h200m-195-10v20m190-20v20" strokeDasharray="5 8" /></g>}
+          {active === 2 && <g><path className="scene-panel" d="M460 90h430v610H460z" /><path d="M1040 190h60v-60h55v60h60v55h-60v60h-55v-60h-60ZM160 485h90l30-65 40 130 35-75h90M500 150h110m-110 25h70M1020 540h170m-170 25h110" /></g>}
+          {active === 3 && <g><path className="scene-panel" d="m420 150 520-70 65 520-520 70z" /><path d="m280 230-65 60 65 60m115-120 65 60-65 60m-65-135-25 150M1010 470h100l45 45h120m-255 55h70l45 45h140M1050 210h140m-140 30h95m-95 30h115" /><path d="M480 180h80m-80 25h120m-120 25h95" strokeDasharray="12 8" /></g>}
+          {active === 4 && <g><path className="scene-panel" d="M430 100h490l-40 580H390z" /><path d="M1030 430h210l-30 100h-150zM1065 380q-40-35 0-70t0-70m65 140q-40-35 0-70t0-70m65 140q-40-35 0-70t0-70M200 210v170m25-170v170m25-170v170m-50-75q25 30 50 0m-25 75v150" /></g>}
+          {active === 5 && <g><path className="scene-panel" d="m480 85 430 100-130 560-430-100z" /><path d="m1020 200 130 30 55 110-100 40-85-180v340M180 260l155 40-65 250-155-40z" /><path d="m480 120 350 80-110 490-330-80zM1040 245l90 20 40 65" strokeDasharray="6 9" /></g>}
+          {active === 6 && <g><path className="scene-panel" d="M450 100h470l100 600H350z" /><path d="m520 100-110 600m440-600 110 600M1080 220h135v100h-135zM1080 245h135m-100 30h65M150 490h170m-130 30h130" /><path d="M680 120v80m0 55v100m0 60v120m0 60v130" strokeWidth="5" /></g>}
+          {active === 7 && <g><path className="scene-panel" d="m420 130 440-50 70 580-440 50z" /><path d="M1020 270h190v240h-190zM1060 275v-35q0-55 55-55t55 55v35M165 220h170v70H165zM190 240h85m-85 25h120M160 450h30v90h-30zm55-40h30v130h-30zm55-70h30v200h-30z" /></g>}
         </svg>
         <div key={scene.name} className="poster-word" aria-hidden="true" style={{ "--profession-length": scene.name.length } as CSSProperties}>
           {scene.name}
         </div>
-        <svg
-          className="poster-connectors"
-          viewBox="0 0 1600 820"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path d="M320 410 C480 410 475 310 630 310" />
-          <path d="M1010 455 C1180 455 1220 440 1290 440" />
-          <circle cx="630" cy="310" r="5" />
-          <circle cx="1010" cy="455" r="5" />
-        </svg>
         <div className="poster-character" aria-hidden="true">
           {professionals.map((src, index) => (
             <div
@@ -311,7 +300,6 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                   aria-pressed={index === active}
                   onClick={() => {
                     setActive(index);
-                    setPaused(true);
                   }}
                 >
                   <Image src={professionals[index]} alt="" fill sizes="52px" />
@@ -320,34 +308,8 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             </div>
             <span className="poster-slide-number">
               0{active + 1}
-              <em>/ 05</em>
+              <em>/ {String(professionals.length).padStart(2, "0")}</em>
             </span>
-            <button
-              type="button"
-              className="poster-pause"
-              aria-label={
-                stopped
-                  ? ru
-                    ? "Включить смену профессий"
-                    : "Kasblar almashinuvini yoqish"
-                  : ru
-                    ? "Приостановить смену профессий"
-                    : "Kasblar almashinuvini to‘xtatish"
-              }
-              aria-pressed={!stopped}
-              onClick={() => {
-                if (stopped) {
-                  setMotionEnabled(true);
-                  setPaused(false);
-                } else setPaused(true);
-              }}
-            >
-              {stopped ? (
-                <Play size={17} />
-              ) : (
-                <Pause size={17} />
-              )}
-            </button>
           </div>
           <div className="poster-progress" aria-hidden="true">
             <span key={active} />

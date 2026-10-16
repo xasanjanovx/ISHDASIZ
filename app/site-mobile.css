@@ -49,8 +49,8 @@
   .home-popular a { min-height: 40px; padding: 8px 12px; border: 1px solid #bfb5a4; border-radius: 40px; font-size: 12px; text-decoration: none; gap: 6px; background: #fffcf55c; }
   .poster-feature { padding: 0; }
   .poster-controls { width: 100%; justify-content: space-between; padding: 7px; gap: 6px; border-radius: 22px; margin-bottom: 10px; }
-  .poster-avatars { flex: 1; justify-content: space-between; gap: 4px; }
-  .poster-avatars button { width: 44px; height: 44px; flex-shrink: 0; }
+  .poster-controls .poster-avatars { flex: 1; gap: 7px; }
+  .poster-controls .poster-avatars button { width: 100%; height: 48px; flex-shrink: 0; }
   .poster-slide-number { display: none; }
   .poster-pause { width: 44px; height: 44px; margin-left: 4px; }
   .poster-progress { height: 3px; margin-bottom: 16px; }

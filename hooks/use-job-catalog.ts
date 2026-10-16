@@ -1,7 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { jobCatalogQuery, readJobFilters } from '@/lib/job-catalog';
 
 type Snapshot = { key: string; jobs: any[]; count: number; error: boolean };
 const EMPTY: any[] = [];
@@ -13,8 +11,10 @@ export function useJobCatalog(params: string) {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const result = await jobCatalogQuery(supabase, readJobFilters(params)).abortSignal(controller.signal);
-        if (result.error || !Array.isArray(result.data) || result.count == null) throw new Error('Catalog unavailable');
+        const response = await fetch('/api/jobs' + (params ? '?' + params : ''), { signal: controller.signal, cache: 'no-store' });
+        if (!response.ok) throw new Error('Catalog unavailable');
+        const result = await response.json();
+        if (!Array.isArray(result.data) || !Number.isSafeInteger(result.count) || result.count < 0) throw new Error('Catalog unavailable');
         if (!cancelled) setSnapshot({ key, jobs: result.data, count: result.count, error: false });
       } catch { if (!cancelled) setSnapshot({ key, jobs: [], count: 0, error: true }); }
     }, 300);

@@ -1,3 +1,4 @@
+import { createMainMenuStatsLoader, formatMainMenuStatsText, type MainMenuStats } from './main-menu-stats';
 import {getJobWorkMode,isRemoteJob} from '../work-mode';
 import { markApplicationsRead } from '../application-read';
 import {readSeekerOffers,readSeekerOffer,markSeekerOfferSeen,validOfferCursor} from './seeker-offers';
@@ -364,21 +365,7 @@ export class TelegramBot {
     private fieldsSearchCache: Map<string, { data: OsonishField[]; loadedAt: number }> = new Map();
     private professionCategoryCache: { map: Record<string, string>; loadedAt: number } = { map: {}, loadedAt: 0 };
     private jobsProfessionCache: { data: OsonishField[]; loadedAt: number } = { data: [], loadedAt: 0 };
-    private mainMenuStatsCache: {
-        value: {
-            jobs: number | null;
-            jobsDisabled: number | null;
-            resumes: number | null;
-            users: number | null;
-            jobsStudentsGraduates: number | null;
-            jobsDisabledFriendly: number | null;
-            jobsWomenFriendly: number | null;
-        } | null;
-        loadedAt: number;
-    } = {
-        value: null,
-        loadedAt: 0
-    };
+    private mainMenuStatsLoader: ReturnType<typeof createMainMenuStatsLoader>;
     private readonly referenceTtlMs = 10 * 60 * 1000;
 
     constructor() {
@@ -386,6 +373,7 @@ export class TelegramBot {
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
+        this.mainMenuStatsLoader = createMainMenuStatsLoader(this.supabase);
         this.adminIds = this.parseAdminIds(process.env.ADMIN_IDS);
     }
 
@@ -10666,33 +10654,6 @@ export class TelegramBot {
         catch { return null; }
     }
 
-    private async safeDisabledJobsCount(): Promise<number | null> {
-        const variants = [
-            'is_active.eq.false,status.eq.inactive,status.eq.paused,status.eq.on_hold,source_status.eq.inactive,source_status.eq.paused,source_status.eq.on_hold',
-            'is_active.eq.false,status.eq.inactive,status.eq.paused,status.eq.on_hold',
-            'is_active.eq.false,status.eq.inactive,status.eq.paused',
-            'is_active.eq.false'
-        ];
-        for (const clause of variants) {
-            const count = await this.safeTableCount('jobs', (query) => query.or(clause));
-            if (count !== null) return count;
-        }
-        return null;
-    }
-
-    private async safePublicActiveResumesCount(): Promise<number | null> {
-        const variants: Array<(query: any) => any> = [
-            (query) => query.eq('is_public', true).eq('status', 'active'),
-            (query) => query.eq('is_public', true),
-            (query) => query.eq('status', 'active')
-        ];
-        for (const scope of variants) {
-            const count = await this.safeTableCount('resumes', scope);
-            if (count !== null) return count;
-        }
-        return null;
-    }
-
     private async safeWomenFriendlyJobsCount(): Promise<number | null> {
         const variants = [
             'is_for_women.eq.true,gender.eq.female,gender.eq.ayol,gender.eq.any,gender.eq.ahamiyatsiz,gender.eq.ahamiyatga_ega_emas,gender.eq.not_important',
@@ -10711,75 +10672,12 @@ export class TelegramBot {
         return null;
     }
 
-    private async getMainMenuStats(forceRefresh: boolean = false): Promise<{
-        jobs: number | null;
-        jobsDisabled: number | null;
-        resumes: number | null;
-        users: number | null;
-        jobsStudentsGraduates: number | null;
-        jobsDisabledFriendly: number | null;
-        jobsWomenFriendly: number | null;
-    }> {
-        const ttlMs = 45 * 1000;
-        const cacheFresh = !forceRefresh
-            && this.mainMenuStatsCache.value
-            && (Date.now() - this.mainMenuStatsCache.loadedAt) < ttlMs;
-        if (cacheFresh && this.mainMenuStatsCache.value) {
-            return this.mainMenuStatsCache.value;
-        }
-
-        const [
-            jobsActive,
-            jobsDisabled,
-            resumesPublic,
-            usersTotal,
-            jobsStudentsGraduates,
-            jobsDisabledFriendly,
-            jobsWomenFriendly
-        ] = await Promise.all([
-            this.safeActiveJobsCount(),
-            this.safeDisabledJobsCount(),
-            this.safePublicActiveResumesCount(),
-            this.safeTableCount('users'),
-            this.safeTableCount('jobs', (query) => query.or('is_for_students.eq.true,is_for_graduates.eq.true')),
-            this.safeTableCount('jobs', (query) => query.eq('is_for_disabled', true)),
-            this.safeWomenFriendlyJobsCount()
-        ]);
-
-        const stats = {
-            jobs: jobsActive,
-            jobsDisabled,
-            resumes: resumesPublic,
-            users: usersTotal,
-            jobsStudentsGraduates,
-            jobsDisabledFriendly,
-            jobsWomenFriendly
-        };
-        this.mainMenuStatsCache = { value: stats, loadedAt: Date.now() };
-        return stats;
+    private getMainMenuStats(forceRefresh = false): Promise<MainMenuStats> {
+        return this.mainMenuStatsLoader(forceRefresh);
     }
 
-    private buildMainMenuStatsText(
-        lang: BotLang,
-        stats: {
-            jobs: number | null;
-            jobsDisabled: number | null;
-            resumes: number | null;
-            users: number | null;
-            jobsStudentsGraduates: number | null;
-            jobsDisabledFriendly: number | null;
-            jobsWomenFriendly: number | null;
-        }
-    ): string {
-        const jobsTotal = (typeof stats.jobs === 'number' && typeof stats.jobsDisabled === 'number')
-            ? stats.jobs + stats.jobsDisabled
-            : (typeof stats.jobs === 'number' ? stats.jobs : stats.jobsDisabled);
-        const usersShown = typeof stats.users === 'number' ? (stats.users * 2) : null;
-        if (lang === 'ru') {
-            return `<blockquote><b>📊 | Сейчас на платформе</b>\n📢 Вакансии: ${this.formatCountValue(jobsTotal)}\n\n• Для студентов и выпускников: ${this.formatCountValue(stats.jobsStudentsGraduates)}\n• Для людей с инвалидностью: ${this.formatCountValue(stats.jobsDisabledFriendly)}\n• Для женщин: ${this.formatCountValue(stats.jobsWomenFriendly)}\n\n🧾 Резюме: ${this.formatCountValue(stats.resumes)}\n\n👥 Пользователи: ${this.formatCountValue(usersShown)}</blockquote>`;
-        }
-
-        return `<blockquote><b>📊 | Platformada hozir</b>\n📢 Vakansiyalar: ${this.formatCountValue(jobsTotal)}\n\n• Talaba va bitiruvchilar uchun: ${this.formatCountValue(stats.jobsStudentsGraduates)}\n• Nogironligi bo'lgan shaxslar uchun: ${this.formatCountValue(stats.jobsDisabledFriendly)}\n• Ayollar uchun: ${this.formatCountValue(stats.jobsWomenFriendly)}\n\n🧾 Rezyumelar: ${this.formatCountValue(stats.resumes)}\n\n👥 Foydalanuvchilar: ${this.formatCountValue(usersShown)}</blockquote>`;
+    private buildMainMenuStatsText(lang: BotLang, stats: MainMenuStats): string {
+        return formatMainMenuStatsText(lang, stats);
     }
 
     private buildMainMenuIntroText(lang: BotLang, isEmployer: boolean): string {
@@ -11512,6 +11410,7 @@ export class TelegramBot {
     }
 
     private async showMainMenu(chatId: number, session: TelegramSession): Promise<void> {
+        const statsPending = this.getMainMenuStats();
         await this.clearFlowCancelKeyboard(chatId, session);
         const lastWorkerMessageId = session.data?.last_worker_match_message_id;
         if (lastWorkerMessageId) {
@@ -11539,7 +11438,7 @@ export class TelegramBot {
             state: isEmployer ? BotState.EMPLOYER_MAIN_MENU : BotState.MAIN_MENU,
             data: updatedData
         });
-        const stats = await this.getMainMenuStats();
+        const stats = await statsPending;
         const statsText = this.buildMainMenuStatsText(lang, stats);
         const introText = this.buildMainMenuIntroText(lang, isEmployer);
         await this.clearLastJobArtifacts(chatId, session);

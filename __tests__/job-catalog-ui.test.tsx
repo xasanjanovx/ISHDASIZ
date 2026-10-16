@@ -1,14 +1,13 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import JobsPage from '@/app/jobs/page';
-import { jobCatalogQuery } from '@/lib/job-catalog';
+import { readJobFilters } from '@/lib/job-catalog';
 import { translations } from '@/lib/translations';
 let urlQuery = '', lang = 'ru', referencesFail = false;
 const replace = jest.fn();
 const reads: Array<{ filters: any; signal: AbortSignal; finish: (value: any) => void }> = [];
 jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(urlQuery), useRouter: () => ({ replace }) }));
 jest.mock('@/contexts/language-context', () => ({ useLanguage: () => ({ lang, t: translations[lang as 'ru' | 'uz'] }) }));
-jest.mock('@/lib/job-catalog', () => ({ ...jest.requireActual('@/lib/job-catalog'), jobCatalogQuery: jest.fn() }));
 jest.mock('@/lib/supabase', () => ({ supabase: { from: () => {
   const query: any = { select: () => query, neq: () => query, order: () => query, abortSignal: () => Promise.resolve({ data: [], error: referencesFail ? new Error('reference unavailable') : null }) }; return query;
 } } }));
@@ -21,7 +20,7 @@ jest.mock('@/components/jobs/job-filters', () => ({ JobFilters: (props: any) => 
 </> }));
 beforeEach(() => {
   jest.useFakeTimers(); jest.clearAllMocks(); reads.length = 0; urlQuery = ''; lang = 'ru'; referencesFail = false;
-  (jobCatalogQuery as jest.Mock).mockImplementation((_client, filters) => ({ abortSignal: (signal: AbortSignal) => new Promise(resolve => reads.push({ filters, signal, finish: resolve })) }));
+  global.fetch = jest.fn((url, options) => new Promise(resolve => reads.push({ filters: readJobFilters(String(url).split('?')[1] || ''), signal: options!.signal as AbortSignal, finish: (result) => resolve({ ok: !result.error, json: async () => result } as Response) })));
 });
 afterEach(() => jest.useRealTimers());
 const advance = async (ms = 300) => act(async () => { jest.advanceTimersByTime(ms); });

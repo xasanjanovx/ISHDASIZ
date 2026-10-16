@@ -11,9 +11,17 @@ export async function loadHomeTotals(client: SupabaseClient) {
     try { const result = await query; return !result.error && validCount(result.count) ? result.count : null; }
     catch { return null; }
   };
-  const [totalUsers, archivedJobs] = await Promise.all([
+  const [totalUsers, closedJobs, sourceClosedJobs] = await Promise.all([
     read(client.from("users").select("id", { count: "exact", head: true }).abortSignal(AbortSignal.timeout(15000))),
-    read(client.from("jobs").select("id", { count: "exact", head: true }).or(HOME_ARCHIVE_FILTER).abortSignal(AbortSignal.timeout(15000))),
+    // Disjoint indexed slices avoid the full-table OR plan that exceeds statement_timeout.
+    read(client.from("jobs").select("id", { count: "exact", head: true })
+      .eq("ishdasiz_job_available", false).in("status", ["archived", "closed", "filled", "inactive"])
+      .abortSignal(AbortSignal.timeout(15000))),
+    read(client.from("jobs").select("id", { count: "exact", head: true })
+      .eq("ishdasiz_job_available", false).in("source_status", ["filled", "removed_at_source", "archived", "inactive", "closed"])
+      .or("status.is.null,status.in.(active,published,open)").abortSignal(AbortSignal.timeout(15000))),
   ]);
+  const archivedJobs = closedJobs !== null && sourceClosedJobs !== null
+    && Number.isSafeInteger(closedJobs + sourceClosedJobs) ? closedJobs + sourceClosedJobs : null;
   return { totalUsers, archivedJobs };
 }

@@ -29,18 +29,9 @@ it("the benefits strip explains the site and links to the channel without duplic
   expect(groups[1]).toHaveAttribute('aria-hidden', 'true');
   expect(groups[1]).not.toHaveAttribute('inert');
 });
-it("pauses the ticker independently without stopping the profession carousel", () => {
-  jest.useFakeTimers();
-  try {
-    render(<HeroSection />);
-    const strip = screen.getByRole('region', { name: 'О сайте и Telegram-канале' });
-    fireEvent.click(screen.getByRole('button', { name: 'Приостановить бегущую строку' }));
-    expect(strip).toHaveAttribute('data-paused', 'true');
-    act(() => jest.advanceTimersByTime(7000));
-    expect(screen.getByRole('button', { name: 'Строитель', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'Продолжить бегущую строку' }));
-    expect(strip).toHaveAttribute('data-paused', 'false');
-  } finally { jest.useRealTimers(); }
+it("has no animation stop buttons", () => {
+  const view = render(<HeroSection />);
+  expect(view.container.querySelector('.poster-pause,.poster-ticker-pause')).toBeNull();
 });
 it("searches the whole country by default without inventing a region", () => {
   render(<HeroSection />);
@@ -91,14 +82,14 @@ it("does not pretend a partial count is the combined total", () => {
   expect(view.container.querySelector('.poster-job-breakdown')).not.toBeInTheDocument();
 });
 
-it("preserves a manually selected profession without automatic navigation", () => {
+it("opens the selected profession without navigating and restarts the cycle timer", () => {
   jest.useFakeTimers();
   try {
     render(<HeroSection />);
     fireEvent.click(screen.getByRole("button", { name: "Врач", exact: true }));
     expect(document.querySelector('.poster-word')).toHaveTextContent('Врач');
     expect(document.querySelector('.poster-profession-tag')).not.toBeInTheDocument();
-    act(() => jest.advanceTimersByTime(14000));
+    act(() => jest.advanceTimersByTime(6000));
     expect(
       screen.getByRole("button", { name: "Врач", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -142,40 +133,15 @@ it.each([
     ).toHaveAttribute("href", `/jobs?category=${category}&region=22`);
   },
 );
-it("automatically cycles through all five professions and can pause", () => {
+it("automatically cycles through all eight professions", () => {
   jest.useFakeTimers();
   try {
     render(<HeroSection />);
-    for (const name of [
-      "Строитель",
-      "Врач",
-      "Программист",
-      "Повар",
-      "Учитель",
-    ]) {
+    for (const name of ["Строитель", "Врач", "Программист", "Повар", "Швея", "Водитель", "Продавец", "Учитель"]) {
       act(() => jest.advanceTimersByTime(7000));
-      expect(screen.getByRole("button", { name, exact: true })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
+      expect(screen.getByRole("button", { name, exact: true })).toHaveAttribute("aria-pressed", "true");
     }
-    fireEvent.click(
-      screen.getByRole("button", { name: "Приостановить смену профессий" }),
-    );
-    act(() => jest.advanceTimersByTime(7000));
-    expect(
-      screen.getByRole("button", { name: "Учитель", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Включить смену профессий" }),
-    );
-    act(() => jest.advanceTimersByTime(7000));
-    expect(
-      screen.getByRole("button", { name: "Строитель", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
-  } finally {
-    jest.useRealTimers();
-  }
+  } finally { jest.useRealTimers(); }
 });
 it("the chef search keeps its keyword and the selected region", () => {
   render(
@@ -192,38 +158,20 @@ it("the chef search keeps its keyword and the selected region", () => {
     "/jobs?category=a0000003-0003-4000-8000-000000000003&q=oshpaz&region=22",
   );
 });
-it("respects reduced motion by default and allows explicit carousel playback", () => {
+it("respects reduced motion and allows manual profession selection", () => {
   jest.useFakeTimers();
   try {
     mockReducedMotion.mockReturnValue(true);
     const view = render(<HeroSection />);
     expect(view.container.querySelector('.poster-hero')).toHaveAttribute('data-playing', 'false');
-    act(() => jest.advanceTimersByTime(7000));
-    expect(screen.getByRole('button', { name: 'Учитель', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Включить смену профессий' })).toBeEnabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Программист', exact: true }));
-    expect(screen.getByRole('button', { name: 'Программист', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    const play = screen.getByRole('button', { name: 'Включить смену профессий' });
-    fireEvent.focus(play);
-    fireEvent.click(play);
-    expect(view.container.querySelector('.poster-hero')).toHaveAttribute('data-playing', 'true');
-    act(() => jest.advanceTimersByTime(7000));
-    expect(screen.getByRole('button', { name: 'Повар', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'Приостановить смену профессий' }));
-    act(() => jest.advanceTimersByTime(7000));
-    expect(screen.getByRole('button', { name: 'Повар', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    expect(view.container.querySelector('.poster-ticker')).toHaveAttribute('data-paused', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Водитель', exact: true }));
+    act(() => jest.advanceTimersByTime(14000));
+    expect(screen.getByRole('button', { name: 'Водитель', exact: true })).toHaveAttribute('aria-pressed', 'true');
   } finally { jest.useRealTimers(); }
 });
-
-it('allows explicit ticker playback with reduced motion and leaves the carousel stopped', () => {
-  mockReducedMotion.mockReturnValue(true);
-  const view = render(<HeroSection />);
-  const strip = screen.getByRole('region', { name: 'О сайте и Telegram-канале' });
-  expect(strip).toHaveAttribute('data-paused', 'true');
-  fireEvent.click(screen.getByRole('button', { name: 'Продолжить бегущую строку' }));
-  expect(strip).toHaveAttribute('data-motion', 'enabled');
-  expect(strip).toHaveAttribute('data-paused', 'false');
-  expect(view.container.querySelector('.poster-hero')).toHaveAttribute('data-playing', 'false');
-  fireEvent.click(screen.getByRole('button', { name: 'Приостановить бегущую строку' }));
-  expect(strip).toHaveAttribute('data-paused', 'true');
+it.each([['Швея', 'Вакансии швеи', 'tikuvchi'], ['Водитель', 'Вакансии водителя', 'haydovchi'], ['Продавец', 'Вакансии продавца', 'sotuvchi']])('%s links to real jobs by keyword', (name, action, query) => {
+  render(<HeroSection />);
+  fireEvent.click(screen.getByRole('button', { name, exact: true }));
+  expect(screen.getByRole('link', { name: action })).toHaveAttribute('href', `/jobs?q=${query}`);
 });
