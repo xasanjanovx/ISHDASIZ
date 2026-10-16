@@ -1,0 +1,42 @@
+/* Each scene changes the canvas, typography and line illustration together. */
+.poster-hero { --scene-canvas: #eee8de; --scene-art: #a77b5a; background: var(--scene-canvas); transition: background-color .9s ease; }
+.poster-hero[data-profession="1"] { --scene-canvas: #eee0c7; --scene-art: #9b6932; }
+.poster-hero[data-profession="2"] { --scene-canvas: #e1eeea; --scene-art: #43897d; }
+.poster-hero[data-profession="3"] { --scene-canvas: #e0e7f2; --scene-art: #5679ad; }
+.poster-hero[data-profession="4"] { --scene-canvas: #e9e9d8; --scene-art: #7a8150; }
+.poster-word { top: 20px; width: 100%; font-size: min(22vw, calc(142vw / var(--profession-length)), calc(2556px / var(--profession-length))); letter-spacing: -.055em; line-height: 1.1; text-align: center; text-transform: uppercase; color: var(--profession-ink); opacity: .9; }
+.poster-hero[data-profession="1"] .poster-word { -webkit-text-stroke: 2px var(--profession-ink); color: transparent; }
+.poster-hero[data-profession="2"] .poster-word { font-weight: 650; letter-spacing: -.06em; }
+.poster-hero[data-profession="3"] .poster-word { font-family: ui-monospace, monospace; letter-spacing: -.08em; }
+.poster-hero[data-profession="4"] .poster-word { font-family: Georgia, serif; font-style: italic; font-weight: 600; }
+.poster-scene-art { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--scene-art); stroke-width: 1.5; opacity: .3; pointer-events: none; }
+.poster-search-card { padding: 20px; }
+.poster-search-card, .poster-resumes-card { border-color: color-mix(in srgb, var(--profession-accent) 35%, #c9c4bb); background: color-mix(in srgb, var(--scene-canvas) 25%, #fffdf6); transition: border-color .8s, background-color .8s; }
+.poster-search-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.poster-search-summary .poster-card-label { font-size: 11px; line-height: 1.5; letter-spacing: .8px; max-width: 135px; }
+.poster-search-summary .poster-job-count { margin: 0; flex-shrink: 0; }
+.poster-search-summary .poster-job-count strong { font-size: 32px; letter-spacing: -1px; }
+.poster-search-card .home-search { margin-top: 14px; }
+.poster-search-card .home-search-query { padding-block: 7px; }
+.poster-search-card .home-search-bottom { padding-top: 4px; gap: 8px; }
+.poster-search-card .home-button { min-height: 46px; padding-block: 11px; }
+.home-search-label-short { display: none; }
+.poster-controls { gap: 8px; padding: 9px; border: 1px solid #bfb5a480; border-radius: 50px; background: #fffcf5a6; backdrop-filter: blur(16px); }
+.poster-avatars { gap: 5px; }
+.poster-avatars button { width: 44px; height: 44px; border: 2px solid transparent; }
+.poster-avatars button.is-active { border-color: var(--profession-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--profession-accent) 18%, transparent); }
+.poster-pause { background: var(--profession-ink); border-color: var(--profession-ink); color: #fffdf7; }
+.poster-progress { background: color-mix(in srgb, var(--profession-accent) 18%, transparent); }
+.poster-feature .poster-action { min-height: 48px; }
+@media (max-width: 1500px) { .poster-slide-number { display: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .poster-word { animation: profession-word-in .8s cubic-bezier(.2,.7,.2,1) both; }
+  .poster-scene-art { animation: profession-art-drift 14s ease-in-out infinite; }
+  .poster-scene-art > g { animation: profession-art-in 1s ease both; }
+  .poster-hero[data-playing="false"] .poster-scene-art { animation-play-state: paused; }
+}
+@keyframes profession-word-in { from { opacity: 0; translate: 0 14px; filter: blur(5px); } to { opacity: .9; translate: 0 0; filter: blur(0); } }
+@keyframes profession-art-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes profession-art-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .poster-hero, .poster-search-card, .poster-resumes-card { transition: none; } }

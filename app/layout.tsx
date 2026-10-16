@@ -1,7 +1,9 @@
 import "./globals.css";
 import "./site-theme.css";
 import "./site-motion.css";
-import type { Metadata } from "next";
+import "./profession-scenes.css";
+import "./site-mobile.css";
+import type { Metadata, Viewport } from "next";
 import { Onest } from "next/font/google";
 import { LanguageProvider } from "@/contexts/language-context";
 import { AuthProvider } from "@/contexts/auth-context";
@@ -24,6 +26,13 @@ const siteFont = Onest({
   variable: "--font-home",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ishdasiz.uz"),

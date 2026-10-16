@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -163,8 +163,15 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
       </div>
       <BenefitsTicker />
       <div className="poster-stage home-shell">
-        <div className="poster-word" aria-hidden="true">
-          ISHDASIZ
+        <svg className="poster-scene-art" viewBox="0 0 1440 820" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          {active === 0 && <g><circle cx="720" cy="390" r="290" /><circle cx="720" cy="390" r="250" strokeDasharray="2 16" /><path d="M160 400q80-35 160 0v145q-80-35-160 0Zm160 0q80-35 160 0v145q-80-35-160 0M190 430l95 0m-95 28h95m65-28h95m-95 28h95" /><path d="M1120 230h140m-70-70v140" /></g>}
+          {active === 1 && <g><path d="M170 80v650m150-650v650m150-650v650m150-650v650m150-650v650m150-650v650m150-650v650m150-650v650M110 150h1200M110 300h1200M110 450h1200M110 600h1200" opacity=".5" /><path d="m1070 480 115-190 115 190ZM180 600V360h140v240m-110-205h80m-80 50h80m-80 50h80" /><circle cx="720" cy="390" r="280" strokeDasharray="10 14" /></g>}
+          {active === 2 && <g><circle cx="720" cy="390" r="285" /><path d="M1120 260h70v-70h65v70h70v65h-70v70h-65v-70h-70ZM145 520h80l30-65 40 125 35-70h110" /><circle cx="380" cy="180" r="30" /><circle cx="1070" cy="620" r="55" strokeDasharray="3 10" /></g>}
+          {active === 3 && <g><path d="m270 235-75 65 75 65m140-130 75 65-75 65m-65-150-25 170M1070 450h75l40 40h110m-210 70h100l40 40h70M1000 210h-60l-60 60" /><rect x="440" y="105" width="560" height="590" rx="36" strokeDasharray="3 12" /><circle cx="1070" cy="450" r="8" /><circle cx="1295" cy="600" r="8" /><path d="M1090 250h110m-110 30h65" /></g>}
+          {active === 4 && <g><ellipse cx="720" cy="430" rx="300" ry="245" /><ellipse cx="720" cy="430" rx="260" ry="205" strokeDasharray="2 14" /><path d="M1090 440q120-150 220 0Zm40-50q-35-40 0-70t0-70m60 130q-35-40 0-70t0-70M190 260v180m30-180v180m30-180v180m-60-80q30 35 60 0m-30 80v120" /></g>}
+        </svg>
+        <div key={scene.name} className="poster-word" aria-hidden="true" style={{ "--profession-length": scene.name.length } as CSSProperties}>
+          {scene.name}
         </div>
         <svg
           className="poster-connectors"
@@ -195,24 +202,16 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             </div>
           ))}
         </div>
-        <div
-          className="poster-profession-tag"
-          aria-hidden="true"
-          key={scene.name}
-        >
-          <span>0{active + 1}</span>
-          {scene.name}
-          <ArrowUpRight size={15} />
-        </div>
         <div className="poster-search-card">
-          <div className="poster-card-label">
-            <span>{ru ? "ВСЕГО ВАКАНСИЙ" : "JAMI VAKANSIYALAR"}</span>
-            <ArrowUpRight size={17} />
+          <div className="poster-search-summary">
+            <div className="poster-card-label">
+              <span>{ru ? "ВСЕГО ВАКАНСИЙ" : "JAMI VAKANSIYALAR"}</span>
+            </div>
+            <Link href="/jobs" className="poster-job-count"
+              aria-label={ru ? `${number(allJobs)} вакансий за всё время` : `Jami ${number(allJobs)} ta vakansiya`}>
+              <strong>{number(allJobs)}</strong>
+            </Link>
           </div>
-          <Link href="/jobs" className="poster-job-count"
-            aria-label={ru ? `${number(allJobs)} вакансий за всё время` : `Jami ${number(allJobs)} ta vakansiya`}>
-            <strong>{number(allJobs)}</strong>
-          </Link>
           <form onSubmit={search} className="home-search">
             <div className="home-search-query">
               <Search size={18} />
@@ -249,8 +248,9 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                   ))}
                 </select>
               </div>
-              <button type="submit" className="home-button">
-                {ru ? "Найти работу" : "Ish topish"}
+              <button type="submit" className="home-button" aria-label={ru ? "Найти работу" : "Ish topish"}>
+                <span className="home-search-label-full" aria-hidden="true">{ru ? "Найти работу" : "Ish topish"}</span>
+                <span className="home-search-label-short" aria-hidden="true">{ru ? "Найти" : "Ish topish"}</span>
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -301,7 +301,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
         </div>
         <div className="poster-feature">
           <div className="poster-controls">
-            <div className="poster-avatars">
+            <div className="poster-avatars" role="group" aria-label={ru ? "Выберите профессию" : "Kasbni tanlang"}>
               {scenes.map((item, index) => (
                 <button
                   key={item.name}

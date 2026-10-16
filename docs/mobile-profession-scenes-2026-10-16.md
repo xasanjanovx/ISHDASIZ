@@ -1,0 +1,7 @@
+# Mobile profession scenes
+
+The homepage keeps a large animated portrait above search on phones. The word behind it follows the selected profession in Russian or Uzbek. Five scenes share the same layout while changing canvas colors, typography and SVG illustrations: education circles/books, construction drawings, medical symbols, programming circuits and cooking details. The small profession badge is removed. Reduced motion remains the default for devices requesting it, with explicit carousel and ticker playback available.
+
+The search card now places its aggregate vacancy count and caption on one row. The compact layout preserves the actual database region ID and search parameters; the Russian mobile submit label is shorter while its accessible name remains complete. The profession controls use larger targets, and the floating bottom navigation identifies the active route, including vacancy details. Mobile menus include a map destination, an authentication action for guests, a labelled dialog and safe-area spacing. Navigation yields space while a text field is focused on touch devices. Card spacing and typography are compacted without changing the desktop grid.
+
+Validation includes Chrome and WebKit phone layouts in both languages, all five scenes, 320–430 px widths, desktop rendering, keyboard focus, menu interactions, reduced motion and existing search/catalog tests. Browser emulation does not replace testing on a physical phone.

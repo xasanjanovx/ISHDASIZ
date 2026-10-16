@@ -96,6 +96,8 @@ it("preserves a manually selected profession without automatic navigation", () =
   try {
     render(<HeroSection />);
     fireEvent.click(screen.getByRole("button", { name: "Врач", exact: true }));
+    expect(document.querySelector('.poster-word')).toHaveTextContent('Врач');
+    expect(document.querySelector('.poster-profession-tag')).not.toBeInTheDocument();
     act(() => jest.advanceTimersByTime(14000));
     expect(
       screen.getByRole("button", { name: "Врач", exact: true }),
@@ -134,6 +136,7 @@ it.each([
     fireEvent.click(
       screen.getByRole("button", { name: profession, exact: true }),
     );
+    expect(document.querySelector('.poster-word')).toHaveTextContent(profession);
     expect(
       screen.getByRole("link", { name: action, exact: true }),
     ).toHaveAttribute("href", `/jobs?category=${category}&region=22`);

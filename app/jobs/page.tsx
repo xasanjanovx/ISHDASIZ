@@ -137,22 +137,23 @@ function JobsContent() {
           </aside>
 
           <section className="min-w-0 flex-1" aria-label={lang === 'ru' ? 'Результаты поиска' : 'Qidiruv natijalari'}>
-            <div className="flex items-center justify-between mb-4">
+            <div className="catalog-toolbar flex flex-wrap items-center justify-between gap-3 mb-4">
               <p className="text-sm text-muted-foreground">
                 {loading ? (lang === 'ru' ? 'Загрузка вакансий…' : 'Vakansiyalar yuklanmoqda…') : loadError ? (lang === 'ru' ? 'Данные временно недоступны' : 'Ma’lumotlar vaqtincha mavjud emas') : lang === 'uz' ? `${totalCount} ta vakansiya topildi` : `Найдено ${totalCount} вакансий`}
               </p>
               <div className="flex items-center gap-2">
-                <Link href="/map">
-                  <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/map">
                     <MapIcon className="w-4 h-4 mr-2" />
                     {t.nav.map}
-                  </Button>
-                </Link>
-                <div className="flex border rounded-lg overflow-hidden">
+                  </Link>
+                </Button>
+                <div className="catalog-view-toggle flex border rounded-lg overflow-hidden">
                   <Button
                     variant={viewMode === 'list' ? 'default' : 'ghost'}
                     size="sm"
                     aria-label={lang === 'ru' ? 'Показать списком' : 'Ro‘yxat ko‘rinishi'}
+                    aria-pressed={viewMode === 'list'}
                     onClick={() => setViewMode('list')}
                     className="rounded-none"
                   >
@@ -162,6 +163,7 @@ function JobsContent() {
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
                     aria-label={lang === 'ru' ? 'Показать сеткой' : 'Katak ko‘rinishi'}
+                    aria-pressed={viewMode === 'grid'}
                     onClick={() => setViewMode('grid')}
                     className="rounded-none"
                   >
