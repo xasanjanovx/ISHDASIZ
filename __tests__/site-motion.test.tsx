@@ -62,3 +62,17 @@ test('honors reduced motion on load and when changed while browsing', () => {
   expect(cancel).toHaveBeenCalledTimes(1);
   view.unmount();
 });
+
+test('observes a main element streamed after the layout has hydrated', () => {
+  const view = render(<SiteMotion />);
+  const main = document.createElement('main');
+  main.innerHTML = '<div class="poster-search-card">Поиск</div>';
+  document.body.append(main);
+  try {
+    act(() => mutation([], {} as any));
+    const card = main.firstElementChild!;
+    expect(observe).toHaveBeenCalledWith(card);
+    enter(card);
+    expect(animate).toHaveBeenCalledTimes(1);
+  } finally { main.remove(); view.unmount(); }
+});

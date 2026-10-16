@@ -4,11 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { Pause, Play } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 export function BenefitsTicker() {
   const { lang } = useLanguage();
   const ru = lang === "ru";
   const [paused, setPaused] = useState(false);
+  const [motionEnabled, setMotionEnabled] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
+  const stopped = paused || (reducedMotion && !motionEnabled);
   const items = [
     { text: ru ? "ISHDASIZ — работа по всему Узбекистану" : "ISHDASIZ — butun O‘zbekiston bo‘ylab ish", href: "/jobs" },
     { text: ru ? "Ищите по профессии и региону" : "Kasb va hudud bo‘yicha qidiring", href: "/jobs" },
@@ -20,7 +24,7 @@ export function BenefitsTicker() {
     { text: ru ? "Поиск и отклики прямо в Telegram-боте" : "Telegram botda ish qidiring va ariza yuboring", href: "https://t.me/ishdasizbot" },
   ];
   return (
-    <div className="poster-ticker" role="region" aria-label={ru ? "О сайте и Telegram-канале" : "Sayt va Telegram kanal haqida"} data-paused={paused}>
+    <div className="poster-ticker" role="region" aria-label={ru ? "О сайте и Telegram-канале" : "Sayt va Telegram kanal haqida"} data-paused={stopped} data-motion={motionEnabled ? "enabled" : "system"}>
       <div className="poster-ticker-window">
         <div className="poster-ticker-track">
           {[false, true].map(duplicate => (
@@ -36,10 +40,15 @@ export function BenefitsTicker() {
           ))}
         </div>
       </div>
-      <button type="button" className="poster-ticker-pause" aria-pressed={paused}
-        aria-label={paused ? (ru ? "Продолжить бегущую строку" : "Yuguruvchi satrni davom ettirish") : (ru ? "Приостановить бегущую строку" : "Yuguruvchi satrni to‘xtatish")}
-        onClick={() => setPaused(value => !value)}>
-        {paused ? <Play size={15} /> : <Pause size={15} />}
+      <button type="button" className="poster-ticker-pause" aria-pressed={stopped}
+        aria-label={stopped ? (ru ? "Продолжить бегущую строку" : "Yuguruvchi satrni davom ettirish") : (ru ? "Приостановить бегущую строку" : "Yuguruvchi satrni to‘xtatish")}
+        onClick={() => {
+          if (stopped) {
+            setMotionEnabled(true);
+            setPaused(false);
+          } else setPaused(true);
+        }}>
+        {stopped ? <Play size={15} /> : <Pause size={15} />}
       </button>
     </div>
   );

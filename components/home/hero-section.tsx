@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useReducedMotion } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import {
   Search,
   MapPin,
@@ -34,14 +34,16 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
   const { lang } = useLanguage();
   const ru = lang === "ru";
   const router = useRouter();
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = usePrefersReducedMotion();
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("all");
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [motionEnabled, setMotionEnabled] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const playing = !paused && !reducedMotion && !hovered && !focused;
+  const stopped = paused || (reducedMotion && !motionEnabled);
+  const playing = !stopped && !hovered && !focused;
   useEffect(() => {
     if (!playing) return;
     const timer = setInterval(
@@ -148,6 +150,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
       id="home-top"
       className="poster-hero"
       data-playing={playing}
+      data-motion={motionEnabled ? "enabled" : "system"}
       data-profession={active}
     >
       <div className="poster-atmospheres" aria-hidden="true">
@@ -203,17 +206,13 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
         </div>
         <div className="poster-search-card">
           <div className="poster-card-label">
-            <span>{ru ? "ВАШИ ВОЗМОЖНОСТИ" : "SIZNING IMKONIYATLARINGIZ"}</span>
+            <span>{ru ? "ВСЕГО ВАКАНСИЙ" : "JAMI VAKANSIYALAR"}</span>
             <ArrowUpRight size={17} />
           </div>
-          <div className="poster-job-count">
+          <Link href="/jobs" className="poster-job-count"
+            aria-label={ru ? `${number(allJobs)} вакансий за всё время` : `Jami ${number(allJobs)} ta vakansiya`}>
             <strong>{number(allJobs)}</strong>
-            <span>{ru ? "вакансий собрано\nза всё время" : "jami yig‘ilgan\nvakansiyalar"}</span>
-          </div>
-          <div className="poster-job-breakdown">
-            <Link href="/jobs"><strong>{number(stats?.totalJobs)}</strong><span>{ru ? "актуальных" : "dolzarb"}</span></Link>
-            <div><strong>{number(stats?.archivedJobs)}</strong><span>{ru ? "в архиве" : "arxivda"}</span></div>
-          </div>
+          </Link>
           <form onSubmit={search} className="home-search">
             <div className="home-search-query">
               <Search size={18} />
@@ -300,16 +299,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             ))}
           </div>
         </div>
-        <div
-          className="poster-feature"
-          onPointerEnter={() => setHovered(true)}
-          onPointerLeave={() => setHovered(false)}
-          onFocusCapture={() => setFocused(true)}
-          onBlurCapture={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget))
-              setFocused(false);
-          }}
-        >
+        <div className="poster-feature">
           <div className="poster-controls">
             <div className="poster-avatars">
               {scenes.map((item, index) => (
@@ -336,7 +326,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
               type="button"
               className="poster-pause"
               aria-label={
-                paused || reducedMotion
+                stopped
                   ? ru
                     ? "Включить смену профессий"
                     : "Kasblar almashinuvini yoqish"
@@ -344,20 +334,36 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                     ? "Приостановить смену профессий"
                     : "Kasblar almashinuvini to‘xtatish"
               }
-              onClick={() => setPaused((value) => !value)}
-              disabled={!!reducedMotion}
+              aria-pressed={!stopped}
+              onClick={() => {
+                if (stopped) {
+                  setMotionEnabled(true);
+                  setPaused(false);
+                } else setPaused(true);
+              }}
             >
-              {paused || reducedMotion ? (
+              {stopped ? (
                 <Play size={17} />
               ) : (
                 <Pause size={17} />
               )}
             </button>
           </div>
+          <div className="poster-progress" aria-hidden="true">
+            <span key={active} />
+          </div>
           <div
             key={scene.name}
             className="poster-feature-copy"
             aria-live={playing ? "off" : "polite"}
+            onPointerEnter={(event) => {
+              if (event.pointerType === "mouse") setHovered(true);
+            }}
+            onPointerLeave={() => setHovered(false)}
+            onFocusCapture={() => setFocused(true)}
+            onBlurCapture={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+            }}
           >
             <h2>{scene.title}</h2>
             <p>{scene.text}</p>

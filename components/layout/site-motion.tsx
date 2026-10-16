@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const targets = ".home-section-heading, .home-category, .home-job-card, .home-seeker-card, .home-opportunity, .home-step, .home-telegram, .catalog-job-card, .catalog-resume-card, .site-page-banner";
+const targets = ".poster-search-card, .poster-resumes-card, .poster-copy, .poster-controls, .home-section-heading, .home-how-heading, .home-category, .home-job-card, .home-seeker-card, .home-resume-cta, .home-opportunity, .home-step, .home-telegram, .catalog-job-card, .catalog-resume-card, .site-page-banner";
 
 // Progressive enhancement: content stays visible when scripts, observers or motion are unavailable.
 export function SiteMotion() {
@@ -11,8 +11,8 @@ export function SiteMotion() {
   useEffect(() => {
     if (!window.matchMedia || !window.IntersectionObserver || !window.MutationObserver) return;
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const main = document.querySelector("main");
-    if (!main) return;
+    // The page can still be streaming when this layout component hydrates.
+    const main = document.querySelector("main") ?? document.body;
     let stop = () => {};
     const start = () => {
       stop();
