@@ -76,7 +76,7 @@ it("shows only the combined total without current/archive breakdown and counts r
   expect(screen.queryByText(/актуальных|в архиве/)).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: '333 вакансий за всё время' })).toHaveAttribute('href', '/jobs');
   const stats = screen.getByLabelText('Вакансии и пользователи');
-  expect(stats).toHaveTextContent('ПОЛЬЗОВАТЕЛИ1 228');
+  expect(stats).toHaveTextContent('Пользователи1 228');
   expect(stats).toContainElement(screen.getByRole('link', { name: '333 вакансий за всё время' }));
   expect(view.container.querySelector('.poster-search-card')).toContainElement(stats);
   expect(screen.queryByText(/резюме людей/)).not.toBeInTheDocument();

@@ -5,6 +5,15 @@
 @media (min-width: 768px) { .site-header .container { width: min(1840px, calc(100% - 80px)); max-width: 1840px; } }
 .home-canvas > section { border-block: 0; }
 .site-header { border-bottom: 0; }
+.site-header a[data-active] { font-size: 16px; font-weight: 650; }
+.site-header button .text-xs { font-size: 14px; font-weight: 650; }
+.home-canvas .home-seeker-card h3 { font-size: 20px; font-weight: 650; }
+.home-canvas .home-seeker-title, .home-canvas .home-seeker-location, .home-canvas .home-skill-list span, .home-canvas .home-seeker-bottom { font-size: 14px; font-weight: 550; }
+.home-canvas .home-seeker-card { min-width: 0; }
+.home-canvas .home-seeker-card h3, .home-canvas .home-seeker-card p { overflow-wrap: anywhere; }
+.home-canvas .home-skill-list span { max-width: 100%; overflow-wrap: anywhere; }
+.home-canvas .home-resume-cta h3 { font-size: 20px; font-weight: 650; }
+.home-canvas .home-resume-cta p { font-size: 16px; font-weight: 500; }
 /* Mobile layouts share the desktop palette, with room for fingers and the home indicator. */
 @media (max-width: 767px) {
   .site-main { padding-top: calc(64px + env(safe-area-inset-top, 0px)); padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
@@ -17,7 +26,7 @@
   .site-mobile-nav { left: 14px; right: 14px; width: auto; max-width: 450px; margin-inline: auto; bottom: max(12px, env(safe-area-inset-bottom, 0px)); padding: 7px 8px; border: 1px solid #ffffffb8; border-radius: 30px; background: #fffaf0ed; box-shadow: 0 12px 35px #35372c1a, 0 3px 8px #35372c08; backdrop-filter: blur(24px); isolation: isolate; }
   .site-mobile-nav > .flex { height: 57px; padding-inline: 0; gap: 4px; }
   .site-mobile-nav .mobile-nav-item { position: relative; min-width: 0; min-height: 48px; height: 100%; gap: 4px; border-radius: 20px; color: #786d58; transition: color .25s, background-color .25s, transform .25s; }
-  .site-mobile-nav .mobile-nav-item > span:last-child { font-size: 11px; line-height: 1.3; font-weight: 550; white-space: nowrap; }
+  .site-mobile-nav .mobile-nav-item > span:last-child { font-size: 13px; line-height: 1.3; font-weight: 650; white-space: nowrap; }
   .mobile-nav-icon { display: grid; place-items: center; width: 40px; height: 31px; border-radius: 13px; transition: background-color .25s, transform .25s; }
   .mobile-nav-icon svg { width: 21px; height: 21px; stroke-width: 1.8; }
   .site-mobile-nav .mobile-nav-item[aria-current="page"], .site-mobile-nav .mobile-nav-item[data-active="true"] { background: transparent; color: #3b4937; box-shadow: none; }

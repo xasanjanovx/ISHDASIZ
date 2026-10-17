@@ -150,13 +150,13 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           <div className={`poster-search-card ${styles.searchCard}`}>
             <div className={styles.stats} aria-label={ru ? "Вакансии и пользователи" : "Vakansiyalar va foydalanuvchilar"}>
               <div className={styles.stat}>
-                <span>{ru ? "ВСЕГО ВАКАНСИЙ" : "JAMI VAKANSIYALAR"}</span>
+                <span>{ru ? "Всего вакансий" : "Jami vakansiyalar"}</span>
                 <Link href="/jobs" className={`poster-job-count ${styles.count}`} aria-label={ru ? `${number(allJobs)} вакансий за всё время` : `Jami ${number(allJobs)} ta vakansiya`}>
                   <strong>{number(allJobs)}</strong>
                 </Link>
               </div>
               <div className={styles.stat}>
-                <span>{ru ? "ПОЛЬЗОВАТЕЛИ" : "FOYDALANUVCHILAR"}</span>
+                <span>{ru ? "Пользователи" : "Foydalanuvchilar"}</span>
                 <strong className={styles.userCount}>{number(users)}</strong>
               </div>
             </div>
@@ -176,7 +176,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                   </select>
                 </div>
                 <button type="submit" className={styles.searchButton} aria-label={ru ? "Найти работу" : "Ish topish"}>
-                  <ActionLabel>{ru ? "Найти работу" : "Ish topish"}</ActionLabel>
+                  <ActionLabel>{ru ? "Найти" : "Ish topish"}</ActionLabel>
                 </button>
               </div>
             </form>
