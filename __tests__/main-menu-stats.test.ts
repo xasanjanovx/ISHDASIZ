@@ -29,7 +29,7 @@ test('bot uses the same exact counts as the website and counts only public activ
   expect(resume.url.searchParams.get('status')).toBe('eq.active');
   expect(resume.url.searchParams.get('ishdasiz_resume_available')).toBe('eq.true');
   expect(formatMainMenuStatsText('ru', stats)).toContain('Всего вакансий: 48 751');
-  expect(formatMainMenuStatsText('ru', stats)).toContain('Пользователи: 614');
+  expect(formatMainMenuStatsText('ru', stats)).toContain('Пользователи: 1 228');
   expect(formatMainMenuStatsText('uz', stats)).toContain('Jami vakansiyalar: 48 751');
 });
 test('simultaneous menus share one load and subsequent menus use the cache', async () => {

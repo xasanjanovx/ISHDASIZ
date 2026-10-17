@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { parseHomeCounts } from '../home-data';
 import { loadHomeTotals } from '../home-totals';
+import { displayedUsers } from '../display-counts';
 
 export type MainMenuStats = {
   jobs: number | null;
@@ -60,7 +61,7 @@ export function formatMainMenuStatsText(lang: 'ru' | 'uz', stats: MainMenuStats)
   const jobsTotal = (typeof stats.jobs === 'number' && typeof stats.jobsDisabled === 'number')
       ? stats.jobs + stats.jobsDisabled
       : null;
-  const usersShown = stats.users;
+  const usersShown = displayedUsers(stats.users);
   if (lang === 'ru') {
       return `<blockquote><b>📊 | Статистика ISHDASIZ</b>\n📢 Всего вакансий: ${formatCountValue(jobsTotal)}\n✅ Доступно сейчас: ${formatCountValue(stats.jobs)}\n\n• Для студентов и выпускников: ${formatCountValue(stats.jobsStudentsGraduates)}\n• Для людей с инвалидностью: ${formatCountValue(stats.jobsDisabledFriendly)}\n• Для женщин: ${formatCountValue(stats.jobsWomenFriendly)}\n\n🧾 Резюме: ${formatCountValue(stats.resumes)}\n\n👥 Пользователи: ${formatCountValue(usersShown)}</blockquote>`;
   }

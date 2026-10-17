@@ -9,14 +9,13 @@ export function BenefitsTicker() {
   const ru = lang === "ru";
   const stopped = usePrefersReducedMotion();
   const items = [
-    { text: ru ? "ISHDASIZ — работа по всему Узбекистану" : "ISHDASIZ — butun O‘zbekiston bo‘ylab ish", href: "/jobs" },
-    { text: ru ? "Ищите по профессии и региону" : "Kasb va hudud bo‘yicha qidiring", href: "/jobs" },
-    { text: ru ? "Сравнивайте зарплату и условия" : "Maosh va sharoitlarni solishtiring", href: "/jobs" },
-    { text: ru ? "Находите вакансии рядом на карте" : "Yaqin atrofdagi ishlarni xaritada toping", href: "/map" },
-    { text: ru ? "Ваш опыт заслуживает хорошего резюме" : "Tajribangizni rezyumeda ko‘rsating", href: "/profile/job-seeker/resumes" },
-    { text: ru ? "Сохраняйте интересные вакансии" : "Yoqtirgan vakansiyalaringizni saqlang", href: "/profile/job-seeker/favorites" },
-    { text: ru ? "Вакансии в нашем Telegram-канале — @ishdasiz" : "Telegram kanalimizdagi vakansiyalar — @ishdasiz", href: "https://t.me/ishdasiz" },
-    { text: ru ? "Поиск и отклики прямо в Telegram-боте" : "Telegram botda ish qidiring va ariza yuboring", href: "https://t.me/ishdasizbot" },
+    { text: ru ? "Поиск по профессии" : "Kasb bo‘yicha izlash", href: "/jobs" },
+    { text: ru ? "Зарплата и условия" : "Maosh va sharoitlar", href: "/jobs" },
+    { text: ru ? "Работа на карте" : "Xaritadagi ishlar", href: "/map" },
+    { text: ru ? "Создать резюме" : "Rezyume yaratish", href: "/profile/job-seeker/resumes" },
+    { text: ru ? "Избранные вакансии" : "Saqlangan ishlar", href: "/profile/job-seeker/favorites" },
+    { text: ru ? "Telegram-канал" : "Telegram kanal", href: "https://t.me/ishdasiz" },
+    { text: ru ? "Работа в Telegram" : "Telegram’da ish", href: "https://t.me/ishdasizbot" },
   ];
   return (
     <div className="poster-ticker" role="region" aria-label={ru ? "О сайте и Telegram-канале" : "Sayt va Telegram kanal haqida"} data-paused={stopped} data-motion="system">

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { BenefitsTicker } from "./benefits-ticker";
+import { HeroTelegramLink } from "./hero-telegram-link";
+import { displayedUsers } from "@/lib/display-counts";
 interface HeroProps {
   regions?: { id: number; name_uz: string; name_ru: string }[];
   stats?: {
@@ -51,6 +53,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     );
     return () => clearTimeout(timer);
   }, [playing, active]);
+  const users = displayedUsers(stats?.totalUsers);
   const number = (value?: number | null) =>
     value == null ? "—" : value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
   const allJobs = stats?.totalJobs != null && stats?.archivedJobs != null
@@ -186,10 +189,6 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           <div className="poster-search-summary">
             <div className="poster-card-label">
               <span>{ru ? "ВСЕГО ВАКАНСИЙ" : "JAMI VAKANSIYALAR"}</span>
-              <Link href="/resumes" className="poster-resumes-card" aria-label={ru ? `${number(stats?.totalUsers)} зарегистрированных пользователей` : `${number(stats?.totalUsers)} foydalanuvchi`}>
-                <Users size={13} aria-hidden="true" /><strong>{number(stats?.totalUsers)}</strong>
-                <span>{ru ? "участников" : "foydalanuvchi"}</span>
-              </Link>
             </div>
             <Link href="/jobs" className="poster-job-count"
               aria-label={ru ? `${number(allJobs)} вакансий за всё время` : `Jami ${number(allJobs)} ta vakansiya`}>
@@ -240,6 +239,11 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             </div>
           </form>
         </div>
+        <aside className="poster-users-card" aria-label={ru ? 'Пользователи' : 'Foydalanuvchilar'}>
+          <span><Users size={15} aria-hidden="true" />{ru ? 'ПОЛЬЗОВАТЕЛИ' : 'FOYDALANUVCHILAR'}</span>
+          <strong>{number(users)}</strong>
+        </aside>
+        <HeroTelegramLink />
         <div className="poster-copy">
           <div className="home-eyebrow">
             <span className="home-status-dot" />

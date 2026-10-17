@@ -23,11 +23,12 @@
 .poster-search-card .home-search-bottom { padding-top: 4px; gap: 8px; }
 .poster-search-card .home-button { min-height: 46px; padding-block: 11px; }
 .home-search-label-short { display: none; }
-.poster-controls { gap: 14px; padding: 12px; border: 0; border-radius: 22px; background: #fffcf57a; box-shadow: inset 0 0 0 1px #ffffff80; backdrop-filter: none; }
-.poster-controls .poster-avatars { display: grid; grid-template-columns: repeat(4, minmax(44px, 1fr)); width: 100%; gap: 8px; }
-.poster-controls .poster-avatars button { width: 100%; height: 48px; border: 2px solid transparent; border-radius: 12px; overflow: hidden; }
+.poster-controls { width: 100%; min-width: 0; gap: 10px; padding: 3px; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.poster-controls .poster-avatars { display: grid; grid-template-columns: repeat(4, 44px); justify-content: start; min-width: 0; width: 100%; gap: 10px; padding: 3px; }
+.poster-controls .poster-avatars button { width: 44px; height: 44px; flex: 0 0 44px; border: 2px solid transparent; border-radius: 50%; overflow: hidden; background: color-mix(in srgb, var(--profession-tint) 65%, #fffdf7); }
 .poster-controls .poster-avatars button img { object-position: center top; transform: scale(1.65); transform-origin: 50% 0; }
-.poster-avatars button.is-active { border-color: var(--profession-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--profession-accent) 18%, transparent); }
+.poster-controls .poster-avatars button.is-active { border-color: var(--profession-ink); box-shadow: 0 0 0 2px #fffaf0; }
+.poster-controls .poster-avatars button:focus-visible { outline: 2px solid var(--profession-ink); outline-offset: 1px; }
 .poster-progress { background: color-mix(in srgb, var(--profession-accent) 18%, transparent); }
 .poster-feature .poster-action { min-height: 48px; }
 @media (max-width: 1500px) { .poster-slide-number { display: none; } }
@@ -38,11 +39,29 @@
 @keyframes profession-word-in { from { opacity: 0; translate: 0 14px; filter: blur(5px); } to { opacity: .18; translate: 0 0; filter: blur(0); } }
 @media (prefers-reduced-motion: reduce) { .poster-hero, .poster-search-card { transition: none; } }
 
-/* The secondary count stays with the search rather than covering the portrait. */
-.poster-search-card .poster-resumes-card { position: static; display: inline-flex; width: auto; align-items: center; justify-content: flex-start; gap: 5px; padding: 0; border: 0; border-radius: 0; background: transparent; backdrop-filter: none; box-shadow: none; text-align: left; color: #6d675f; text-transform: none; font-size: 11px; letter-spacing: 0; line-height: 1.4; }
-.poster-resumes-card strong { font-weight: 650; color: var(--profession-ink); }
 .poster-search-summary .poster-job-count strong { color: var(--profession-ink); }
-.poster-controls .poster-avatars button { height: 54px; background: color-mix(in srgb, var(--profession-tint) 55%, #fffdf7); }
+.poster-users-card { position: relative; z-index: 3; justify-self: end; width: fit-content; min-width: 150px; padding: 15px 20px; border: 1px solid #d4c9b9; border-radius: 20px; background: #fffaf0e8; text-align: right; }
+.poster-users-card > span { display: flex; align-items: center; justify-content: flex-end; gap: 7px; font-size: 10px; font-weight: 550; letter-spacing: .7px; color: #6b6256; }
+.poster-users-card > strong { display: block; margin-top: 4px; color: var(--profession-ink); font-size: 40px; font-weight: 650; line-height: 1.1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.poster-telegram-link { position: relative; z-index: 3; display: flex; align-items: flex-start; gap: 13px; padding: 18px; border: 1px solid #d8d4c9; border-radius: 20px; background: #fffdf7; color: #293447; transition: border-color .2s, box-shadow .2s; }
+.poster-telegram-link:hover { border-color: #80abc5; box-shadow: 0 8px 24px #3f6c8310; }
+.poster-telegram-icon { display: grid; place-items: center; flex: 0 0 42px; height: 42px; border-radius: 14px; color: #227cad; background: #e3f1f8; }
+.poster-telegram-copy { display: grid; gap: 7px; }
+.poster-telegram-copy > strong { font-size: 17px; line-height: 1.35; font-weight: 650; letter-spacing: -.25px; }
+.poster-telegram-copy > span { font-size: 12px; color: #6c7378; line-height: 1.5; }
+.poster-telegram-copy > .poster-telegram-action { display: flex; align-items: center; gap: 6px; font-weight: 650; color: #227cad; }
+/* Pointer interaction has no outer frame. Keyboard focus stays visible inside the control. */
+.poster-search-card .home-search-region:focus-within { outline: none; box-shadow: none; }
+.poster-search-card .home-search-region select:focus-visible { outline: none; box-shadow: inset 0 -2px 0 #8a7962; }
+.site-root .site-select { outline: none; box-shadow: none; }
+.site-root .site-select:focus-visible { outline: none; border-color: #8a7962; box-shadow: inset 0 0 0 1px #8a7962; }
+.site-select-popup { border-color: #d4c9b9; border-radius: 14px; background: #fffdf7; padding: 3px; box-shadow: 0 10px 28px #342e2421; }
+@media (prefers-reduced-motion: no-preference) {
+  .poster-telegram-link { animation: telegram-in .7s .25s cubic-bezier(.2,.7,.2,1) both; }
+  .poster-telegram-icon svg { animation: telegram-float 3.2s ease-in-out infinite; }
+}
+@keyframes telegram-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes telegram-float { 0%, 100% { transform: translate(0, 0) rotate(-5deg); } 50% { transform: translate(2px, -3px) rotate(4deg); } }
 .poster-feature .poster-action { border-radius: 14px; }
 @media (min-width: 1101px) {
   .poster-stage { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(320px, 1.35fr) minmax(250px, 1fr); grid-template-rows: 165px auto 1fr; column-gap: 32px; row-gap: 28px; min-height: 810px; padding-block: 24px 48px; }
@@ -52,13 +71,17 @@
   .poster-copy { position: relative; grid-column: 1; grid-row: 3; inset: auto; max-width: 100%; align-self: end; }
   .poster-copy h1 { font-size: clamp(27px, 2.3vw, 34px); margin-top: 10px; }
   .poster-copy .home-eyebrow { font-size: 10px; letter-spacing: .6px; }
-  .poster-feature { position: relative; grid-column: 3; grid-row: 2 / 4; inset: auto; width: 100%; padding-top: 12px; align-self: end; text-align: left; }
+  .poster-feature { position: relative; grid-column: 3; grid-row: 3; inset: auto; width: 100%; padding-top: 0; align-self: end; text-align: left; }
   .poster-feature-copy { min-height: 0; }
   .poster-feature h2 { font-size: clamp(22px, 1.9vw, 28px); }
   .poster-feature p { margin-left: 0; font-size: 15px; max-width: 100%; }
   .poster-feature .poster-action { display: flex; justify-content: space-between; padding-inline: 18px; }
+  .poster-users-card { grid-column: 3; grid-row: 1; align-self: end; }
+  .poster-telegram-link { grid-column: 3; grid-row: 2; align-self: start; }
   .poster-slide-number { display: none; }
 }
 @media (max-width: 1100px) and (min-width: 768px) {
-  .poster-search-card .poster-resumes-card { top: auto; }
+  .poster-users-card { position: absolute; top: 360px; right: 0; }
+  .poster-telegram-link { order: 2; align-self: start; }
+  .poster-feature { grid-column: 1 / -1; order: 3; }
 }

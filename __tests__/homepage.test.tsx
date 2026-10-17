@@ -19,15 +19,16 @@ it("the benefits strip explains the site and links to the channel without duplic
   const strip = screen.getByRole("region", {
     name: "О сайте и Telegram-канале",
   });
-  expect(within(strip).getAllByRole("link")).toHaveLength(8);
-  expect(within(strip).getByRole("link", { name: /Telegram-канале — @ishdasiz/ })).toHaveAttribute("href", "https://t.me/ishdasiz");
-  expect(within(strip).getByRole("link", { name: "Находите вакансии рядом на карте" })).toHaveAttribute("href", "/map");
-  expect(within(strip).getByRole("link", { name: "Ищите по профессии и региону" })).toHaveAttribute("href", "/jobs");
-  expect(strip.querySelectorAll('a[tabindex="-1"]')).toHaveLength(8);
+  expect(within(strip).getAllByRole("link")).toHaveLength(7);
+  expect(within(strip).getByRole("link", { name: /Telegram-канал/ })).toHaveAttribute("href", "https://t.me/ishdasiz");
+  expect(within(strip).getByRole("link", { name: "Работа на карте" })).toHaveAttribute("href", "/map");
+  expect(within(strip).getByRole("link", { name: "Поиск по профессии" })).toHaveAttribute("href", "/jobs");
+  expect(strip.querySelectorAll('a[tabindex="-1"]')).toHaveLength(7);
   const groups = strip.querySelectorAll('.poster-ticker-group');
   expect(groups[0].textContent).toBe(groups[1].textContent);
   expect(groups[1]).toHaveAttribute('aria-hidden', 'true');
   expect(groups[1]).not.toHaveAttribute('inert');
+  expect(strip.textContent).not.toMatch(/ISHDASIZ|ishdasiz/);
 });
 it("has no animation stop buttons", () => {
   const view = render(<HeroSection />);
@@ -73,7 +74,8 @@ it("shows only the combined total without current/archive breakdown and counts r
   expect(view.container.querySelector('.poster-job-breakdown')).not.toBeInTheDocument();
   expect(screen.queryByText(/актуальных|в архиве/)).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: '333 вакансий за всё время' })).toHaveAttribute('href', '/jobs');
-  expect(view.container.querySelector('.poster-resumes-card')).toHaveTextContent('614участников');
+  expect(view.container.querySelector('.poster-users-card')).toHaveTextContent('ПОЛЬЗОВАТЕЛИ1 228');
+  expect(view.container.querySelector('.poster-search-card .poster-users-card')).toBeNull();
   expect(screen.queryByText(/резюме людей/)).not.toBeInTheDocument();
 });
 it("does not pretend a partial count is the combined total", () => {
@@ -174,4 +176,13 @@ it.each([['Швея', 'Вакансии швеи', 'tikuvchi'], ['Водител
   render(<HeroSection />);
   fireEvent.click(screen.getByRole('button', { name, exact: true }));
   expect(screen.getByRole('link', { name: action })).toHaveAttribute('href', `/jobs?q=${query}`);
+});
+
+it('the first-screen Telegram card opens the bot with a clear explanation', () => {
+  const view=render(<HeroSection />);
+  const link=view.container.querySelector('.poster-telegram-link');
+  expect(link).toHaveAttribute('href','https://t.me/ishdasizbot');
+  expect(link).toHaveAttribute('target','_blank');
+  expect(link).toHaveAttribute('rel','noopener noreferrer');
+  expect(link).toHaveTextContent('В Telegram найти работу проще');
 });

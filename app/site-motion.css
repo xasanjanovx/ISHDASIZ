@@ -4,7 +4,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
-  border-bottom: 1px solid #bfb5a455;
+  border-bottom: 0;
   mask-image: none;
   overflow: hidden;
   min-width: 0;
@@ -22,7 +22,7 @@
 .poster-ticker-track {
   display: flex;
   width: max-content;
-  animation: poster-marquee 64s linear infinite;
+  animation: poster-marquee 44s linear infinite;
 }
 .poster-ticker-window::-webkit-scrollbar { display: none; }
 .poster-ticker-group {
@@ -45,12 +45,12 @@
   font-weight: 500;
   letter-spacing: 0;
 }
-.poster-ticker-item i {
+.poster-ticker .poster-ticker-item i {
   width: 5px;
   height: 5px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--profession-accent, #dd6c43);
+  background: #d6a72c;
 }
 .poster-ticker-pause {
   display: inline-flex;
