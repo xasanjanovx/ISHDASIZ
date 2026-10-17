@@ -1,9 +1,9 @@
-.action { display: flex; align-items: center; gap: 13px; width: 100%; position: relative; isolation: isolate; }
-.icon { position: relative; display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; background: #fffaf0; color: #343a30; }
+.action { display: flex; align-items: center; gap: var(--action-gap, 13px); width: 100%; position: relative; isolation: isolate; }
+.icon { position: relative; display: grid; place-items: center; width: var(--action-icon-size, 34px); height: var(--action-icon-size, 34px); flex-shrink: 0; border-radius: 50%; background: #fffaf0; color: #343a30; }
 .icon i { position: absolute; inset: -5px; border-radius: inherit; border: 1px solid currentColor; opacity: .3; }
 .icon svg { position: relative; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
 .label { position: relative; flex: 1; text-align: center; }
-:global(a:hover) > .action .icon svg, :global(button:hover) > .action .icon svg { transform: rotate(45deg); }
+:global(a:hover) > .action .icon svg, :global(button:hover) > .action .icon svg { transform: translate(2px, -2px); }
 @media (prefers-reduced-motion: no-preference) {
   .icon i { animation: orbit 3.4s ease-in-out infinite; }
   @keyframes orbit { 0%, 100% { transform: scale(1); opacity: .2; } 50% { transform: scale(1.13); opacity: .5; } }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -8,10 +8,12 @@ import {
   Search,
   MapPin,
   ArrowUpRight,
+  ChevronRight,
 } from "lucide-react";
 import { ActionLabel } from "@/components/ui/action-label";
 import { useLanguage } from "@/contexts/language-context";
 import { BenefitsTicker } from "./benefits-ticker";
+import { HeroSceneConnectors } from "./hero-scene-connectors";
 import { HeroTelegramLink } from "./hero-telegram-link";
 import { displayedUsers } from "@/lib/display-counts";
 import { useHomeStatistics } from "@/hooks/use-home-statistics";
@@ -46,6 +48,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const avatars = useRef<HTMLDivElement>(null);
   const playing = !reducedMotion && !hovered && !focused;
   useEffect(() => {
     if (!playing) return;
@@ -55,6 +58,12 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     );
     return () => clearTimeout(timer);
   }, [playing, active]);
+  useEffect(() => {
+    const row = avatars.current;
+    const button = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!row || !button || !row.scrollTo) return;
+    row.scrollTo({ left: Math.max(0, button.offsetLeft - row.offsetLeft - (row.clientWidth - button.clientWidth) / 2), behavior: reducedMotion ? "instant" : "smooth" });
+  }, [active, reducedMotion]);
   const users = displayedUsers(currentStats?.totalUsers);
   const number = (value?: number | null) =>
     value == null ? "—" : value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
@@ -131,6 +140,25 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
         { name: "Haydovchi", action: "Haydovchi vakansiyalari", category: "", query: "haydovchi" },
         { name: "Sotuvchi", action: "Sotuvchi vakansiyalari", category: "", query: "sotuvchi" },
       ];
+  const descriptions = ru ? [
+    "Передавайте знания. Найдите работу в школе или учебном центре.",
+    "Создавайте то, что останется. Работа на стройках по всей стране.",
+    "Помогайте людям. Найдите своё место в клинике или медцентре.",
+    "Создавайте цифровое будущее. Команды, которым нужны ваши навыки.",
+    "Превратите мастерство во вкус. Работа в кафе и ресторанах.",
+    "Внимание к каждой детали. Найдите работу в ателье или на производстве.",
+    "Выбирайте свой маршрут. Вакансии для водителей по Узбекистану.",
+    "Помогайте выбирать лучшее. Работа в магазинах и сфере продаж.",
+  ] : [
+    "Bilimingizni ulashing. Maktab va o‘quv markazlarida ish toping.",
+    "Kelajakni birga quring. Butun mamlakat bo‘ylab qurilishdagi ishlar.",
+    "Insonlarga yordam bering. Klinika va tibbiyot markazlarida ish toping.",
+    "Raqamli kelajakni yarating. Ko‘nikmalaringiz kerak bo‘lgan jamoalar.",
+    "Mahoratingizga mos oshxona. Kafe va restoranlardagi ishlar.",
+    "Har bir chokda mahorat. Atelye va ishlab chiqarishda ish toping.",
+    "O‘z yo‘lingizni tanlang. O‘zbekiston bo‘ylab haydovchilar uchun ishlar.",
+    "Xaridorlarga yordam bering. Do‘kon va savdo sohasidagi ishlar.",
+  ];
   const scene = scenes[active];
   const professionParams = new URLSearchParams();
   if (scene.category) professionParams.set("category", scene.category);
@@ -140,6 +168,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     <section id="home-top" className={`poster-hero ${styles.hero}`} data-playing={playing} data-motion="system" data-profession={active}>
       <BenefitsTicker />
       <div className={`home-shell ${styles.stage}`}>
+        <HeroSceneConnectors />
         <div key={scene.name} aria-hidden="true" className={`poster-word ${styles.word}`} style={{ "--profession-length": scene.name.length } as CSSProperties}>{Array.from(scene.name).map((letter, index) => <span key={index} style={{ "--letter": index } as CSSProperties}>{letter}</span>)}</div>
         <div className={styles.content}>
           <div className={styles.intro}>
@@ -147,7 +176,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             <h1>{ru ? "Ваша работа.\nВаше будущее." : "Sizga mos ish.\nSizga mos kelajak."}</h1>
             <p>{ru ? "Найдите своё место. По всему Узбекистану." : "O‘z o‘rningizni toping. Butun O‘zbekiston bo‘ylab."}</p>
           </div>
-          <div className={`poster-search-card ${styles.searchCard}`}>
+          <div className={`poster-search-card ${styles.searchCard}`} data-hero-search>
             <div className={styles.stats} aria-label={ru ? "Вакансии и пользователи" : "Vakansiyalar va foydalanuvchilar"}>
               <div className={styles.stat}>
                 <span>{ru ? "Всего вакансий" : "Jami vakansiyalar"}</span>
@@ -188,7 +217,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
             ))}
           </div>
         </div>
-        <div className={styles.visual} aria-hidden="true">
+        <div className={styles.visual} data-hero-visual aria-hidden="true">
           <div className={styles.portrait}>
             {professionals.map((src, index) => (
               <div key={src} className={styles.layer} data-active={index === active}>
@@ -196,24 +225,31 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
               </div>
             ))}
           </div>
-          <span className={styles.visualIndex}>0{active + 1} <span>/ 08</span></span>
         </div>
         <div className={styles.professions}
           onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }}
           onPointerLeave={() => setHovered(false)}
           onFocusCapture={() => setFocused(true)}
           onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
-          <div className={styles.professionHeading}><span>{ru ? "НАЙДИТЕ СВОЁ ПРИЗВАНИЕ" : "O‘Z KASBINGIZNI TOPING"}</span><h2 key={scene.name}>{scene.name}</h2><p>{ru ? "Разные профессии. Новые возможности каждый день." : "Turli kasblar. Har kuni yangi imkoniyatlar."}</p></div>
-          <div className={`poster-avatars ${styles.avatars}`} role="group" aria-label={ru ? "Выберите профессию" : "Kasbni tanlang"}>
-            {scenes.map((item, index) => (
-              <button key={item.name} type="button" aria-label={item.name} aria-pressed={index === active} onClick={() => setActive(index)}>
-                <span><Image src={professionals[index]} alt="" fill sizes="44px" /></span>
-              </button>
-            ))}
+          <div className={styles.professionControls}>
+            <div ref={avatars} className={`poster-avatars ${styles.avatars}`} role="group" aria-label={ru ? "Выберите профессию" : "Kasbni tanlang"}>
+              {scenes.map((item, index) => (
+                <button key={item.name} type="button" aria-label={item.name} aria-pressed={index === active} onClick={() => setActive(index)}>
+                  <span><Image src={professionals[index]} alt="" fill sizes="44px" /></span>
+                  {index === active && <svg key={active} className={styles.avatarProgress} viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" pathLength="1" /></svg>}
+                </button>
+              ))}
+            </div>
+            <button className={styles.sceneNext} type="button" aria-label={ru ? "Следующая профессия" : "Keyingi kasb"} onClick={() => setActive((value) => (value + 1) % professionals.length)}><ChevronRight size={19} aria-hidden="true" /></button>
+            <span className={styles.sceneIndex} aria-hidden="true">0{active + 1}<span> / 08</span></span>
+          </div>
+          <div key={scene.name} className={styles.professionHeading}>
+            <span>{ru ? "НАЙДИТЕ СВОЁ ПРИЗВАНИЕ" : "O‘Z KASBINGIZNI TOPING"}</span>
+            <h2>{scene.name}</h2>
+            <p>{descriptions[active]}</p>
           </div>
           <div className={styles.professionFooter}>
-            <div className={styles.progress} aria-hidden="true"><span key={active} /></div>
-            <Link className={styles.professionAction} href={`/jobs?${professionParams}`}><ActionLabel>{scene.action}</ActionLabel></Link>
+            <Link data-hero-action className={styles.professionAction} href={`/jobs?${professionParams}`}><ActionLabel>{scene.action}</ActionLabel></Link>
           </div>
         </div>
       </div>

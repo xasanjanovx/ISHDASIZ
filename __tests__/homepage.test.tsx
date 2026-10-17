@@ -163,6 +163,15 @@ it("the chef search keeps its keyword and the selected region", () => {
     "/jobs?category=a0000003-0003-4000-8000-000000000003&q=oshpaz&region=22",
   );
 });
+it("the next-profession control wraps to the first profession and keeps the selected region", () => {
+  render(<HeroSection regions={[{ id: 22, name_uz: "Toshkent", name_ru: "Ташкент" }]} />);
+  fireEvent.change(screen.getByLabelText("Регион"), { target: { value: "22" } });
+  fireEvent.click(screen.getByRole("button", { name: "Продавец", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Следующая профессия" }));
+  expect(screen.getByRole("button", { name: "Учитель", exact: true })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("link", { name: "Вакансии в образовании" })).toHaveAttribute("href", "/jobs?category=a0000004-0004-4000-8000-000000000004&region=22");
+  expect(mockPush).not.toHaveBeenCalled();
+});
 it("respects reduced motion and allows manual profession selection", () => {
   jest.useFakeTimers();
   try {
