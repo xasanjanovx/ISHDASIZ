@@ -8,8 +8,8 @@ import {
   Search,
   MapPin,
   ArrowUpRight,
-  ArrowRight,
 } from "lucide-react";
+import { ActionLabel } from "@/components/ui/action-label";
 import { useLanguage } from "@/contexts/language-context";
 import { BenefitsTicker } from "./benefits-ticker";
 import { HeroTelegramLink } from "./hero-telegram-link";
@@ -140,6 +140,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     <section id="home-top" className={`poster-hero ${styles.hero}`} data-playing={playing} data-motion="system" data-profession={active}>
       <BenefitsTicker />
       <div className={`home-shell ${styles.stage}`}>
+        <div key={scene.name} aria-hidden="true" className={`poster-word ${styles.word}`} style={{ "--profession-length": scene.name.length } as CSSProperties}>{Array.from(scene.name).map((letter, index) => <span key={index} style={{ "--letter": index } as CSSProperties}>{letter}</span>)}</div>
         <div className={styles.content}>
           <div className={styles.intro}>
             <span className={styles.eyebrow}>{ru ? "ВАШ СЛЕДУЮЩИЙ ШАГ" : "SIZNING KEYINGI QADAMINGIZ"}</span>
@@ -175,7 +176,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
                   </select>
                 </div>
                 <button type="submit" className={styles.searchButton} aria-label={ru ? "Найти работу" : "Ish topish"}>
-                  <span>{ru ? "Найти" : "Ish topish"}</span><ArrowRight size={18} aria-hidden="true" />
+                  <ActionLabel>{ru ? "Найти работу" : "Ish topish"}</ActionLabel>
                 </button>
               </div>
             </form>
@@ -188,7 +189,6 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           </div>
         </div>
         <div className={styles.visual} aria-hidden="true">
-          <div key={scene.name} className={`poster-word ${styles.word}`} style={{ "--profession-length": scene.name.length } as CSSProperties}>{scene.name}</div>
           <div className={styles.portrait}>
             {professionals.map((src, index) => (
               <div key={src} className={styles.layer} data-active={index === active}>
@@ -203,6 +203,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           onPointerLeave={() => setHovered(false)}
           onFocusCapture={() => setFocused(true)}
           onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+          <div className={styles.professionHeading}><span>{ru ? "НАЙДИТЕ СВОЁ ПРИЗВАНИЕ" : "O‘Z KASBINGIZNI TOPING"}</span><h2 key={scene.name}>{scene.name}</h2><p>{ru ? "Разные профессии. Новые возможности каждый день." : "Turli kasblar. Har kuni yangi imkoniyatlar."}</p></div>
           <div className={`poster-avatars ${styles.avatars}`} role="group" aria-label={ru ? "Выберите профессию" : "Kasbni tanlang"}>
             {scenes.map((item, index) => (
               <button key={item.name} type="button" aria-label={item.name} aria-pressed={index === active} onClick={() => setActive(index)}>
@@ -212,7 +213,7 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
           </div>
           <div className={styles.professionFooter}>
             <div className={styles.progress} aria-hidden="true"><span key={active} /></div>
-            <Link className={styles.professionAction} href={`/jobs?${professionParams}`}>{scene.action}<ArrowUpRight size={17} aria-hidden="true" /></Link>
+            <Link className={styles.professionAction} href={`/jobs?${professionParams}`}><ActionLabel>{scene.action}</ActionLabel></Link>
           </div>
         </div>
       </div>

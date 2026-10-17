@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { Button } from '@/components/ui/button';
 import { NavBar } from '@/components/ui/tubelight-navbar';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,7 @@ const languageLabels = {
   ru: 'РУС',
 };
 
+import { MobileMenuContent } from './mobile-menu-content';
 import { useTelegram } from '@/contexts/telegram-context';
 
 export default function Header() {
@@ -439,143 +440,12 @@ export default function Header() {
 
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button aria-label={lang === 'ru' ? 'Открыть меню' : 'Menyuni ochish'} variant="ghost" size="icon" className={`h-8 w-8 rounded-lg ${isHome ? 'text-white hover:bg-card/10' : 'text-foreground hover:text-foreground hover:bg-secondary'}`}>
+                  <Button aria-label={lang === 'ru' ? 'Открыть меню' : 'Menyuni ochish'} variant="ghost" size="icon" className={`mobile-menu-trigger h-8 w-8 rounded-lg ${isHome ? 'text-white hover:bg-card/10' : 'text-foreground hover:text-foreground hover:bg-secondary'}`}>
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-72 bg-card border-border/80">
-                  <SheetTitle className="sr-only">{lang === 'ru' ? 'Меню' : 'Menyu'}</SheetTitle>
-                  <SheetDescription className="sr-only">{lang === 'ru' ? 'Разделы сайта и вход в аккаунт' : 'Sayt bo‘limlari va akkauntga kirish'}</SheetDescription>
-                  <nav className="flex flex-col gap-2 mt-8">
-                    {/* Admin info (if logged in as admin) */}
-                    {isAdmin && (
-                      <>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg mb-2 border border-amber-200">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 text-white">
-                            <Shield className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {adminProfile?.full_name || 'Admin'}
-                            </p>
-                            <p className="text-xs text-amber-600 font-medium">
-                              {adminProfile?.role === 'super_admin' ? 'Super Admin' : 'Hokimlik'}
-                            </p>
-                          </div>
-                        </div>
-                        <Link
-                          href="/admin"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
-                        >
-                          <Home className="w-5 h-5" />
-                          Admin panel
-                        </Link>
-                        <div className="px-4 py-1">
-                          <p className="text-xs text-muted-foreground font-medium uppercase">Ko&apos;rinish</p>
-                        </div>
-                        <Link
-                          href="/profile/employer"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
-                        >
-                          <Building2 className="w-5 h-5" />
-                          Ish beruvchi
-                        </Link>
-                        <Link
-                          href="/profile/job-seeker"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
-                        >
-                          <User className="w-5 h-5" />
-                          Ish qidiruvchi
-                        </Link>
-                        <div className="border-t border-border my-2" />
-                      </>
-                    )}
-
-                    {/* User info (if logged in as user) */}
-                    {!isAdmin && isAuthenticated && user && (
-                      <>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-background rounded-lg mb-2">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${user.active_role === 'employer'
-                            ? 'bg-gradient-to-br from-primary to-primary'
-                            : 'bg-gradient-to-br from-primary to-primary'
-                            }`}>
-                            {getUserInitial()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {getUserDisplayName()}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {user.active_role === 'employer'
-                                ? (lang === 'ru' ? 'Работодатель' : 'Ish beruvchi')
-                                : (lang === 'ru' ? 'Соискатель' : 'Ish qidiruvchi')}
-                            </p>
-                          </div>
-                        </div>
-                        <Link
-                          href={profilePath}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
-                        >
-                          <User className="w-5 h-5" />
-                          {lang === 'ru' ? 'Мой профиль' : 'Mening profilim'}
-                        </Link>
-                        <div className="border-t border-border my-2" />
-                      </>
-                    )}
-
-                    {navItems.map((item) => (
-                      <Link
-                        key={item.url}
-                        href={item.url}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium"
-                      >
-                        <item.icon className="w-5 h-5" />
-                        {item.name}
-                      </Link>
-                    ))}
-
-                    <div className="border-t border-border my-2" />
-
-                    {isAdmin ? (
-                      <button
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          handleAdminLogout();
-                        }}
-                        className="w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-all flex items-center gap-3 font-medium text-left"
-                      >
-                        <LogOut className="w-5 h-5" />
-                        {lang === 'ru' ? 'Выйти' : 'Chiqish'}
-                      </button>
-                    ) : isAuthenticated && user ? (
-                      <button
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-all flex items-center gap-3 font-medium text-left"
-                      >
-                        <LogOut className="w-5 h-5" />
-                        {lang === 'ru' ? 'Выйти' : 'Chiqish'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          openModal();
-                        }}
-                        className="w-full px-4 py-3 text-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all flex items-center gap-3 font-medium text-left"
-                      >
-                        <LogIn className="w-5 h-5" />
-                        {lang === 'uz' ? 'Kirish' : 'Войти'}
-                      </button>
-                    )}
-                  </nav>
+                <SheetContent side="right" className="site-mobile-menu mobile-quick-menu" onOpenAutoFocus={event => { event.preventDefault(); const panel = event.target as HTMLElement; panel.focus({ preventScroll: true }); panel.scrollTop = 0; }}>
+                  <MobileMenuContent variant="quick" onClose={() => setMobileMenuOpen(false)} />
                 </SheetContent>
               </Sheet>
             </div>

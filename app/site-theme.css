@@ -65,7 +65,7 @@
 .site-header {
   height: 88px;
   background: #ece9e2ed;
-  border-bottom: 1px solid #cec5b6;
+  border-bottom: 0;
   box-shadow: none;
   backdrop-filter: blur(20px);
 }

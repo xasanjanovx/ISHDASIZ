@@ -20,7 +20,7 @@ test('guest actions open authentication and menu links remain available', () => 
   expect(mockOpen).toHaveBeenCalledTimes(2);
   fireEvent.click(within(nav).getByRole('button', { name: 'Меню' }));
   const menu = screen.getByRole('dialog', { name: 'Меню' });
-  expect(within(menu).getByRole('link', { name: 'Работа на карте' })).toHaveAttribute('href', '/map');
+  expect(within(menu).getByRole('link', { name: /Работа на карте/ })).toHaveAttribute('href', '/map');
   fireEvent.click(within(menu).getByRole('button', { name: 'Войти в профиль' }));
   expect(mockOpen).toHaveBeenCalledTimes(3);
 });

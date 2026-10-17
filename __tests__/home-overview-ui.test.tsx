@@ -1,8 +1,7 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { HomeOverviewProvider } from '@/components/home/home-overview-provider';
 import { CategoriesSection } from '@/components/home/categories-section';
 import { SpecialCategoriesSection } from '@/components/home/special-categories-section';
-import { SourceTransparencySection } from '@/components/home/source-transparency-section';
 import { HowItWorksSection } from '@/components/home/how-it-works-section';
 import { vacancyNoun, tashkentStamp } from '@/lib/home-format';
 import type { HomeOverview } from '@/lib/home-overview-types';
@@ -14,12 +13,12 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 jest.mock('@/contexts/user-auth-context', () => ({ useUserAuth: () => ({ user: seeker ? { has_job_seeker_profile: true } : null }) }));
 jest.mock('@/contexts/auth-modal-context', () => ({ useAuthModal: () => ({ openModal: open, setUserRole: role, setStep: step }) }));
 const category = 'a0000001-0001-4000-8000-000000000001';
-const overview: HomeOverview = { categoryCounts: { [category]: 199 }, specialCounts: { students: 4173, disabled: 1220, women: 40932 }, source: { imported: 48750, run: { state: 'running', startedAt: '2026-10-17T05:00:00Z', completedAt: null, processed: 300, total: 1000, added: 10, updated: 250, elapsedSeconds: 3600 } }, asOf: '2026-10-17T06:00:00Z' };
+const overview: HomeOverview = { categoryCounts: { [category]: 199 }, specialCounts: { students: 4173, disabled: 1220, women: 40932 }, asOf: '2026-10-17T06:00:00Z' };
 const originalFetch = global.fetch;
 beforeEach(() => { jest.clearAllMocks(); seeker = false; });
 afterEach(() => { global.fetch = originalFetch; jest.useRealTimers(); });
 function Sections({ initial = overview }: { initial?: HomeOverview | null }) {
-  return <HomeOverviewProvider initial={initial}><CategoriesSection categories={[{ id: category, name_ru: 'IT', name_uz: 'IT', icon: 'Monitor' } as Category]} jobCounts={{ [category]: null }} /><SpecialCategoriesSection counts={{ students: null, disabled: null, women: null }} /><SourceTransparencySection /></HomeOverviewProvider>;
+  return <HomeOverviewProvider initial={initial}><CategoriesSection categories={[{ id: category, name_ru: 'IT', name_uz: 'IT', icon: 'Monitor' } as Category]} jobCounts={{ [category]: null }} /><SpecialCategoriesSection counts={{ students: null, disabled: null, women: null }} /></HomeOverviewProvider>;
 }
 it('uses complete totals for the correct category and special filters', () => {
   render(<Sections />);
@@ -27,17 +26,6 @@ it('uses complete totals for the correct category and special filters', () => {
   expect(screen.getByRole('link', { name: /Студентам и выпускникам/ })).toHaveAttribute('href', '/jobs?special=students');
   expect(screen.getByRole('link', { name: /Студентам и выпускникам/ })).toHaveTextContent('4 173');
   expect(screen.getByRole('link', { name: /Людям с инвалидностью/ })).toHaveTextContent('1 220');
-});
-it('shows measured import progress and makes clear that the current run is still running', () => {
-  render(<Sections />);
-  const source = document.querySelector('#vacancy-sources') as HTMLElement;
-  expect(within(source).getByRole('link', { name: /OsonIsh/ })).toHaveAttribute('href', 'https://osonish.uz/');
-  expect(source).toHaveTextContent('48 750');
-  expect(source).toHaveTextContent('Обновление идёт');
-  expect(source).toHaveTextContent('1 ч 0 мин');
-  expect(source).toHaveTextContent('17.10 10:00');
-  expect(within(source).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '300');
-  expect(source).not.toHaveTextContent('каждые 5 минут');
 });
 it('recovers an unavailable overview after a temporary request failure', async () => {
   jest.useFakeTimers();
@@ -48,15 +36,14 @@ it('recovers an unavailable overview after a temporary request failure', async (
   await act(async () => { jest.advanceTimersByTime(3000); });
   expect(screen.getByRole('link', { name: /IT\s*199/ })).toBeInTheDocument();
 });
-it('refreshes visible counts and import progress from a newer snapshot', async () => {
+it('refreshes visible counts from a newer snapshot', async () => {
   jest.useFakeTimers();
-  const newer = { ...overview, categoryCounts: { [category]: 200 }, asOf: '2026-10-17T06:01:00Z', source: { ...overview.source, run: { ...overview.source.run!, processed: 400 } } };
+  const newer = { ...overview, categoryCounts: { [category]: 200 }, asOf: '2026-10-17T06:01:00Z' };
   global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ overview: newer }) });
   render(<Sections />);
   expect(fetch).not.toHaveBeenCalled();
   await act(async () => { jest.advanceTimersByTime(60000); });
   expect(screen.getByRole('link', { name: /IT\s*200/ })).toBeInTheDocument();
-  expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '400');
 });
 it('keeps the actual resume creation flow for signed-out visitors and existing seekers', () => {
   const view = render(<HowItWorksSection />);

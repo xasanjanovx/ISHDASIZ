@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight, Search, FileText, Send } from "lucide-react";
+import { ArrowRight, Search, FileText, Send } from "lucide-react";
 import { SectionHeading } from "./section-heading";
 import styles from "./home-sections.module.css";
+import { ActionLabel } from "@/components/ui/action-label";
 import { useLanguage } from "@/contexts/language-context";
 import { useRouter } from "next/navigation";
 import { useUserAuth } from "@/contexts/user-auth-context";
@@ -62,7 +63,7 @@ export function HowItWorksSection() {
       </div>;
     })}</div>
     <div className={styles.actions}>
-      <Link href="/jobs" className={styles.button}>{ru ? "Найти работу" : "Ish topish"}<ArrowUpRight size={18} aria-hidden="true" /></Link>
+      <Link href="/jobs" className={styles.button}><ActionLabel>{ru ? "Найти работу" : "Ish topish"}</ActionLabel></Link>
       <button type="button" onClick={create} className={styles.textLink}>{ru ? "Создать резюме" : "Rezyume yaratish"}<ArrowRight size={17} aria-hidden="true" /></button>
     </div>
   </div></section>;

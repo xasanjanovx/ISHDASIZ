@@ -4,12 +4,13 @@ import Image from 'next/image';
 import { ArrowUpRight, ArrowUp, Send } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 import styles from './footer.module.css';
+import { ActionLabel } from '@/components/ui/action-label';
 export function Footer() {
   const { lang } = useLanguage();
   const ru = lang === 'ru';
   return <footer className={styles.footer}>
     <div className={styles.shell}>
-      <div className={styles.invitation}><div><span><i aria-hidden="true" />{ru ? 'ВАШ СЛЕДУЮЩИЙ ШАГ' : 'SIZNING KEYINGI QADAMINGIZ'}</span><h2>{ru ? 'Найдите своё место.' : 'O‘z o‘rningizni toping.'}</h2></div><Link href="/jobs" className={styles.cta}>{ru ? 'Начать поиск' : 'Qidirishni boshlash'}<ArrowUpRight size={20} aria-hidden="true" /></Link></div>
+      <div className={styles.invitation}><div><span><i aria-hidden="true" />{ru ? 'ВАШ СЛЕДУЮЩИЙ ШАГ' : 'SIZNING KEYINGI QADAMINGIZ'}</span><h2>{ru ? 'Найдите своё место.' : 'O‘z o‘rningizni toping.'}</h2></div><Link href="/jobs" className={styles.cta}><ActionLabel>{ru ? 'Начать поиск' : 'Qidirishni boshlash'}</ActionLabel></Link></div>
       <div className={styles.grid}>
         <div className={styles.brand}><Link href="/" className={styles.logo}><Image src="/ishda1.webp" alt="ISHDASIZ" width={930} height={310} sizes="170px" /></Link><p>{ru ? 'Люди, профессии и возможности. По всему Узбекистану.' : 'Insonlar, kasblar va imkoniyatlar. Butun O‘zbekiston bo‘ylab.'}</p><span className={styles.location}><i aria-hidden="true" />{ru ? 'Сделано для вашего будущего' : 'Kelajagingiz uchun yaratilgan'}</span></div>
         <nav aria-label={ru ? 'Платформа' : 'Platforma'}><h3>{ru ? 'Платформа' : 'Platforma'}</h3>{[{ href: '/jobs', label: ru ? 'Вакансии' : 'Vakansiyalar' }, { href: '/resumes', label: ru ? 'Резюме' : 'Rezyumelar' }, { href: '/map', label: ru ? 'Работа на карте' : 'Xaritada ish' }, { href: '/stats', label: ru ? 'Статистика' : 'Statistika' }].map(link => <Link key={link.href} href={link.href}>{link.label}<ArrowUpRight size={13} aria-hidden="true" /></Link>)}</nav>

@@ -5,11 +5,11 @@ import { useHydratedPathname } from '@/hooks/use-hydrated-pathname';
 import { useLanguage } from '@/contexts/language-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { useAuthModal } from '@/contexts/auth-modal-context';
-import { Home, Search, Plus, User, Menu, FileText, Briefcase, MapIcon, LogIn } from '@/components/ui/icons';
+import { Home, Search, Plus, User, Menu } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { MobileMenuContent } from './mobile-menu-content';
 import { useAuth } from '@/contexts/auth-context';
 
 export function MobileNav() {
@@ -124,43 +124,8 @@ export function MobileNav() {
                             <span className="text-xs font-medium">{lang === 'uz' ? 'Menu' : 'Меню'}</span>
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="site-mobile-menu w-72 bg-card flex flex-col pt-10">
-                        <div className="flex-1 space-y-4">
-                            {/* Simplified Menu Content */}
-                            <SheetTitle className="text-2xl font-semibold px-4 mb-4">{lang === 'ru' ? 'Меню' : 'Menu'}</SheetTitle>
-                            <SheetDescription className="sr-only">{lang === 'ru' ? 'Вакансии, карта, резюме и личный профиль' : 'Vakansiyalar, xarita, rezyumelar va shaxsiy profil'}</SheetDescription>
-
-                            <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
-                                <Home className="w-5 h-5" />
-                                <span>{lang === 'ru' ? 'Главная' : 'Bosh sahifa'}</span>
-                            </Link>
-
-                            <Link href="/jobs" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
-                                <Briefcase className="w-5 h-5 text-muted-foreground" />
-                                <span>{lang === 'uz' ? 'Vakansiyalar' : 'Вакансии'}</span>
-                            </Link>
-
-                            <Link href="/resumes" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
-                                <FileText className="w-5 h-5 text-muted-foreground" />
-                                <span>{lang === 'uz' ? 'Rezyumelar' : 'Резюме'}</span>
-                            </Link>
-
-                            <Link href="/map" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
-                                <MapIcon className="w-5 h-5" />
-                                <span>{lang === 'ru' ? 'Работа на карте' : 'Xaritadagi ishlar'}</span>
-                            </Link>
-
-                            {(isAuthenticated || isAdmin) && (
-                                <div className="border-t border-border my-2 pt-2">
-                                    <Link href={getProfileLink() || '#'} onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-lg">
-                                        <User className="w-5 h-5 text-muted-foreground" />
-                                        <span>{lang === 'uz' ? 'Mening profilim' : 'Мой профиль'}</span>
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
-                        {!isAuthenticated && !isAdmin && <Button className="w-full gap-2" onClick={() => { setOpen(false); openModal(); }}><LogIn className="w-5 h-5" />{lang === 'ru' ? 'Войти в профиль' : 'Profilga kirish'}</Button>}
+                    <SheetContent side="right" className="site-mobile-menu mobile-full-menu" onOpenAutoFocus={event => { event.preventDefault(); const panel = event.target as HTMLElement; panel.focus({ preventScroll: true }); panel.scrollTop = 0; }}>
+                        <MobileMenuContent variant="all" onClose={() => setOpen(false)} />
                     </SheetContent>
                 </Sheet>
             </div>
