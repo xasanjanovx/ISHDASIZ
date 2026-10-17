@@ -14,6 +14,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { BenefitsTicker } from "./benefits-ticker";
 import { HeroTelegramLink } from "./hero-telegram-link";
 import { displayedUsers } from "@/lib/display-counts";
+import { useHomeStatistics } from "@/hooks/use-home-statistics";
 import styles from "./hero-section.module.css";
 interface HeroProps {
   regions?: { id: number; name_uz: string; name_ru: string }[];
@@ -35,6 +36,7 @@ const professionals = [
   "/profession-salesperson-v1.webp",
 ];
 export function HeroSection({ regions = [], stats }: HeroProps) {
+  const currentStats = useHomeStatistics(stats);
   const { lang } = useLanguage();
   const ru = lang === "ru";
   const router = useRouter();
@@ -53,12 +55,12 @@ export function HeroSection({ regions = [], stats }: HeroProps) {
     );
     return () => clearTimeout(timer);
   }, [playing, active]);
-  const users = displayedUsers(stats?.totalUsers);
+  const users = displayedUsers(currentStats?.totalUsers);
   const number = (value?: number | null) =>
     value == null ? "—" : value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
-  const allJobs = stats?.totalJobs != null && stats?.archivedJobs != null
-    && Number.isSafeInteger(stats.totalJobs + stats.archivedJobs)
-    ? stats.totalJobs + stats.archivedJobs : null;
+  const allJobs = currentStats?.totalJobs != null && currentStats?.archivedJobs != null
+    && Number.isSafeInteger(currentStats.totalJobs + currentStats.archivedJobs)
+    ? currentStats.totalJobs + currentStats.archivedJobs : null;
   const search = (event: React.FormEvent) => {
     event.preventDefault();
     const params = new URLSearchParams();
