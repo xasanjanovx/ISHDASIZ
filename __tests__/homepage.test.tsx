@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { HeroSection } from "@/components/home/hero-section";
+import { HeroTelegramLink } from "@/components/home/hero-telegram-link";
 const mockPush = jest.fn();
 const mockReducedMotion = jest.fn(() => false);
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: mockPush }) }));
@@ -74,8 +75,10 @@ it("shows only the combined total without current/archive breakdown and counts r
   expect(view.container.querySelector('.poster-job-breakdown')).not.toBeInTheDocument();
   expect(screen.queryByText(/актуальных|в архиве/)).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: '333 вакансий за всё время' })).toHaveAttribute('href', '/jobs');
-  expect(view.container.querySelector('.poster-users-card')).toHaveTextContent('ПОЛЬЗОВАТЕЛИ1 228');
-  expect(view.container.querySelector('.poster-search-card .poster-users-card')).toBeNull();
+  const stats = screen.getByLabelText('Вакансии и пользователи');
+  expect(stats).toHaveTextContent('ПОЛЬЗОВАТЕЛИ1 228');
+  expect(stats).toContainElement(screen.getByRole('link', { name: '333 вакансий за всё время' }));
+  expect(view.container.querySelector('.poster-search-card')).toContainElement(stats);
   expect(screen.queryByText(/резюме людей/)).not.toBeInTheDocument();
 });
 it("does not pretend a partial count is the combined total", () => {
@@ -178,11 +181,54 @@ it.each([['Швея', 'Вакансии швеи', 'tikuvchi'], ['Водител
   expect(screen.getByRole('link', { name: action })).toHaveAttribute('href', `/jobs?q=${query}`);
 });
 
-it('the first-screen Telegram card opens the bot with a clear explanation', () => {
-  const view=render(<HeroSection />);
-  const link=view.container.querySelector('.poster-telegram-link');
-  expect(link).toHaveAttribute('href','https://t.me/ishdasizbot');
-  expect(link).toHaveAttribute('target','_blank');
-  expect(link).toHaveAttribute('rel','noopener noreferrer');
-  expect(link).toHaveTextContent('В Telegram найти работу проще');
+it('provides bot, channel and the supplied support link in one Telegram panel', () => {
+  render(<HeroSection />);
+  const panel = screen.getByRole('region', { name: 'ISHDASIZ в Telegram' });
+  const links = within(panel).getAllByRole('link');
+  expect(links.map((link) => link.getAttribute('href'))).toEqual([
+    'https://t.me/ishdasizbot', 'https://t.me/ishdasiz', 'https://t.me/ishdasiz_admin',
+  ]);
+  for (const link of links) {
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  }
+  expect(panel).toHaveTextContent('В Telegram найти работу проще');
+});
+it('connects the animation to the focused destination and lets the hub cycle all three links', () => {
+  render(<HeroSection />);
+  const panel = screen.getByRole('region', { name: 'ISHDASIZ в Telegram' });
+  const support = within(panel).getByRole('link', { name: /Поддержка/ });
+  fireEvent.focus(support);
+  expect(panel).toHaveAttribute('data-active', 'support');
+  const hub = within(panel).getByRole('button', { name: 'Переключить Telegram-ссылку' });
+  for (const id of ['bot', 'channel', 'support']) {
+    fireEvent.click(hub);
+    expect(panel).toHaveAttribute('data-active', id);
+  }
+  expect(mockPush).not.toHaveBeenCalled();
+});
+it.each([false, true])('Telegram auto selection respects visibility and reduced motion (%s)', (reduced) => {
+  jest.useFakeTimers();
+  const originalObserver = window.IntersectionObserver;
+  let notify: IntersectionObserverCallback;
+  window.IntersectionObserver = jest.fn((callback: IntersectionObserverCallback) => {
+    notify = callback;
+    return { observe: jest.fn(), disconnect: jest.fn() };
+  }) as unknown as typeof IntersectionObserver;
+  try {
+    mockReducedMotion.mockReturnValue(reduced);
+    render(<HeroTelegramLink />);
+    const panel = screen.getByRole('region', { name: 'ISHDASIZ в Telegram' });
+    const visibility = (isIntersecting: boolean) => act(() => notify([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver));
+    visibility(true);
+    act(() => jest.advanceTimersByTime(4800));
+    expect(panel).toHaveAttribute('data-active', reduced ? 'bot' : 'channel');
+    visibility(false);
+    act(() => jest.advanceTimersByTime(9600));
+    expect(panel).toHaveAttribute('data-active', reduced ? 'bot' : 'channel');
+    expect(panel).toHaveAttribute('data-running', 'false');
+  } finally {
+    window.IntersectionObserver = originalObserver;
+    jest.useRealTimers();
+  }
 });

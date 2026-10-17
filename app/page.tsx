@@ -5,7 +5,6 @@ import { HeroSection } from "@/components/home/hero-section";
 import { CategoriesSection } from "@/components/home/categories-section";
 import { LatestJobsSection } from "@/components/home/latest-jobs-section";
 import { SpecialCategoriesSection } from "@/components/home/special-categories-section";
-import { TelegramBanner } from "@/components/home/telegram-banner";
 import { HomeDataNotice } from "@/components/home/home-data-notice";
 import { SeekersSection } from "@/components/home/seekers-section";
 import { catalogFilters, searchResumes } from "@/lib/resume-catalog";
@@ -41,7 +40,6 @@ export default async function HomePage() {
       />
       <SpecialCategoriesSection counts={data.specialCounts} />
       <HowItWorksSection />
-      <TelegramBanner />
     </div>
   );
 }

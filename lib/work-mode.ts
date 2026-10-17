@@ -17,6 +17,10 @@ export function parseWorkMode(value:unknown):JobWorkMode|null {
  for(const key of Object.keys(modes) as JobWorkMode[])if(modes[key].includes(text))return key;
  return null;
 }
+export function hasExplicitWorkMode(value:unknown):boolean {
+ const text=normalized(value);
+ return text!==''&&!['0','all','any','ahamiyatsiz','ahamiyatga ega emas','не важно'].includes(text);
+}
 export function getJobWorkMode(job:Record<string,any>|null|undefined):JobWorkMode|null {
  if(!job)return null;
  const raw=job.raw_source_json??{};
@@ -27,7 +31,7 @@ export function getJobWorkMode(job:Record<string,any>|null|undefined):JobWorkMod
   return sourceModes[raw.work_type]??null;
  }
  for(const value of [job.work_mode,job.work_format,raw.work_mode,raw.work_format,raw.workplace_type]){
-  if(value===null||value===undefined||normalized(value)===''||['0','all','any','ahamiyatsiz','ahamiyatga ega emas','не важно'].includes(normalized(value)))continue;
+  if(!hasExplicitWorkMode(value))continue;
   // An explicit format takes precedence over older, lower-priority fields.
   return parseWorkMode(value);
  }
