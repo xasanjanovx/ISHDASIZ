@@ -6,7 +6,7 @@ type HomeCounts = {
   special: { students: number; disabled: number; women: number };
 };
 export const HOME_JOB_FIELDS =
-  "id,title_uz,title_ru,company_name,salary_min,salary_max,employment_type,created_at,region_name,categories(name_uz,name_ru),districts(name_uz,name_ru,regions(name_uz,name_ru))";
+  "id,title_uz,title_ru,company_name,salary_min,salary_max,employment_type,created_at,region_name,categories(name_uz,name_ru,icon),districts(name_uz,name_ru,regions(name_uz,name_ru))";
 type PlaceNames = { name_uz: string; name_ru: string };
 export type HomeJob = {
   id: string;
@@ -16,7 +16,7 @@ export type HomeJob = {
   salary_min: number | null;
   salary_max: number | null;
   region_name?: string | null;
-  categories?: PlaceNames | null;
+  categories?: (PlaceNames & { icon?: string }) | null;
   districts?: (PlaceNames & { regions?: PlaceNames | null }) | null;
 };
 const relation = (value: any) =>

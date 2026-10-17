@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Search, FileText, Send } from "lucide-react";
+import { SectionHeading } from "./section-heading";
+import styles from "./home-sections.module.css";
 import { useLanguage } from "@/contexts/language-context";
 import { useRouter } from "next/navigation";
 import { useUserAuth } from "@/contexts/user-auth-context";
@@ -49,43 +51,19 @@ export function HowItWorksSection() {
           text: "Mos vakansiyaga ariza yuboring va uni profilingizda kuzatib boring.",
         },
       ];
-  return (
-    <section className="home-shell home-section home-how">
-      <div className="home-how-heading">
-        <div>
-          <span className="home-eyebrow">
-            {ru ? "КАК ЭТО РАБОТАЕТ" : "BU QANDAY ISHLAYDI"}
-          </span>
-          <h2>
-            {ru ? "Один поиск.\nНовая глава." : "Bir qidiruv.\nYangi sahifa."}
-          </h2>
-        </div>
-        <p>
-          {ru
-            ? "От первого поиска до первого отклика — три понятных шага."
-            : "Birinchi qidiruvdan birinchi arizagacha — uchta sodda qadam."}
-        </p>
-      </div>
-      <div className="home-step-grid">
-        {steps.map((step, index) => (
-          <div key={step.title} className="home-step">
-            <span className="home-step-number">0{index + 1}</span>
-            <h3>{step.title}</h3>
-            <p>{step.text}</p>
-            <ArrowUpRight size={20} />
-          </div>
-        ))}
-      </div>
-      <div className="home-how-actions">
-        <Link href="/jobs" className="poster-action">
-          <ArrowUpRight size={20} />
-          {ru ? "Найти своё место" : "O‘z o‘rnimni topish"}
-        </Link>
-        <button type="button" onClick={create} className="home-text-link">
-          {ru ? "Начать с резюме" : "Rezyumedan boshlash"}
-          <ArrowRight size={17} />
-        </button>
-      </div>
-    </section>
-  );
+  const icons = [Search, FileText, Send];
+  return <section className={`${styles.section} ${styles.how}`} id="how-it-works"><div className={styles.shell}>
+    <SectionHeading kicker={ru ? "КАК ЭТО РАБОТАЕТ" : "BU QANDAY ISHLAYDI"} title={ru ? "Три шага к вашей работе." : "Ishingiz sari uchta qadam."} description={ru ? "От первого поиска до первого отклика — всё на одной платформе." : "Birinchi qidiruvdan birinchi arizagacha — barchasi bitta platformada."} />
+    <div className={styles.stepGrid}>{steps.map((step, index) => {
+      const Icon = icons[index];
+      return <div className={styles.step} key={step.title} data-home-reveal>
+        <div className={styles.stepTop}><span className={styles.stepNumber}>0{index + 1}</span><span className={styles.stepIcon} aria-hidden="true"><Icon size={26} strokeWidth={1.5} /></span></div>
+        <h3>{step.title}</h3><p>{step.text}</p>
+      </div>;
+    })}</div>
+    <div className={styles.actions}>
+      <Link href="/jobs" className={styles.button}>{ru ? "Найти работу" : "Ish topish"}<ArrowUpRight size={18} aria-hidden="true" /></Link>
+      <button type="button" onClick={create} className={styles.textLink}>{ru ? "Создать резюме" : "Rezyume yaratish"}<ArrowRight size={17} aria-hidden="true" /></button>
+    </div>
+  </div></section>;
 }

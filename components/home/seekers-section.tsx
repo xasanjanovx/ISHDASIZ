@@ -14,6 +14,8 @@ import { useUserAuth } from "@/contexts/user-auth-context";
 import { useAuthModal } from "@/contexts/auth-modal-context";
 import { resumeSkills } from "@/lib/resume-api";
 import { getExperienceLabel } from "@/lib/experience-compat";
+import { SectionHeading } from "./section-heading";
+import styles from "./home-sections.module.css";
 export function SeekersSection({
   resumes,
   unavailable,
@@ -36,26 +38,8 @@ export function SeekersSection({
     }
   };
   return (
-    <section className="home-shell home-section" id="seekers">
-      <div className="home-section-heading">
-        <div>
-          <span className="home-eyebrow">
-            {ru ? "ЛЮДИ И ВОЗМОЖНОСТИ" : "INSONLAR VA IMKONIYATLAR"}
-          </span>
-          <h2>
-            {ru ? "Знакомьтесь: соискатели" : "Ish izlovchilar bilan tanishing"}
-          </h2>
-          <p>
-            {ru
-              ? "Профили, навыки и опыт людей, открытых к новой работе."
-              : "Yangi ishga tayyor insonlarning profillari, ko‘nikmalari va tajribasi."}
-          </p>
-        </div>
-        <Link href="/resumes" className="home-text-link">
-          {ru ? "Все профили" : "Barcha profillar"}
-          <ArrowUpRight size={18} />
-        </Link>
-      </div>
+    <section className={`${styles.shell} ${styles.section}`} id="seekers">
+      <SectionHeading kicker={ru ? "ЛЮДИ И ВОЗМОЖНОСТИ" : "INSONLAR VA IMKONIYATLAR"} title={ru ? "За каждым навыком — человек." : "Har bir ko‘nikma ortida inson bor."} description={ru ? "Познакомьтесь с людьми, открытыми к новой работе." : "Yangi ishga tayyor insonlar bilan tanishing."} href="/resumes" action={ru ? "Все профили" : "Barcha profillar"} />
       <div className="home-seekers-grid">
         {resumes.map((resume, index) => {
           const place = resume.regions;
@@ -134,7 +118,7 @@ export function SeekersSection({
               : "Sizni topishlari uchun rezyumengizni qo‘shing."}
           </p>
         </div>
-        <button onClick={create} className="home-button">
+        <button onClick={create} className={styles.button}>
           {ru ? "Создать резюме" : "Rezyume yaratish"}
           <ArrowRight size={17} />
         </button>

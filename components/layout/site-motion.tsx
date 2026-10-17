@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const targets = ".poster-search-card, .poster-resumes-card, .poster-copy, .poster-controls, .home-section-heading, .home-how-heading, .home-category, .home-job-card, .home-seeker-card, .home-resume-cta, .home-opportunity, .home-step, .home-telegram, .catalog-job-card, .catalog-resume-card, .site-page-banner";
+const targets = "[data-home-reveal], .poster-search-card, .poster-resumes-card, .poster-copy, .poster-controls, .home-section-heading, .home-how-heading, .home-category, .home-job-card, .home-seeker-card, .home-resume-cta, .home-opportunity, .home-step, .home-telegram, .catalog-job-card, .catalog-resume-card, .site-page-banner";
 
 // Progressive enhancement: content stays visible when scripts, observers or motion are unavailable.
 export function SiteMotion() {
