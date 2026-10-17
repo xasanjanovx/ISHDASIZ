@@ -3,11 +3,11 @@
 .track { display: flex; width: max-content; animation: feedback 65s linear infinite; }
 .group { display: flex; flex-shrink: 0; gap: 18px; padding-right: 18px; }
 .card { display: flex; flex-direction: column; width: 330px; padding: 24px; border: 1px solid #d9d0bd; border-radius: 23px; background: #f9f5ea; color: #3b4937; }
-.top { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 10px; color: #8b806c; }
-.top > span:last-child { padding: 4px 8px; border-radius: 12px; background: #ede7d5; font-size: 9px; }
+.top { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 12px; color: #8b806c; }
+.top > span:last-child { padding: 4px 8px; border-radius: 12px; background: #ede7d5; font-size: 11px; }
 .quote { margin-top: 24px; color: #baa16a; }
 .card p { min-height: 95px; margin-top: 12px; font-size: 19px; font-weight: 500; line-height: 1.5; letter-spacing: -.4px; }
-.bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; font-size: 9px; color: #a49a81; }
+.bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; font-size: 11px; color: #a49a81; }
 .stars { display: flex; gap: 4px; color: #bd9b42; }
 .window:hover .track { animation-play-state: paused; }
 @keyframes feedback { to { transform: translateX(-50%); } }

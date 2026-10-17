@@ -24,7 +24,7 @@ it("the benefits strip explains the site and links to the channel without duplic
   expect(within(strip).getByRole("link", { name: /Telegram-канал/ })).toHaveAttribute("href", "https://t.me/ishdasiz");
   expect(within(strip).getByRole("link", { name: "Работа на карте" })).toHaveAttribute("href", "/map");
   expect(within(strip).getByRole("link", { name: "Поиск по профессии" })).toHaveAttribute("href", "/jobs");
-  expect(strip.querySelectorAll('a[tabindex="-1"]')).toHaveLength(7);
+  strip.querySelectorAll('.poster-ticker-group[aria-hidden="true"] a').forEach(link => expect(link).toHaveAttribute('tabindex', '-1'));
   const groups = strip.querySelectorAll('.poster-ticker-group');
   expect(groups[0].textContent).toBe(groups[1].textContent);
   expect(groups[1]).toHaveAttribute('aria-hidden', 'true');

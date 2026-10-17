@@ -1,18 +1,18 @@
 .section { padding-block: 64px; }
-.shell { width: min(1280px, calc(100% - 64px)); margin-inline: auto; }
+.shell { width: min(1840px, calc(100% - 80px)); margin-inline: auto; }
 .heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 30px; }
 .heading > div { min-width: 0; }
-.kicker { display: flex; align-items: center; gap: 9px; color: #786a55; font-size: 10px; line-height: 1.6; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; }
+.kicker { display: flex; align-items: center; gap: 9px; color: #786a55; font-size: 14px; line-height: 1.6; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; }
 .kicker i { width: 6px; height: 6px; border-radius: 50%; background: #c9a347; flex-shrink: 0; }
 .heading h2 { max-width: 780px; margin-top: 12px; font-size: clamp(30px, 3.2vw, 44px); line-height: 1.12; font-weight: 550; letter-spacing: -.05em; white-space: pre-line; color: #252c38; }
 .heading p { max-width: 640px; margin-top: 13px; color: #7b7265; font-size: 14px; line-height: 1.7; }
-.textLink { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 18px; min-height: 44px; padding: 10px 15px; border: 1px solid #cfc5b4; border-radius: 13px; color: #463f35; font-size: 12px; font-weight: 550; background: #fffaf060; transition: background-color .2s, border-color .2s; }
+.textLink { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 18px; min-height: 44px; padding: 10px 15px; border: 1px solid #cfc5b4; border-radius: 13px; color: #463f35; font-size: 14px; font-weight: 550; background: #fffaf060; transition: background-color .2s, border-color .2s; }
 .textLink:hover { background: #fffaf0; border-color: #a6957c; }
 .textLink:focus-visible, .category:focus-visible, .jobCard:focus-visible, .opportunity:focus-visible, .button:focus-visible { outline: 2px solid #a77929; outline-offset: 4px; }
 .artwork { position: relative; display: inline-block; width: 78px; height: 70px; flex-shrink: 0; }
 .artPlate { position: absolute; inset: 5px 12px 7px 1px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--art-ink) 18%, transparent); border-radius: 17px; background: var(--art-tint); color: var(--art-ink); transform: rotate(-7deg); transition: transform .35s cubic-bezier(.2,.7,.2,1); }
 .artPlate > svg { width: 30px; height: 30px; }
-.artDetail { position: absolute; bottom: 1px; right: 1px; display: grid; place-items: center; width: 29px; height: 28px; border: 1px solid #d7cebd; border-radius: 9px; background: #fffaf0; color: var(--art-ink); font-size: 12px; font-weight: 650; transform: rotate(9deg); transition: transform .35s ease; }
+.artDetail { position: absolute; bottom: 1px; right: 1px; display: grid; place-items: center; width: 29px; height: 28px; border: 1px solid #d7cebd; border-radius: 9px; background: #fffaf0; color: var(--art-ink); font-size: 14px; font-weight: 650; transform: rotate(9deg); transition: transform .35s ease; }
 .artworkSmall { width: 51px; height: 49px; }
 .artworkSmall .artPlate { inset: 2px 4px 3px 0; border-radius: 12px; transform: rotate(-4deg); }
 .artworkSmall .artPlate > svg { width: 25px; height: 25px; }
@@ -28,25 +28,25 @@
 .category h3 { min-height: 50px; margin: 0 0 20px; font-size: 17px; line-height: 1.4; font-weight: 550; letter-spacing: -.3px; overflow-wrap: anywhere; }
 .categoryCount { margin-top: auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .categoryCount strong { font-size: 29px; line-height: 1.2; font-weight: 550; letter-spacing: -.9px; font-variant-numeric: tabular-nums; color: #514738; }
-.categoryCount > span { font-size: 10px; color: #776a55; }
-.countNote { display: flex; align-items: center; gap: 8px; margin-top: 18px; color: #796d59; font-size: 11px; line-height: 1.6; }
+.categoryCount > span { font-size: 12px; color: #776a55; }
+.countNote { display: flex; align-items: center; gap: 8px; margin-top: 18px; color: #796d59; font-size: 13px; line-height: 1.6; }
 .countNote > i { width: 4px; height: 4px; border-radius: 50%; background: #b79652; flex-shrink: 0; }
 .jobs { background: transparent; }
 .jobGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
 .jobCard { display: flex; flex-direction: column; min-width: 0; padding: 24px; border: 1px solid #d8cdbb; border-radius: 22px; color: #2c3038; background: #fffaf2; transition: border-color .25s, box-shadow .25s, transform .25s; }
 .jobCard:hover { border-color: #a59171; box-shadow: 0 9px 25px #4e3a2010; transform: translateY(-3px); }
 .jobTop { display: flex; align-items: center; gap: 12px; margin-bottom: 21px; }
-.jobTop > span:nth-child(2) { min-width: 0; flex: 1; font-size: 11px; line-height: 1.5; color: #776b56; }
+.jobTop > span:nth-child(2) { min-width: 0; flex: 1; font-size: 13px; line-height: 1.5; color: #776b56; }
 .jobTop > svg { color: #b6a68d; flex-shrink: 0; }
 .jobCard h3 { margin: 0; min-height: 54px; color: #2b3039; font-size: 19px; line-height: 1.4; font-weight: 550; letter-spacing: -.35px; overflow-wrap: anywhere; }
-.company { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 40px; margin-top: 9px; font-size: 12px; line-height: 1.65; color: #756b59; overflow-wrap: anywhere; }
+.company { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 40px; margin-top: 9px; font-size: 14px; line-height: 1.65; color: #756b59; overflow-wrap: anywhere; }
 .salary { display: grid; gap: 6px; padding-top: 24px; margin-top: auto; }
-.salary > span { font-size: 10px; line-height: 1.5; color: #796d5b; }
+.salary > span { font-size: 12px; line-height: 1.5; color: #796d5b; }
 .salary > strong { font-size: clamp(17px, 1.5vw, 23px); font-weight: 550; line-height: 1.4; letter-spacing: -.4px; color: #4e583b; overflow-wrap: anywhere; }
 .jobBottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e7dece; color: #8a7b64; }
-.jobLocation { display: flex; align-items: flex-start; gap: 6px; min-width: 0; font-size: 11px; line-height: 1.6; }
+.jobLocation { display: flex; align-items: flex-start; gap: 6px; min-width: 0; font-size: 13px; line-height: 1.6; }
 .jobLocation svg { margin-top: 2px; flex-shrink: 0; }
-.jobOpen { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #524938; white-space: nowrap; }
+.jobOpen { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #524938; white-space: nowrap; }
 .empty { padding: 25px; border: 1px dashed #cabcaa; border-radius: 20px; font-size: 14px; color: #82745e; line-height: 1.6; }
 .moreJobs { display: none; }
 .opportunities { padding-top: 4px; background: transparent; }
@@ -59,10 +59,10 @@
 .opportunityIcon { display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 22%, transparent); border-radius: 15px; background: #fffaf03d; }
 .opportunityTop > span:last-child { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #fffaf080; border-radius: 50%; background: #fffaf060; }
 .opportunity h3 { font-size: 23px; letter-spacing: -.5px; line-height: 1.25; font-weight: 550; max-width: 250px; }
-.opportunity p { max-width: 275px; font-size: 12px; line-height: 1.7; margin-top: 10px; opacity: .8; }
+.opportunity p { max-width: 275px; font-size: 14px; line-height: 1.7; margin-top: 10px; opacity: .8; }
 .opportunityCount { display: flex; align-items: baseline; flex-wrap: wrap; gap: 9px; margin-top: auto; padding-top: 25px; }
 .opportunityCount > strong { font-size: 35px; font-weight: 550; letter-spacing: -1px; line-height: 1.15; font-variant-numeric: tabular-nums; }
-.opportunityCount > span { font-size: 11px; opacity: .7; }
+.opportunityCount > span { font-size: 13px; opacity: .7; }
 .how { background: transparent; }
 .stepGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .step { min-width: 0; padding: 23px; border: 1px solid #d8cdbb; border-radius: 22px; background: #fbf7ed; }
@@ -99,7 +99,7 @@
   .section { padding-block: 36px; }
   .shell { width: calc(100% - 32px); }
   .heading { gap: 18px; margin-bottom: 24px; align-items: flex-start; flex-direction: column; }
-  .kicker { font-size: 9px; letter-spacing: .8px; }
+  .kicker { font-size: 13px; letter-spacing: .8px; }
   .heading h2 { font-size: 31px; max-width: 100%; margin-top: 11px; }
   .heading p { margin-top: 10px; font-size: 13px; }
   .textLink { min-height: 42px; }
@@ -120,28 +120,28 @@
   .artwork { width: 65px; height: 59px; }
   .artPlate { border-radius: 14px; }
   .artPlate > svg { width: 27px; height: 27px; }
-  .artDetail { width: 24px; height: 24px; border-radius: 8px; font-size: 10px; }
+  .artDetail { width: 24px; height: 24px; border-radius: 8px; font-size: 12px; }
   .artworkSmall { width: 47px; height: 46px; }
   .category h3 { min-height: 58px; font-size: 15px; margin: 0 0 15px; }
   .categoryCount { margin-top: auto; gap: 5px; }
   .categoryCount strong { font-size: 28px; }
-  .categoryCount > span { font-size: 9px; }
-  .countNote { font-size: 10px; margin-top: 15px; }
+  .categoryCount > span { font-size: 11px; }
+  .countNote { font-size: 12px; margin-top: 15px; }
   .opportunities { padding-top: 0; }
   .opportunityGrid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .opportunity { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 17px; padding: 22px; }
   .opportunityTop { grid-column: 1; grid-row: 1 / 4; align-self: start; margin: 0; }
   .opportunityTop > span:last-child { display: none; }
   .opportunity h3 { grid-column: 2; max-width: 100%; font-size: 20px; }
-  .opportunity p { grid-column: 2; margin-top: 7px; font-size: 12px; }
+  .opportunity p { grid-column: 2; margin-top: 7px; font-size: 14px; }
   .opportunityCount { grid-column: 2; padding-top: 16px; gap: 8px; }
   .opportunityCount > strong { font-size: 29px; }
   .stepGrid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .step { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 0 17px; padding: 22px; }
   .stepTop { position: relative; grid-row: 1 / 3; display: block; margin: 0; }
-  .stepNumber { position: absolute; z-index: 1; bottom: -15px; right: -3px; padding: 3px 5px; border-radius: 6px; background: #fbf7ed; font-size: 10px; }
+  .stepNumber { position: absolute; z-index: 1; bottom: -15px; right: -3px; padding: 3px 5px; border-radius: 6px; background: #fbf7ed; font-size: 12px; }
   .step h3 { font-size: 20px; }
-  .step p { margin-top: 9px; font-size: 12px; line-height: 1.8; }
+  .step p { margin-top: 9px; font-size: 14px; line-height: 1.8; }
   .actions { gap: 12px; }
   .actions > a, .actions > button { min-height: 48px; }
 }

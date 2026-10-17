@@ -21,13 +21,13 @@ export function BenefitsTicker() {
     <div className="poster-ticker" role="region" aria-label={ru ? "О сайте и Telegram-канале" : "Sayt va Telegram kanal haqida"} data-paused={stopped} data-motion="system">
       <div className="poster-ticker-window">
         <div className="poster-ticker-track">
-          {[false, true].map(duplicate => (
-            <div key={String(duplicate)} className="poster-ticker-group" aria-hidden={duplicate || undefined}>
+          {[false, true, true, true].map((duplicate, index) => (
+            <div key={index} className="poster-ticker-group" aria-hidden={duplicate || undefined}>
               {items.map(item => (
                 <Link key={item.text} href={item.href} className="poster-ticker-item"
                   tabIndex={duplicate ? -1 : undefined}
                   {...(item.href.startsWith("https:") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-                  <i aria-hidden="true" />{item.text}
+                  {item.text}<i aria-hidden="true" />
                 </Link>
               ))}
             </div>

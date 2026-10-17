@@ -88,7 +88,9 @@ export async function readRemoteJobIds(client: SupabaseClient): Promise<string[]
 const cachedRemoteJobIds = unstable_cache(
   () => readRemoteJobIds(getAuthClient()),
   ['catalog-remote-formats-v1', process.env.NEXT_PUBLIC_SUPABASE_URL || ''],
-  { revalidate: 60 },
+  // Share the bounded metadata scan across region changes. The final query still
+  // checks availability, so closing a vacancy takes effect before this cache expires.
+  { revalidate: 300 },
 );
 let pending: Promise<string[]> | null = null;
 export function getRemoteJobIds() {

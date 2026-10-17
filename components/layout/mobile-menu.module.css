@@ -1,10 +1,10 @@
 .content { display: flex; flex-direction: column; min-height: 100%; gap: 22px; color: #30362f; }
 .logo { display: block; width: 130px; margin-bottom: 14px; }
 .logo img { width: 100%; height: auto; }
-.heading > span { display: flex; align-items: center; gap: 7px; font-size: 8px; font-weight: 650; letter-spacing: 1px; color: #8a826e; }
+.heading > span { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 650; letter-spacing: 1px; color: #81745e; }
 .heading i { width: 5px; height: 5px; background: #be9b41; border-radius: 50%; }
 .heading h2 { margin-top: 10px; font-size: 30px; letter-spacing: -1.1px; line-height: 1.1; font-weight: 600; color: #30362f; }
-.heading p { margin-top: 10px; font-size: 12px; line-height: 1.65; color: #827b6b; }
+.heading p { margin-top: 10px; font-size: 14px; line-height: 1.65; color: #776e5d; }
 .links { display: grid; gap: 7px; }
 .links a { display: flex; align-items: center; gap: 13px; padding: 12px; border-radius: 17px; background: #fffaf1; transition: background .2s, transform .2s; }
 .links a:hover { background: #ede8d8; transform: translateX(2px); }
@@ -12,8 +12,8 @@
 .links a:nth-child(2) .linkIcon { background: #eee5cc; color: #8a7040; }
 .links a:nth-child(3) .linkIcon { background: #e0e8e7; color: #4b7269; }
 .links a > span:nth-child(2) { display: grid; gap: 3px; flex: 1; min-width: 0; }
-.links strong { font-size: 14px; font-weight: 600; }
-.links small { font-size: 10px; color: #8a816e; }
+.links strong { font-size: 15px; font-weight: 600; }
+.links small { font-size: 12px; color: #786c56; }
 .links a > svg { color: #a49a85; }
 .create { display: flex; align-items: center; gap: 12px; padding: 13px 7px; font-size: 12px; font-weight: 550; }
 .create > svg:last-child { margin-left: auto; }

@@ -1,7 +1,7 @@
 .footer { margin-top: auto; padding-block: 54px 22px; background: #252b27; color: #f7f1e3; }
-.shell { width: min(1280px, calc(100% - 64px)); margin-inline: auto; }
+.shell { width: min(1840px, calc(100% - 80px)); margin-inline: auto; }
 .invitation { display: flex; align-items: center; justify-content: space-between; gap: 35px; padding-bottom: 45px; }
-.invitation > div > span { display: flex; align-items: center; gap: 9px; color: #b2ad98; font-size: 10px; letter-spacing: 1.1px; font-weight: 500; }
+.invitation > div > span { display: flex; align-items: center; gap: 9px; color: #b2ad98; font-size: 12px; letter-spacing: 1.1px; font-weight: 500; }
 .invitation i { width: 6px; height: 6px; border-radius: 50%; background: #dfbc59; }
 .invitation h2 { margin-top: 13px; font-size: clamp(30px, 4vw, 54px); font-weight: 500; line-height: 1.15; letter-spacing: -.05em; }
 .cta { display: inline-flex; justify-content: space-between; align-items: center; gap: 40px; min-width: 230px; min-height: 54px; padding: 9px 16px; border: 0; border-radius: 30px; color: #30382b; background: #e6c970; font-size: 13px; font-weight: 600; transition: background .2s, transform .2s; flex-shrink: 0; }
@@ -10,19 +10,19 @@
 .brand { min-width: 0; }
 .logo { display: inline-block; width: 190px; padding: 10px 12px; border-radius: 13px; background: #f5f0e5; }
 .logo img { width: 100%; height: auto; }
-.brand p { max-width: 245px; margin-top: 17px; color: #b1ae9a; font-size: 12px; line-height: 1.8; }
-.location { display: flex; align-items: center; gap: 7px; margin-top: 19px; font-size: 10px; color: #989d82; }
+.brand p { max-width: 245px; margin-top: 17px; color: #b1ae9a; font-size: 14px; line-height: 1.8; }
+.location { display: flex; align-items: center; gap: 7px; margin-top: 19px; font-size: 12px; color: #989d82; }
 .location i { width: 4px; height: 4px; border-radius: 50%; background: #8c9b60; }
-.grid h3 { color: #d6d2bd; font-size: 11px; font-weight: 550; letter-spacing: .2px; margin-bottom: 14px; }
+.grid h3 { color: #d6d2bd; font-size: 13px; font-weight: 550; letter-spacing: .2px; margin-bottom: 14px; }
 .grid nav { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
-.grid nav > a { display: inline-flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 36px; font-size: 12px; color: #aaa995; transition: color .2s; }
+.grid nav > a { display: inline-flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 36px; font-size: 14px; color: #aaa995; transition: color .2s; }
 .grid nav > a > svg { opacity: .5; }
 .grid nav > a:hover { color: #f8f0d8; }
 .contact { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
-.contact > a:first-of-type { display: inline-block; min-height: 35px; color: #c6c1aa; font-size: 12px; overflow-wrap: anywhere; }
-.support { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; margin-top: 13px; padding: 9px 12px; border: 1px solid #525544; border-radius: 12px; background: #31372d; font-size: 11px; color: #c4c3aa; }
+.contact > a:first-of-type { display: inline-block; min-height: 35px; color: #c6c1aa; font-size: 14px; overflow-wrap: anywhere; }
+.support { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; margin-top: 13px; padding: 9px 12px; border: 1px solid #525544; border-radius: 12px; background: #31372d; font-size: 13px; color: #c4c3aa; }
 .support > svg { flex-shrink: 0; }
-.bottom { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 21px; border-top: 0; color: #8f947c; font-size: 10px; line-height: 1.6; }
+.bottom { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 21px; border-top: 0; color: #8f947c; font-size: 12px; line-height: 1.6; }
 .bottom > span { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .bottom i { width: 4px; height: 4px; border-radius: 50%; background: #b99a47; }
 .bottom > div { display: flex; align-items: center; gap: 25px; }
@@ -33,20 +33,20 @@
   .footer { padding-block: 34px calc(108px + env(safe-area-inset-bottom, 0px)); }
   .shell { width: calc(100% - 32px); }
   .invitation { flex-direction: column; align-items: flex-start; gap: 23px; padding-bottom: 30px; }
-  .invitation > div > span { font-size: 9px; letter-spacing: .7px; }
+  .invitation > div > span { font-size: 11px; letter-spacing: .7px; }
   .invitation h2 { font-size: 34px; line-height: 1.1; }
   .cta { width: 100%; min-height: 49px; border-radius: 13px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 20px; padding-block: 29px 28px; }
   .brand { grid-column: 1 / -1; }
-  .brand p { max-width: 290px; font-size: 12px; }
+  .brand p { max-width: 290px; font-size: 14px; }
   .logo { width: 167px; padding: 9px 11px; }
   .location { margin-top: 13px; }
-  .grid h3 { font-size: 11px; margin-bottom: 10px; }
-  .grid nav > a { min-height: 42px; font-size: 11px; gap: 6px; }
+  .grid h3 { font-size: 13px; margin-bottom: 10px; }
+  .grid nav > a { min-height: 42px; font-size: 13px; gap: 6px; }
   .grid nav > a > svg { width: 12px; }
   .contact > a:first-of-type { display: block; min-height: 39px; }
   .support { margin: 0; min-height: 44px; padding-inline: 13px; }
-  .bottom { gap: 8px; align-items: flex-start; padding-top: 16px; font-size: 9px; }
+  .bottom { gap: 8px; align-items: flex-start; padding-top: 16px; font-size: 11px; }
   .bottom > span { gap: 7px; min-height: 38px; }
   .bottom > div { gap: 14px; }
 }
