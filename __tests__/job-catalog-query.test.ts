@@ -16,7 +16,7 @@ test('all supported filters, including a shared page number, survive URL seriali
 });
 test('invalid URL values cannot become NaN comparisons, unsupported choices or arbitrary filter syntax', () => {
   const filters = readJobFilters('category=forged&region=22,or&district=-1&age=30-18&salary=500-2&type=unknown&experience=wrong&gender=forged&special=unknown,women,women&payment_type=NaN&page=Infinity');
-  expect(filters).toMatchObject({ category: 'all', region: 'all', district: 'all', age: [undefined, undefined], salary: [0, 20000000], type: 'all', experience: 'all', gender: 'all', payment_type: 'all', page: 1, special: ['women'] });
+  expect(filters).toMatchObject({ category: 'all', region: 'all', district: 'all', age: [undefined, undefined], salary: [0, undefined], type: 'all', experience: 'all', gender: 'all', payment_type: 'all', page: 1, special: ['women'] });
   expect(readJobFilters('q=' + 'x'.repeat(200)).q).toHaveLength(150);
 });
 test('combined gender, special groups, salary, age and text are one AND expression before stable pagination', async () => {
@@ -25,10 +25,10 @@ test('combined gender, special groups, salary, age and text are one AND expressi
   expect(params.getAll('or')).toHaveLength(1);
   const expression = params.get('or')!;
   expect(expression.startsWith('(and(')).toBe(true);
-  for (const clause of ['or(is_for_students.eq.true,is_for_graduates.eq.true)', 'or(is_for_women.eq.true,gender.eq.female,gender.eq.2,gender.eq.any,gender.eq.3,gender.is.null)', 'or(gender.eq.female,gender.eq.2,gender.eq.any,gender.eq.3,gender.is.null)', 'or(age_max.gte.18,age_max.is.null)', 'or(age_min.lte.30,age_min.is.null)', 'or(salary_max.gte.1000000,salary_max.is.null)', 'or(salary_min.lte.5000000,salary_min.is.null)', 'title_ru.ilike.%бухгалтер%']) expect(expression).toContain(clause);
+  for (const clause of ['or(is_for_students.eq.true,is_for_graduates.eq.true)', 'or(is_for_women.eq.true,gender.eq.female,gender.eq.2,gender.eq.any,gender.eq.3,gender.is.null)', 'or(gender.eq.female,gender.eq.2,gender.eq.any,gender.eq.3,gender.is.null)', 'or(age_max.gte.18,age_max.is.null)', 'or(age_min.lte.30,age_min.is.null)', 'or(salary_min.gte.1000000,salary_max.gte.1000000)', 'or(and(salary_min.gt.0,salary_min.lte.5000000),and(salary_max.gt.0,salary_max.lte.5000000))', 'title_ru.ilike.%бухгалтер%']) expect(expression).toContain(clause);
   expect(params.get('ishdasiz_job_available')).toBe('eq.true'); expect(params.get('is_for_disabled')).toBe('eq.true');
   expect(params.get('category_id')).toBe('eq.' + category); expect(expression).toContain('or(and(region_id.eq.22,district_id.eq.100),ishdasiz_job_work_mode.eq.remote)'); expect(params.has('region_id')).toBe(false); expect(params.has('district_id')).toBe(false);
-  expect(params.has('employment_type')).toBe(false); expect(params.getAll('ishdasiz_job_work_mode')).toEqual(['eq.remote', 'eq.hybrid']); expect(params.get('education_level')).toBe('eq.higher'); expect(params.get('payment_type')).toBe('eq.3'); expect(params.has('work_mode')).toBe(false); expect(params.get('working_days')).toBe('eq.2');
+  expect(params.has('employment_type')).toBe(false); expect(params.getAll('ishdasiz_job_work_mode')).toEqual(['eq.remote', 'eq.hybrid']); expect(params.get('education_level')).toBe('in.(higher,3,5)'); expect(params.get('payment_type')).toBe('eq.3'); expect(params.has('work_mode')).toBe(false); expect(params.get('working_days')).toBe('eq.2');
   expect(params.get('experience')).toContain('1_year'); expect(params.get('offset')).toBe('24'); expect(params.get('limit')).toBe('12'); expect(params.get('order')).toBe('created_at.desc,id.desc');
 });
 test('catalog reads an explicit card projection with direct region names and no private ownership/source payload', async () => {
@@ -48,7 +48,7 @@ test.each(['region=22', 'district=100', 'region=22&district=100'])('remote jobs 
   const params = requests[0].searchParams;
   expect(params.getAll('or')).toHaveLength(1);
   expect(params.get('or')).toContain('ishdasiz_job_work_mode.eq.remote');
-  expect(params.get('or')).toContain('or(salary_max.gte.1000000,salary_max.is.null)');
+  expect(params.get('or')).toContain('or(salary_min.gte.1000000,salary_max.gte.1000000)');
   expect(params.get('employment_type')).toBe('eq.full_time');
   expect(params.get('ishdasiz_job_work_mode')).toBe('eq.remote');
   expect(params.has('region_id')).toBe(false); expect(params.has('district_id')).toBe(false);
@@ -72,6 +72,6 @@ test('a regional lookup uses precomputed remote IDs while retaining every other 
 });
 test('an empty remote set keeps regional results and an explicit remote filter stays empty', async () => {
   await jobCatalogQuery(client(), readJobFilters('region=12&type=remote'), { remoteIds: [] });
-  expect(requests[0].searchParams.get('or')).toBe('(and(or(region_id.eq.12)))');
+  expect(requests[0].searchParams.get('or')).toBe('(region_id.eq.12)');
   expect(requests[0].searchParams.get('id')).toBe('in.()');
 });

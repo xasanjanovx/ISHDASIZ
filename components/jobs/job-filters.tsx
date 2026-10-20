@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { JobSalaryFilter } from './job-salary-filter';
+import type { JobSalaryRange } from '@/lib/search-ranges';
 import { useLanguage } from '@/contexts/language-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -29,7 +30,7 @@ interface JobFiltersProps {
   selectedRegion: string;
   selectedDistrict: string;
   selectedSpecialCategories: string[];
-  salaryRange: [number, number];
+  salaryRange: JobSalaryRange;
   selectedEmploymentType: string;
   selectedExperience: string;
   selectedEducation: string;
@@ -39,7 +40,7 @@ interface JobFiltersProps {
   selectedWorkingDays: string;
   ageRange: [number | undefined, number | undefined];
   onSpecialCategoriesChange: (categories: string[]) => void;
-  onSalaryRangeChange: (range: [number, number]) => void;
+  onSalaryRangeChange: (range: JobSalaryRange) => void;
   onCategoryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
   onDistrictChange: (value: string) => void;
@@ -131,7 +132,7 @@ export function JobFilters({
     ageRange.some(value => value !== undefined) ||
     selectedSpecialCategories.length > 0 ||
     salaryRange[0] > 0 ||
-    salaryRange[1] < 20000000;
+    salaryRange[1] !== undefined;
 
   const handleClear = () => {
     onRegionChange('all');
@@ -180,7 +181,7 @@ export function JobFilters({
         <div className="space-y-2">
           <Label className="text-sm font-medium">{t.filters.category}</Label>
           <Select value={selectedCategory} onValueChange={onCategoryChange}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={t.filters.category}>
               <SelectValue placeholder={t.filters.allCategories} />
             </SelectTrigger>
             <SelectContent>
@@ -198,7 +199,7 @@ export function JobFilters({
         <div className="space-y-2">
           <Label className="text-sm font-medium">{t.filters.employmentType}</Label>
           <Select value={selectedEmploymentType} onValueChange={onEmploymentTypeChange}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={t.filters.employmentType}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -220,7 +221,7 @@ export function JobFilters({
             {lang === 'uz' ? 'Ish usuli' : 'Режим работы'}
           </Label>
           <Select value={selectedWorkMode} onValueChange={onWorkModeChange}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={lang === 'uz' ? 'Ish usuli' : 'Режим работы'}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -242,7 +243,7 @@ export function JobFilters({
             {lang === 'uz' ? "To'lov shakli" : 'Тип оплаты'}
           </Label>
           <Select value={selectedPaymentType} onValueChange={onPaymentTypeChange}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={lang === 'uz' ? 'To‘lov shakli' : 'Тип оплаты'}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -264,7 +265,7 @@ export function JobFilters({
             {lang === 'uz' ? "Ish kunlari" : 'График работы'}
           </Label>
           <Select value={selectedWorkingDays} onValueChange={onWorkingDaysChange}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={lang === 'uz' ? 'Ish kunlari' : 'График работы'}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -282,34 +283,7 @@ export function JobFilters({
 
         {/* Все фильтры показываются сразу без accordion */}
         <>
-          {/* 8. Salary */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">{t.filters.salary}</Label>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                placeholder={lang === 'uz' ? 'Dan' : 'От'}
-                value={salaryRange[0] === 0 ? '' : salaryRange[0]}
-                onChange={(e) => {
-                  const val = e.target.value ? parseInt(e.target.value) : 0;
-                  onSalaryRangeChange([val, salaryRange[1]]);
-                }}
-                className="h-10"
-              />
-              <Input
-                type="number"
-                placeholder={lang === 'uz' ? 'Gacha' : 'До'}
-                value={salaryRange[1] >= 20000000 ? '' : salaryRange[1]}
-                onChange={(e) => {
-                  const val = e.target.value ? parseInt(e.target.value) : 20000000;
-                  onSalaryRangeChange([salaryRange[0], val]);
-                }}
-                className="h-10"
-              />
-            </div>
-          </div>
+          <JobSalaryFilter value={salaryRange} onChange={onSalaryRangeChange} />
 
           {/* 9. Experience */}
           <div className="space-y-2">
@@ -317,7 +291,7 @@ export function JobFilters({
               {lang === 'uz' ? 'Tajriba' : 'Опыт работы'}
             </Label>
             <Select value={selectedExperience} onValueChange={onExperienceChange}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={lang === 'uz' ? 'Tajriba' : 'Опыт работы'}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -339,7 +313,7 @@ export function JobFilters({
               {lang === 'uz' ? "Ta'lim" : 'Образование'}
             </Label>
             <Select value={selectedEducation} onValueChange={onEducationChange}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={lang === 'uz' ? 'Ta’lim' : 'Образование'}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -361,7 +335,7 @@ export function JobFilters({
               {lang === 'uz' ? 'Jins' : 'Пол'}
             </Label>
             <Select value={selectedGender} onValueChange={onGenderChange}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={lang === 'uz' ? 'Jins' : 'Пол'}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -386,6 +360,7 @@ export function JobFilters({
               <Input
                 type="number"
                 placeholder={lang === 'uz' ? 'Dan' : 'От'}
+                aria-label={lang === 'uz' ? 'Yosh, dan' : 'Возраст от'}
                 value={ageRange?.[0] || ''}
                 onChange={(e) => {
                   const val = e.target.value ? parseInt(e.target.value) : undefined;
@@ -396,6 +371,7 @@ export function JobFilters({
               <Input
                 type="number"
                 placeholder={lang === 'uz' ? 'Gacha' : 'До'}
+                aria-label={lang === 'uz' ? 'Yosh, gacha' : 'Возраст до'}
                 value={ageRange?.[1] || ''}
                 onChange={(e) => {
                   const val = e.target.value ? parseInt(e.target.value) : undefined;

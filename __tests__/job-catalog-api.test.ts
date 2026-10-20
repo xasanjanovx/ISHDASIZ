@@ -10,15 +10,21 @@ jest.mock('@/lib/job-search-server', () => ({ getIndexedRemoteJobIds: jest.fn(),
 const remoteId = '30000000-0000-4000-8000-000000000003';
 let requested: URL;
 let missingCount = false;
+let countReadFails = false;
+let countTimeoutOnce = false;
+let requests: URL[];
 beforeEach(() => {
   jest.clearAllMocks();
-  missingCount = false;
+  missingCount = false; countReadFails = false; countTimeoutOnce = false; requests = [];
   (hasIndexedCatalog as jest.Mock).mockResolvedValue(false);
   (getRemoteJobIds as jest.Mock).mockResolvedValue([remoteId]);
   (getIndexedRemoteJobIds as jest.Mock).mockResolvedValue([remoteId]);
   (getAuthClient as jest.Mock).mockReturnValue(createClient('https://synthetic.invalid', 'synthetic', {
     global: { fetch: async (url: any) => {
-      requested = new URL(String(url));
+      const actual = new URL(String(url)); requests.push(actual);
+      if (actual.searchParams.get('limit') !== '0') requested = actual;
+      if(countTimeoutOnce && actual.searchParams.get('limit') === '0'){countTimeoutOnce=false;return new Response(JSON.stringify({code:'57014'}),{status:500});}
+      if(countReadFails && actual.searchParams.get('limit') === '0') return new Response(JSON.stringify({code:'57014'}),{status:500});
       return new Response(JSON.stringify([{ id: 'public-job', title_uz: 'Tikuvchi' }]), {
         headers: { 'content-type': 'application/json', ...(missingCount ? {} : { 'content-range': '0-0/370' }) },
       });
@@ -70,4 +76,29 @@ test('a failed format lookup is not silently treated as an empty remote catalog'
  const log=jest.spyOn(console,'error').mockImplementation(()=>{});
  try { expect((await GET(new NextRequest('https://synthetic.invalid/api/jobs?region=12'))).status).toBe(503); }
  finally { log.mockRestore(); }
+});
+
+
+test('salary counts use two disjoint zero-row reads with identical privacy and geographic guards', async () => {
+ const response=await GET(new NextRequest('https://synthetic.invalid/api/jobs?salary=5000000-&region=12&page=3'));
+ expect(response.status).toBe(200);expect((await response.json()).count).toBe(740);
+ const totals=requests.filter(url=>url.searchParams.get('limit')==='0');expect(totals).toHaveLength(2);
+ expect(totals.every(url=>url.searchParams.get('select')==='id'&&url.searchParams.get('ishdasiz_job_available')==='eq.true'&&url.searchParams.get('is_active')==='eq.true'&&!url.searchParams.has('offset'))).toBe(true);
+ expect(totals.every(url=>url.searchParams.get('or')?.includes('region_id.eq.12'))).toBe(true);
+ expect(totals.some(url=>url.searchParams.get('salary_min')==='gte.5000000')).toBe(true);expect(totals.some(url=>url.searchParams.get('salary_max')==='gte.5000000')).toBe(true);
+ expect(totals.find(url=>url.searchParams.has('salary_max'))!.searchParams.get('or')).toContain('salary_min.lt.5000000,salary_min.is.null');
+ expect(requested.searchParams.get('offset')).toBe('24');expect(requested.searchParams.get('limit')).toBe('12');
+});
+test('a failed count branch never presents a partial total as a successful result',async()=>{
+ countReadFails=true;const log=jest.spyOn(console,'error').mockImplementation(()=>{});
+ try{expect((await GET(new NextRequest('https://synthetic.invalid/api/jobs?salary=5000000-'))).status).toBe(503);}finally{log.mockRestore();}
+});
+
+
+test('one timed-out count is retried without repeating the successful card request',async()=>{
+ countTimeoutOnce=true;
+ const response=await GET(new NextRequest('https://synthetic.invalid/api/jobs?salary=5000000-'));
+ expect(response.status).toBe(200);expect((await response.json()).count).toBe(740);
+ expect(requests.filter(url=>url.searchParams.get('limit')!=='0')).toHaveLength(1);
+ expect(requests.filter(url=>url.searchParams.get('limit')==='0')).toHaveLength(3);
 });
