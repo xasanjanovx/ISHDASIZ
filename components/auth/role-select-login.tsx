@@ -3,13 +3,15 @@
 import { useAuthModal } from '@/contexts/auth-modal-context';
 import { useUserAuth } from '@/contexts/user-auth-context';
 import { useLanguage } from '@/contexts/language-context';
-import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { onboardingPath } from '@/lib/onboarding';
 import { User, Building2 } from '@/components/ui/icons';
 
 export function RoleSelectLogin() {
     const { closeModal, phoneNumber, pendingUserId } = useAuthModal();
     const { login } = useUserAuth();
     const { lang } = useLanguage();
+    const router = useRouter();
 
     const handleSelectRole = (role: 'job_seeker' | 'employer') => {
         // Login with selected role
@@ -21,6 +23,7 @@ export function RoleSelectLogin() {
             has_employer_profile: true,
         });
         closeModal();
+        router.push(onboardingPath(role));
     };
 
     return (

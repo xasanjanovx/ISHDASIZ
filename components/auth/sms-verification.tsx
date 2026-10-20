@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, RefreshCw, Edit3 } from '@/components/ui/icons';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { onboardingPath } from '@/lib/onboarding';
 
 export function SmsVerification() {
     const { phoneNumber, userRole, closeModal, setStep, isNewUser, isPasswordReset } = useAuthModal();
@@ -20,6 +21,7 @@ export function SmsVerification() {
     const [timer, setTimer] = useState(60);
     const canResend = timer === 0;
     const [needsRestoration, setNeedsRestoration] = useState(false);
+    const [verificationError, setVerificationError] = useState('');
     const requestLock = useRef(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -42,12 +44,18 @@ export function SmsVerification() {
         if (!/^\d*$/.test(value)) return;
 
         const newCode = [...code];
-        newCode[index] = value.slice(-1);
+        // iOS/Android OTP autofill sends the entire code through onChange,
+        // rather than dispatching a clipboard paste event.
+        const start = value.length >= 5 ? 0 : index;
+        if (!value) newCode[index] = '';
+        else value.slice(0, 5).split('').forEach((digit, offset) => {
+            if (start + offset < 5) newCode[start + offset] = digit;
+        });
         setCode(newCode);
 
         // Auto-focus next input
         if (value && index < 4) {
-            inputRefs.current[index + 1]?.focus();
+            inputRefs.current[Math.min(4, start + value.length)]?.focus();
         }
     };
 
@@ -72,6 +80,7 @@ export function SmsVerification() {
         const fullCode = code.join('');
         if (fullCode.length !== 5 || requestLock.current) return;
         requestLock.current = true;
+        setVerificationError('');
 
         setIsLoading(true);
         const fullPhone = `+998${phoneNumber.replace(/\D/g, '')}`;
@@ -87,7 +96,13 @@ export function SmsVerification() {
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.error || (lang === 'ru' ? 'Неверный код' : "Noto'g'ri kod"));
+                const messages: Record<string, [string, string]> = {
+                    otp_expired: ['Срок кода истёк. Запросите новый SMS.', 'Kod muddati tugagan. Yangi SMS so‘rang.'],
+                    otp_attempts_exhausted: ['Попытки закончились. Запросите новый код.', 'Urinishlar tugadi. Yangi kod so‘rang.'],
+                    otp_invalid: ['Код не совпадает. Введите 5 цифр из последнего SMS.', 'Kod mos kelmadi. Oxirgi SMSdagi 5 ta raqamni kiriting.'],
+                    otp_missing: ['Код уже использован или не найден. Запросите новый SMS.', 'Kod ishlatilgan yoki topilmadi. Yangi SMS so‘rang.'],
+                };
+                setVerificationError(messages[data.errorCode]?.[lang === 'ru' ? 0 : 1] || (lang === 'ru' ? 'Не удалось подтвердить код. Повторите попытку.' : 'Kodni tasdiqlab bo‘lmadi. Qayta urinib ko‘ring.'));
                 setIsLoading(false);
                 return;
             }
@@ -106,7 +121,7 @@ export function SmsVerification() {
                     login(data.user);
                 }
                 closeModal();
-                const profilePath = role === 'job_seeker' ? '/profile/job-seeker' : '/profile/employer';
+                const profilePath = onboardingPath(role);
                 router.push(profilePath);
             }
 
@@ -140,6 +155,7 @@ export function SmsVerification() {
             } else {
                 setTimer(60);
                 setCode(['', '', '', '', '']);
+                setVerificationError('');
                 inputRefs.current[0]?.focus();
                 toast.success(lang === 'ru' ? 'SMS отправлен снова' : 'SMS qayta yuborildi');
                 // In dev mode, show the code
@@ -216,19 +232,21 @@ export function SmsVerification() {
             </div>
 
             {/* 5-Digit Code Input */}
-            <div className="flex justify-center gap-3">
+            <div className="mx-auto grid w-full max-w-[328px] grid-cols-5 gap-2">
                 {code.map((digit, index) => (
                     <input
                         key={index}
                         ref={(el) => { inputRefs.current[index] = el; }}
                         type="text"
                         inputMode="numeric"
+                        autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                        aria-label={lang === 'ru' ? `Цифра кода ${index + 1}` : `Kodning ${index + 1}-raqami`}
                         value={digit}
                         onChange={(e) => handleChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
                         onPaste={handlePaste}
                         className={`
-                            w-14 h-16 text-center text-2xl font-bold rounded-xl border-2 transition-all duration-200
+                            min-w-0 w-full h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all duration-200
                             focus:outline-none focus:ring-2 focus:ring-offset-1
                             ${digit
                                 ? 'border-border bg-accent focus:ring-emerald-500/30'
@@ -239,6 +257,7 @@ export function SmsVerification() {
                 ))}
             </div>
 
+            {verificationError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-relaxed text-red-700">{verificationError}</p>}
             {/* Verify Button */}
             <Button
                 onClick={handleVerify}

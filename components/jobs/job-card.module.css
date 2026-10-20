@@ -1,0 +1,12 @@
+.card { border-radius:24px; border-color:#d8cfbe; background:#fffaf0; box-shadow:0 5px 20px #493b2406; transition:box-shadow .25s,border-color .25s,transform .25s; }
+.card:hover { border-color:#bfa96f; box-shadow:0 14px 35px #493b2414; transform:translateY(-2px); }
+.card h3 { font-size:19px; line-height:1.35; font-weight:750; letter-spacing:-.02em; }
+.card :global(.catalog-company-icon) { width:48px; height:48px; border-radius:16px; background:#ede8da; color:#526244; box-shadow:none; }
+.card :global(.catalog-salary) { display:inline-block; font-size:19px; line-height:1.5; font-weight:750; padding:8px 12px; background:#e9eddf; border:0; border-radius:13px; color:#3d4e37; }
+.card :global(.catalog-meta) { font-size:13px; line-height:1.5; }
+.card :global(.catalog-meta) > div { border:0; border-radius:9px; padding:6px 9px; background:#f0ece1; color:#6c6251; }
+.card p { font-size:15px; line-height:1.65; }
+.card :global(.text-xs) { font-size:13px; }
+.card :global(.text-muted-foreground) { color:#756b59; }
+@media(max-width:767px) { .card { border-radius:22px; } .card h3 { font-size:18px; } .card :global(.catalog-salary) { font-size:19px; } }
+@media(prefers-reduced-motion:reduce) { .card { transition:none; } .card:hover { transform:none; } }

@@ -83,6 +83,7 @@ export function VacancyList({api=accountApi,basePath='/api/account/vacancies',li
       {(state==='draft'||state==='filled')&&<Button disabled={disabled} onClick={()=>state==='filled'?setConfirm({row,action:'publish'}):void change(row,'publish')}>{state==='filled'?(ru?'Открыть заново':'Qayta ochish'):(ru?'Опубликовать':'E’lon qilish')}</Button>}
       {state!=='filled'&&state!=='archived'&&<Button variant="outline" disabled={disabled} onClick={()=>setConfirm({row,action:'filled'})}>{ru?'Сотрудник найден':'Xodim topildi'}</Button>}
       {state==='archived'?<Button variant="outline" disabled={disabled} onClick={()=>void change(row,'restore')}>{ru?'Восстановить как черновик':'Qoralama sifatida tiklash'}</Button>:<Button variant="outline" disabled={disabled} onClick={()=>setConfirm({row,action:'archive'})}>{ru?'В архив':'Arxivga'}</Button>}
+      {!admin&&state==='active'&&<Button variant="outline" asChild><Link href={`/profile/employer/vacancies/${row.id}/promotion`}>{ru?'Кандидаты и Telegram':'Nomzodlar va Telegram'}</Link></Button>}
       {busy===row.id&&<span role="status" className="self-center text-sm text-primary">{ru?'Сохраняем…':'Saqlanmoqda…'}</span>}
      </div>
     </article>;

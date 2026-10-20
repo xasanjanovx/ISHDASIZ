@@ -14,7 +14,7 @@ async function rpc(client:SupabaseClient,name:string,args:Record<string,unknown>
 }
 async function references(client:SupabaseClient,signal:AbortSignal):Promise<ImportReferences>{
  async function rows(table:string,fields:string){const all:any[]=[];for(let start=0;;start+=500){const result=await client.from(table).select(fields).order('id',{ascending:true}).range(start,start+499).abortSignal(signal);if(result.error||!Array.isArray(result.data))throw new WorkerError('references');all.push(...result.data);if(result.data.length<500)return all;if(all.length>=10000)throw new WorkerError('references');}}
- const [regions,districts,categories]=await Promise.all([rows('regions','id,name_uz,name_ru,slug'),rows('districts','id,region_id,name_uz,name_ru'),rows('categories','id')]);
+ const [regions,districts,categories]=await Promise.all([rows('regions','id,name_uz,name_ru,slug'),rows('districts','id,region_id,name_uz,name_ru'),rows('categories','id,name_uz,name_ru')]);
  const integer=(id:any)=>typeof id==='number'&&Number.isSafeInteger(id)&&id>0;
  if(!regions.length||!districts.length||!categories.length||regions.some(r=>!integer(r.id)||typeof r.name_uz!=='string')||districts.some(d=>!integer(d.id)||!regions.some(r=>r.id===d.region_id)||typeof d.name_uz!=='string')||categories.some(c=>!isUuid(c.id)))throw new WorkerError('references');
  return {regions,districts,categories};
@@ -33,6 +33,12 @@ export async function stepOsonishImport(client:SupabaseClient,options:Options={}
  let errorCode:string|null=null,fatal=false,madeProgress=false;
  try{
   let refs:ImportReferences|undefined;
+  const companyContacts = new Map<number, ReturnType<typeof fetchCompanyContacts>>();
+  const contactsFor = (id:number) => {
+   let request=companyContacts.get(id);
+   if(!request){request=fetchCompanyContacts(id,signal);companyContacts.set(id,request);}
+   return request;
+  };
   for(let batch=0;batch<5&&!signal.aborted&&progress.state==='running';batch++){
    const work=await rpc(client,'ishdasiz_osonish_work',args,signal);progress=importProgress(work?.progress);
    const protocol=work?.protocol_version??1;
@@ -60,17 +66,19 @@ export async function stepOsonishImport(client:SupabaseClient,options:Options={}
      if(!detail.success&&detail.status!==404)return {id,state:'retry',payload:null};
      if(detail.status===404)state='removed';else if(detail.detail?.status!==2)state='filled';else{
       state='active';const vacancy=transformDetail(detail.detail,configs??undefined);
-      if(!vacancy.has_contact&&detail.detail.company?.id){const contacts=await fetchCompanyContacts(detail.detail.company.id,signal);if(contacts){if(typeof contacts.phone==='string'&&/^\+?[\d\s().-]+$/.test(contacts.phone)){let digits=contacts.phone.replace(/\D/g,'');if(digits.length===9)digits='998'+digits;if(/^998\d{9}$/.test(digits))vacancy.contact_phone='+'+digits;}if(contacts.email)vacancy.contact_email=contacts.email;}}
+      if(!vacancy.has_contact&&detail.detail.company?.id){const contacts=await contactsFor(detail.detail.company.id);if(contacts){if(typeof contacts.phone==='string'&&/^\+?[\d\s().-]+$/.test(contacts.phone)){let digits=contacts.phone.replace(/\D/g,'');if(digits.length===9)digits='998'+digits;if(/^998\d{9}$/.test(digits))vacancy.contact_phone='+'+digits;}if(contacts.email)vacancy.contact_email=contacts.email;}}
       payload=osonishJob(vacancy,resolvedRefs);
      }
       return {id,state,payload};
      }));
-     for(let index=0;index<outcomes.length&&!signal.aborted&&progress.state==='running';index++){
-      const outcome=outcomes[index];
-      if(outcome.status==='rejected')throw new WorkerError('source');
-      const {id,state,payload}=outcome.value;
-      progress=importProgress(await rpc(client,protocol===2?'ishdasiz_osonish_refresh_item':'ishdasiz_osonish_item',{...args,p_source_id:id,p_state:state,p_payload:payload},signal));
-      madeProgress=true;
+     if(signal.aborted)break;
+     // A failed card is a durable retry; successfully read neighbours are kept.
+     const items=outcomes.map((outcome,index)=>outcome.status==='fulfilled'?outcome.value:{id:group[index],state:'retry',payload:null});
+     if(protocol===2&&work.batch_supported===true){
+      progress=importProgress(await rpc(client,'ishdasiz_osonish_refresh_batch',{...args,p_items:items},signal));madeProgress=true;
+     }else for(const {id,state,payload} of items){
+      if(signal.aborted||progress.state!=='running')break;
+      progress=importProgress(await rpc(client,protocol===2?'ishdasiz_osonish_refresh_item':'ishdasiz_osonish_item',{...args,p_source_id:id,p_state:state,p_payload:payload},signal));madeProgress=true;
      }
     }
     break;

@@ -24,6 +24,7 @@ export interface ConfigValue {
 }
 
 export interface OsonishConfigs {
+  mainFields?: Array<{ id: number; name: string; name_ru?: string }>;
   education: Record<number, string>;
   experience: Record<number, string>;
   workMode: Record<number, string>; // Work Type (Remote/Office)
@@ -123,6 +124,13 @@ export function parseOsonishConfigs(data: unknown): OsonishConfigs {
   mapList(["work_type_list"], configs.workMode);
   mapList(["work_schedule_list"], configs.schedule);
   mapList(["additional_benefits_list"], configs.benefits);
+  const directions = data.find(item => item?.code === 'main_fields');
+  if (directions) {
+    const list = Array.isArray(directions.value) ? directions.value : directions.value?.uz;
+    if (!Array.isArray(list) || !list.length || list.length > 200 || list.some(item => !Number.isSafeInteger(item?.id) || item.id < 1 || typeof item.name !== 'string' || !item.name.trim())) throw new Error('Invalid source directions');
+    const russian = !Array.isArray(directions.value) && Array.isArray(directions.value?.ru) ? directions.value.ru : [];
+    configs.mainFields = list.map(item => ({ id: item.id, name: item.name.trim(), name_ru: russian.find((r: any) => r.id === item.id)?.name }));
+  }
   if (
     !Object.keys(configs.experience).length ||
     !Object.keys(configs.workMode).length

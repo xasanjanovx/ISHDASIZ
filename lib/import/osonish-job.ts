@@ -1,9 +1,9 @@
 import type {TransformedVacancy} from '@/lib/scrapers/osonish';
 import {mapOsonishCategory,OSONISH_GENDER_MAP} from '@/lib/mappers/osonish-mapper';
 import {getMappedValue} from '@/lib/mappings';
-export type ImportReferences={regions:Array<{id:number;name_uz:string;name_ru:string;slug?:string}>;districts:Array<{id:number;region_id:number;name_uz:string;name_ru:string}>;categories:Array<{id:string}>};
+export type ImportReferences={regions:Array<{id:number;name_uz:string;name_ru:string;slug?:string}>;districts:Array<{id:number;region_id:number;name_uz:string;name_ru:string}>;categories:Array<{id:string;name_uz?:string;name_ru?:string}>};
 const normalize=(value:unknown)=>typeof value==='string'?value.toLowerCase().replace(/['`´‘’ʻʼʿʾ]/g,'').replace(/[^a-zа-яёўқғҳ0-9]+/g,' ').trim():'';
-const names=(row:{name_uz:string;name_ru:string})=>[normalize(row.name_uz),normalize(row.name_ru)].filter(Boolean);
+const names=(row:{name_uz?:string;name_ru?:string})=>[normalize(row.name_uz),normalize(row.name_ru)].filter(Boolean);
 const one=<T,>(rows:T[])=>rows.length===1?rows[0]:undefined;
 const regionAliases:Record<string,string>={andijon:'andijon',andijan:'andijon',андижан:'andijon',buxoro:'buxoro',bukhara:'buxoro',бухара:'buxoro',fargona:'fargona',fergana:'fargona',фергана:'fargona',jizzax:'jizzax',jizzakh:'jizzax',джизак:'jizzax',xorazm:'xorazm',khorezm:'xorazm',хорезм:'xorazm',namangan:'namangan',наманган:'namangan',navoiy:'navoiy',navoi:'navoiy',навои:'navoiy',qashqadaryo:'qashqadaryo',kashkadarya:'qashqadaryo',кашкадарья:'qashqadaryo',qoraqalpogiston:'qoraqalpogiston',karakalpakstan:'qoraqalpogiston',каракалпакстан:'qoraqalpogiston',samarqand:'samarqand',samarkand:'samarqand',самарканд:'samarqand',sirdaryo:'sirdaryo',syrdarya:'sirdaryo',сырдарья:'sirdaryo',surxondaryo:'surxondaryo',surkhandarya:'surxondaryo',сурхандарья:'surxondaryo',toshkent:'toshkent',tashkent:'toshkent',ташкент:'toshkent'};
 function regionBase(value:string){return Object.keys(regionAliases).find(key=>value.split(' ').includes(key));}
@@ -29,6 +29,9 @@ export function importLocation(vacancy:TransformedVacancy,refs:ImportReferences)
 }
 export function osonishJob(v:TransformedVacancy,refs:ImportReferences){
  const mapped=mapOsonishCategory(v.source_category||'',v.source_subcategory||null,v.title),raw:any=v.raw_source_json||{};
+ const sourceNames=[normalize(v.source_category),normalize(v.source_subcategory)].filter(Boolean);
+ const exactCategory=one(refs.categories.filter(row=>names(row).some(name=>sourceNames.includes(name))));
+ const mappedCategory=mapped&&(refs.categories.find(row=>row.id===mapped.categoryId)||one(refs.categories.filter(row=>names(row).includes(normalize(mapped.categoryName)))));
  const benefits=Array.isArray(raw.benefit_ids)?raw.benefit_ids.map((id:unknown)=>typeof id==='number'?getMappedValue('benefits',id,'uz'):null).filter(Boolean).join(', '):'';
  return {source_id:v.source_id,source_url:v.source_url,title_uz:v.title,title_ru:v.title,company_name:v.company_name,
   description_uz:v.description||'',description_ru:v.description||'',salary_min:v.salary_min??null,salary_max:v.salary_max??null,
@@ -40,7 +43,7 @@ export function osonishJob(v:TransformedVacancy,refs:ImportReferences){
   experience_years:v.experience_years??null,
   working_hours:v.working_hours||null,working_days:v.working_days||null,work_mode:v.work_mode||null,payment_type:v.payment_type??null,
   skills:v.skills||[],languages:Array.isArray(raw.languages)?raw.languages:[],sections:raw.sections||null,
-  category_id:mapped&&refs.categories.some(row=>row.id===mapped.categoryId)?mapped.categoryId:null,
+  category_id:exactCategory?.id||mappedCategory?.id||null,
   vacancy_count:v.vacancy_count??1,is_for_disabled:v.is_for_disabled,is_for_graduates:v.is_for_graduates,is_for_students:v.is_for_students,is_for_women:v.is_for_women,
   benefits:benefits||null,employment_type:v.employment_type||'full_time',raw_source_json:raw,source_category:v.source_category||null,source_subcategory:v.source_subcategory||null};
 }

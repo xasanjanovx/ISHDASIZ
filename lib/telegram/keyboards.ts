@@ -348,9 +348,11 @@ export function webAppKeyboard(lang: BotLang): object {
                 },
                 {
                     text: lang === 'uz' ? 'Rezyume' : 'Резюме',
-                    web_app: { url: `${webAppUrl}/profile/job-seeker` }
+                    web_app: { url: `${webAppUrl}/start/job-seeker` }
                 }
-            ]
+            ],
+            [{ text: lang === 'uz' ? '💼 Ish beruvchi — vakansiya joylash' : '💼 Работодатель — разместить вакансию', web_app: { url: `${webAppUrl}/start/employer` } }],
+            [{ text: lang === 'uz' ? '📍 Xaritada ish topish' : '📍 Найти работу на карте', web_app: { url: `${webAppUrl}/map` } }]
         ]
     };
 }

@@ -1,3 +1,4 @@
+import { employerTariffAudience, formatEmployerTariffs } from './employer-tariffs';
 import { createMainMenuStatsLoader, formatMainMenuStatsText, type MainMenuStats } from './main-menu-stats';
 import {getJobWorkMode,isRemoteJob} from '../work-mode';
 import { markApplicationsRead } from '../application-read';
@@ -44,7 +45,7 @@ import { rerankJobsForResumeAI, rerankResumesForJobAI } from '../ai/job-recommen
 import { checkForAbuse } from '../ai/moderation';
 import { REGION_COORDINATES } from '../constants';
 import { getChannelByRegionSlug } from './channel-sync';
-import { sendSMS, generateOTP, getSMSText } from '../eskiz';
+import { issuePhoneOtp } from '../auth/issue-otp';
 import bcrypt from 'bcryptjs';
 
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -1564,7 +1565,7 @@ export class TelegramBot {
 
     private isFlowSensitiveCallbackAction(action: string): boolean {
         const sensitive = new Set([
-            'lang', 'auth', 'role',
+            'lang', 'auth', 'otp', 'role',
             'roleswitch',
             'region', 'district', 'distpage', 'category', 'field', 'fieldpage',
             'jobexperience', 'experience', 'jobeducation', 'education', 'educont', 'jobgender', 'gender',
@@ -2423,6 +2424,21 @@ export class TelegramBot {
                 await this.handleStart(chatId, session);
                 return;
             }
+            if (/^\/(?:tariffs|tarif|tariflar)(?:@\w+)?$/.test(trimmedText)) {
+                const audience = await employerTariffAudience(this.supabase);
+                await this.sendPrompt(chatId, session, formatEmployerTariffs(lang, audience), {
+                    parseMode: 'HTML',
+                    replyMarkup: { inline_keyboard: [
+                        [{ text: lang === 'ru' ? 'Выбрать тариф на сайте' : 'Saytda tarif tanlash', web_app: { url: 'https://ishdasiz.uz/pricing' } }],
+                        [{ text: lang === 'ru' ? 'Написать администратору' : 'Administratorga yozish', url: 'https://t.me/ishdasiz_admin' }]
+                    ] }
+                });
+                return;
+            }
+            if (/^\/(?:app|site)(?:@\w+)?$/.test(trimmedText)) {
+                await this.sendPrompt(chatId, session, lang === 'ru' ? 'ISHDASIZ: работа и сотрудники в одном приложении.' : 'ISHDASIZ: ish va xodimlar — bitta ilovada.', { replyMarkup: keyboards.webAppKeyboard(lang) });
+                return;
+            }
             if (trimmedText === '/help') {
                 await this.sendPrompt(chatId, session, botTexts.helpText[lang], {
                     replyMarkup: keyboards.helpSupportKeyboard(lang),
@@ -2910,6 +2926,14 @@ export class TelegramBot {
                     await this.handleJobCreateMode(chatId, value, session);
                     break;
                 case 'fav': await this.handleFavorite(chatId, value, session); break;
+                case 'otp':
+                    if (session.state !== BotState.AWAITING_OTP) break;
+                    if (value === 'resend' && session.phone) await this.startSMSAuth(chatId, session.phone, session);
+                    else if (value === 'edit') {
+                        await this.setSession(session, { state: BotState.AWAITING_PHONE, otp_code: null, otp_expires_at: null });
+                        await this.sendPrompt(chatId, session, botTexts.askPhone[session.lang], { replyMarkup: keyboards.phoneRequestKeyboard(session.lang) });
+                    }
+                    break;
                 case 'apply': await this.handleJobApply(chatId, value, session); break;
                 case 'profile': await this.handleProfileAction(chatId, value, session); break;
                 case 'settings':
@@ -3545,92 +3569,29 @@ export class TelegramBot {
 
     private async startSMSAuth(chatId: number, phone: string, session: TelegramSession): Promise<void> {
         const lang = session.lang;
-        const now = Date.now();
-            const recentSends = (Array.isArray(session.data?.otp_sent_times) ? session.data.otp_sent_times : [])
-                .filter((time: number) => Number.isFinite(time) && now - time < 60 * 60 * 1000);
-            if (recentSends.length >= 5 || recentSends.some((time: number) => now - time < 60000)) {
-                await this.sendPrompt(chatId, session, lang === 'ru' ? 'Подождите 60 секунд. Лимит — 5 SMS в час.' : '60 soniya kuting. Limit — soatiga 5 ta SMS.');
-                return;
-            }
-            await this.setSession(session, { data: { ...session.data, otp_sent_times: [...recentSends, now], otp_attempts: 0 } });
-            const otp = generateOTP();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-        const message = getSMSText(otp);
-
-        let sent = false;
-        let provider: 'session' | 'supabase' = 'session';
-
-        try {
-            const smsResult = await sendSMS(phone, message);
-            if (smsResult.success) {
-                sent = true;
-            } else {
-                console.error(`[AUTH] Direct SMS failed: ${smsResult.error || 'unknown error'}`);
-            }
-        } catch (error) {
-            console.error('[AUTH] Direct SMS exception:', error);
-        }
-
-        if (!sent) {
-            const fallbackResult = await this.requestOtpViaWebsite(phone);
-            if (fallbackResult.success) {
-                sent = true;
-                provider = 'supabase';
-            } else {
-                console.error('[AUTH] SMS fallback failed:', fallbackResult.error || 'unknown error');
-            }
-        }
-
-        if (!sent) {
-            const smsErrorText = lang === 'uz'
-                ? '<b><tg-emoji emoji-id="5242713260779643386">⚠️</tg-emoji> | SMS yuborilmadi</b>\n<i>Iltimos, birozdan so‘ng qayta urinib ko‘ring.</i>'
-                : '<b><tg-emoji emoji-id="5242713260779643386">⚠️</tg-emoji> | SMS не отправлен</b>\n<i>Пожалуйста, попробуйте чуть позже.</i>';
-            await this.sendPrompt(chatId, session, smsErrorText, { parseMode: 'HTML' });
+        const result = await issuePhoneOtp(this.supabase, phone);
+        if (result.status !== 200) {
+            const text = result.status === 429
+                ? (lang === 'ru' ? 'Подождите 60 секунд. Лимит — 5 SMS в час.' : '60 soniya kuting. Limit — soatiga 5 ta SMS.')
+                : (lang === 'ru' ? 'Не удалось отправить SMS. Попробуйте ещё раз.' : 'SMS yuborib bo‘lmadi. Qayta urinib ko‘ring.');
+            await this.sendPrompt(chatId, session, text);
             return;
         }
-
         await this.setSession(session, {
-            state: BotState.AWAITING_OTP,
-            otp_code: provider === 'session' ? otp : null,
-            otp_expires_at: provider === 'session' ? expiresAt : null,
-            data: { ...session.data, otp_provider: provider }
+            phone, state: BotState.AWAITING_OTP, otp_code: null, otp_expires_at: null,
+            data: { ...session.data, otp_provider: 'supabase', otp_attempts: 0 }
         });
-        await this.sendPrompt(chatId, session, botTexts.otpSent[lang], { replyMarkup: keyboards.removeKeyboard() });
-    }
-
-    private async requestOtpViaWebsite(phone: string): Promise<{ success: boolean; error?: string }> {
-        try {
-            const baseUrl = String(process.env.NEXT_PUBLIC_APP_URL || '').trim();
-            if (!baseUrl) {
-                return { success: false, error: 'NEXT_PUBLIC_APP_URL is not configured' };
-            }
-
-            const endpoint = `${baseUrl.replace(/\/+$/, '')}/api/auth/send-otp`;
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone })
-            });
-
-            if (!response.ok) {
-                let errorText = `HTTP ${response.status}`;
-                try {
-                    const payload = await response.json();
-                    errorText = String(payload?.error || errorText);
-                } catch {
-                    // ignore JSON parse errors
-                }
-                return { success: false, error: errorText };
-            }
-
-            return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error?.message || 'Request failed' };
-        }
+        await this.sendPrompt(chatId, session, botTexts.otpSent[lang], { replyMarkup: {
+            inline_keyboard: [
+                [{ text: lang === 'ru' ? 'Отправить снова' : 'Qayta yuborish', callback_data: 'otp:resend' }],
+                [{ text: lang === 'ru' ? 'Изменить номер' : 'Raqamni o‘zgartirish', callback_data: 'otp:edit' }]
+            ]
+        } });
     }
 
     private async handleOTP(chatId: number, code: string, session: TelegramSession): Promise<void> {
         const lang = session.lang;
+        code = code.trim().replace(/\s/g, '');
         if (!/^\d{5}$/.test(code)) {
             await this.sendPrompt(chatId, session, botTexts.otpInvalid[lang]);
             return;

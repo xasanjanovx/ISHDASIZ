@@ -94,3 +94,10 @@ Migration 20261012143000 was applied at 13:06:55 UTC on 12 October with an exact
 Public-list candidates always receive detail checks, including reappearing vacancies. Existing active/unchecked imported IDs are checked daily. Known IDs with a confirmed filled/removed result less than seven days old can wait until the next weekly check if absent from today's list; no absence cleanup occurs. This reduces repeated work after the initial refresh. Applying this migration does not shrink the existing live queue.
 
 Validation: 78 database tests pass, including rollback on a cleanup failure, exact cached progress, request idempotence, private grants and refresh cadence. A native PostgreSQL rehearsal on the real restored archive archived 40,810 temporary items in a new claim (~26 ms), preserved the exact prior summary and all 40,812 jobs. These are local measurements under an 8-second statement budget.
+
+
+## Platform follow-up — 20 October 2026 (database installation pending)
+
+The manifest now contains 42 migrations. The two new migrations add the indexed regional-format lookup and optimize the durable OsonIsh queue without changing public visibility, archive retention or lease fencing. Existing work-mode SQL is preserved; its stale manifest checksum was corrected against the committed file.
+
+For an already updated October database, apply only `2026-10-20-platform.sql` through SQL Editor. Do not replay the initial bundle. Installation and account recovery instructions are in `docs/platform-release-2026-10-20.md`. The application detects catalog version 2; until it is installed, the compatible former scan remains in use. Local PGlite tests and the production application build are not proof that the live database has been upgraded.

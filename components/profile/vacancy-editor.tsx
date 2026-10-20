@@ -67,7 +67,7 @@ export function VacancyEditor({id,api=accountApi,basePath='/api/account/vacancie
    const result=await api<{vacancy:Vacancy}>(id?`${basePath}/${id}`:basePath,{method:id?'PUT':'POST',body:JSON.stringify(payload)});
    if(!alive.current)return;
    if(!result.vacancy?.id||id&&result.vacancy.id!==id)throw new AccountApiError(503);
-   if(!id){router.push(listPath);return;}
+   if(!id){router.push(admin||status!=='active'?listPath:`/profile/employer/vacancies/${result.vacancy.id}/promotion`);return;}
    setLoaded({...current,row:result.vacancy});setForm(formOf(result.vacancy));setSaved(true);
   } catch(error){if(alive.current)setSaveError(error);}
   finally{lock.current=false;if(alive.current)setSaving(false);}

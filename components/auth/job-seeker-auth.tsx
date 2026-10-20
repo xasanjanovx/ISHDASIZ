@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatLocalPhone } from '@/lib/phone-input';
 import { useAuthModal } from '@/contexts/auth-modal-context';
 import { useLanguage } from '@/contexts/language-context';
 import { Button } from '@/components/ui/button';
@@ -15,21 +16,8 @@ export function JobSeekerAuth() {
     const [phone, setPhone] = useState(phoneNumber);
     const [isLoading, setIsLoading] = useState(false);
 
-    const formatPhone = (value: string) => {
-        const digits = value.replace(/\D/g, '');
-        const limited = digits.slice(0, 9);
-
-        let formatted = '';
-        if (limited.length > 0) formatted += limited.slice(0, 2);
-        if (limited.length > 2) formatted += ' ' + limited.slice(2, 5);
-        if (limited.length > 5) formatted += '-' + limited.slice(5, 7);
-        if (limited.length > 7) formatted += '-' + limited.slice(7, 9);
-
-        return formatted;
-    };
-
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const formatted = formatPhone(e.target.value);
+        const formatted = formatLocalPhone(e.target.value);
         setPhone(formatted);
     };
 
@@ -48,12 +36,11 @@ export function JobSeekerAuth() {
 
                 const checkData = await checkRes.json();
 
-                if (checkData.locked) {
-                    toast.error(checkData.message);
-                    setIsLoading(false);
+                if (!checkRes.ok || typeof checkData.exists !== 'boolean' || typeof checkData.hasPassword !== 'boolean') {
+                    toast.error(checkData.error || (lang === 'ru' ? 'Не удалось проверить аккаунт. Повторите.' : 'Akkauntni tekshirib bo‘lmadi. Qayta urinib ko‘ring.'));
                     return;
                 }
-
+                // Password entry includes SMS recovery even when password attempts are locked.
                 setPhoneNumber(phone);
 
                 if (checkData.exists && checkData.hasPassword) {

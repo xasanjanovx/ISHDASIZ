@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Lock, Eye, EyeOff, Loader2, AlertCircle } from '@/components/ui/icons';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { onboardingPath } from '@/lib/onboarding';
 
 export function PasswordLogin() {
     const {
@@ -35,7 +36,7 @@ export function PasswordLogin() {
     const formattedPhone = `+998 ${phoneNumber}`;
 
     const handleSubmit = async () => {
-        if (!password.trim()) return;
+        if (!password.trim() || isLoading) return;
 
         setIsLoading(true);
         setError('');
@@ -97,7 +98,7 @@ export function PasswordLogin() {
             closeModal();
 
             // Redirect to profile based on role
-            router.push(activeRole === 'employer' ? '/profile/employer' : '/profile/job-seeker');
+            router.push(onboardingPath(activeRole));
 
         } catch (error) {
             setError('Tarmoq xatosi');
@@ -106,6 +107,7 @@ export function PasswordLogin() {
     };
 
     const handleForgotPassword = async () => {
+        if (isLoading) return;
         setIsLoading(true);
         try {
             const res = await fetch('/api/auth/send-otp', {
@@ -188,9 +190,11 @@ export function PasswordLogin() {
 
             {/* Password Input */}
             <div className="space-y-2">
-                <Label>{lang === 'ru' ? 'Пароль' : 'Parol'}</Label>
+                <Label htmlFor="login-password">{lang === 'ru' ? 'Пароль' : 'Parol'}</Label>
                 <div className="relative">
                     <Input
+                        id="login-password"
+                        autoComplete="current-password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -213,6 +217,8 @@ export function PasswordLogin() {
             {/* Forgot Password */}
             <div className="text-center">
                 <button
+                    type="button"
+                    disabled={isLoading}
                     onClick={handleForgotPassword}
                     className="text-sm text-primary hover:text-primary hover:underline"
                 >

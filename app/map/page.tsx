@@ -15,6 +15,7 @@ import { UZBEKISTAN_CENTER, MAP_COUNTRY_ZOOM } from "@/lib/constants";
 export default function MapPage() {
   const { lang, t } = useLanguage();
   const [jobs, setJobs] = useState<JobWithRelations[]>([]);
+  const [mobileList, setMobileList] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -147,8 +148,12 @@ export default function MapPage() {
             </Button>
           )}
         </div>
+        <div className="mb-5 flex gap-2 lg:hidden" role="group" aria-label={lang === 'ru' ? 'Вид вакансий' : 'Vakansiyalar ko‘rinishi'}>
+          <Button className="h-12 flex-1 rounded-full text-base" variant={mobileList ? 'outline' : 'default'} aria-pressed={!mobileList} onClick={() => setMobileList(false)}>{lang === 'ru' ? 'Карта' : 'Xarita'}</Button>
+          <Button className="h-12 flex-1 rounded-full text-base" variant={mobileList ? 'default' : 'outline'} aria-pressed={mobileList} onClick={() => setMobileList(true)}>{lang === 'ru' ? 'Список' : 'Ro‘yxat'}</Button>
+        </div>
         <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className={mobileList ? "hidden lg:block lg:col-span-2" : "lg:col-span-2"}>
             <JobMap
               jobs={jobs}
               selectedJobId={selectedJob?.id}
@@ -159,11 +164,11 @@ export default function MapPage() {
                   : UZBEKISTAN_CENTER
               }
               zoom={selectedJob ? 12 : MAP_COUNTRY_ZOOM}
-              height="calc(100vh - 250px)"
+              height="clamp(320px, calc(100svh - 300px), 680px)"
             />
           </div>
 
-          <div className="hidden lg:block">
+          <div className={mobileList ? "block" : "hidden lg:block"}>
             <Card className="h-[calc(100vh-250px)]">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">
@@ -186,7 +191,7 @@ export default function MapPage() {
                           variant="ghost"
                           size="sm"
                           className="mb-1"
-                          onClick={() => setSelectedJob(job)}
+                          onClick={() => { setSelectedJob(job); setMobileList(false); }}
                         >
                           {lang === "uz"
                             ? "Xaritada ko‘rsatish"

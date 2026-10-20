@@ -103,7 +103,10 @@
 }
 
 @media (max-width: 767px) and (hover: none) {
-  .site-root:has(input:focus, textarea:focus) .site-mobile-nav { visibility: hidden; opacity: 0; pointer-events: none; }
+  .site-root:has(form:focus-within, input:focus, textarea:focus, select:focus) .site-mobile-nav { visibility: hidden; opacity: 0; pointer-events: none; }
+  /* A guided form has its own actions: the dock must not reappear between
+     pointerdown (input blur) and click and intercept the submit button. */
+  .site-root:has([data-onboarding]) .site-mobile-nav { display: none; }
 }
 
 @media (max-width: 767px) and (prefers-reduced-motion: no-preference) {

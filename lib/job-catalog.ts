@@ -42,7 +42,7 @@ export function encodeJobFilters(filters: JobFiltersState) {
   return params.toString();
 }
 export function jobCatalogQuery(client: SupabaseClient, filters: JobFiltersState, options: { remoteIds?: string[] } = {}) {
-  let query = client.from('jobs').select(JOB_CATALOG_FIELDS, { count: 'exact' }).eq('ishdasiz_job_available', true);
+  let query = client.from('jobs').select(JOB_CATALOG_FIELDS, { count: 'exact' }).eq('is_active', true).eq('ishdasiz_job_available', true);
   const clauses: string[] = [];
   const anyGender = 'gender.eq.any,gender.eq.3,gender.is.null';
   const gender = { male: `gender.eq.male,gender.eq.1,${anyGender}`, female: `gender.eq.female,gender.eq.2,${anyGender}`, any: anyGender };

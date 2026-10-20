@@ -1,6 +1,9 @@
+import { ensureSourceCategories } from '@/lib/import/source-categories';
+import { syncProfessionReferences } from '@/lib/import/profession-reference-sync';
 import { verifyCron } from '@/lib/auth/cron';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+export const maxDuration = 300;
 
 /**
  * API Route: /api/maintenance/sync-references
@@ -56,17 +59,19 @@ async function fetchOsonishRegions(): Promise<OsonishRegion[]> {
                     'User-Agent': 'Mozilla/5.0',
                     'Referer': 'https://osonish.uz/vacancies'
                 },
+                signal: AbortSignal.timeout(10000),
                 next: { revalidate: 0 }
             });
             if (response.status === 404) continue;
-            if (!response.ok) return [];
+            if (!response.ok) throw new Error('Source reference request failed');
             const json = await response.json();
-            return json.data || [];
+            if (!Array.isArray(json.data) || !json.data.length) throw new Error('Source regions unavailable');
+            return json.data;
         }
-        return [];
+        throw new Error('Source reference endpoint unavailable');
     } catch (error) {
         console.error('[SYNC] Failed to fetch regions:', error);
-        return [];
+        throw new Error('Source regions unavailable');
     }
 }
 
@@ -81,20 +86,22 @@ async function fetchOsonishCities(region: OsonishRegion): Promise<OsonishDistric
                     'User-Agent': 'Mozilla/5.0',
                     'Referer': 'https://osonish.uz/vacancies'
                 },
+                signal: AbortSignal.timeout(10000),
                 next: { revalidate: 0 }
             });
             if (response.status === 404) continue;
-            if (!response.ok) return [];
+            if (!response.ok) throw new Error('Source reference request failed');
             const json = await response.json();
-            return (json.data || []).map((city: any) => ({
+            if (!Array.isArray(json.data) || !json.data.length) throw new Error('Source districts unavailable');
+            return json.data.map((city: any) => ({
                 ...city,
                 region_id: region.id
             }));
         }
-        return [];
+        throw new Error('Source reference endpoint unavailable');
     } catch (error) {
         console.error(`[SYNC] Failed to fetch cities for region ${region.id}:`, error);
-        return [];
+        throw new Error('Source districts unavailable for region ' + region.id);
     }
 }
 
@@ -113,10 +120,11 @@ function generateSlug(name: string): string {
 async function syncRegions(sourceRegions: OsonishRegion[]): Promise<{ added: number; updated: number }> {
     let added = 0, updated = 0;
 
-    const { data: existingRegions } = await supabaseAdmin
+    const { data: existingRegions, error: readError } = await supabaseAdmin
         .from('regions')
         .select('id, name_uz, name_ru, slug');
 
+    if (readError) throw new Error('Region reference read failed');
     const existingMap = new Map((existingRegions || []).map(r => [r.id, r]));
 
     for (const region of sourceRegions) {
@@ -131,7 +139,8 @@ async function syncRegions(sourceRegions: OsonishRegion[]): Promise<{ added: num
                 name_ru: region.name_ru,
                 slug
             });
-            if (!error) added++;
+            if (error) throw new Error('Reference insert failed');
+            added++;
         } else if (existing.name_uz !== region.name_uz || existing.name_ru !== region.name_ru) {
             // Update if names differ
             const { error } = await supabaseAdmin.from('regions').update({
@@ -139,7 +148,8 @@ async function syncRegions(sourceRegions: OsonishRegion[]): Promise<{ added: num
                 name_ru: region.name_ru,
                 slug
             }).eq('id', region.id);
-            if (!error) updated++;
+            if (error) throw new Error('Reference update failed');
+            updated++;
         }
     }
 
@@ -149,10 +159,11 @@ async function syncRegions(sourceRegions: OsonishRegion[]): Promise<{ added: num
 async function syncDistricts(sourceDistricts: OsonishDistrict[]): Promise<{ added: number; updated: number }> {
     let added = 0, updated = 0;
 
-    const { data: existingDistricts } = await supabaseAdmin
+    const { data: existingDistricts, error: readError } = await supabaseAdmin
         .from('districts')
         .select('id, name_uz, name_ru, region_id');
 
+    if (readError) throw new Error('District reference read failed');
     const existingMap = new Map((existingDistricts || []).map(d => [d.id, d]));
 
     for (const district of sourceDistricts) {
@@ -166,15 +177,16 @@ async function syncDistricts(sourceDistricts: OsonishDistrict[]): Promise<{ adde
                 name_ru: district.name_ru,
                 region_id: district.region_id
             });
-            if (!error) added++;
-            else console.error(`[SYNC] District insert error ${district.id}:`, error.message);
+            if (error) throw new Error('Reference insert failed');
+            added++;
         } else if (existing.name_uz !== district.name_uz || existing.name_ru !== district.name_ru) {
             // Update if names differ
             const { error } = await supabaseAdmin.from('districts').update({
                 name_uz: district.name_uz,
                 name_ru: district.name_ru
             }).eq('id', district.id);
-            if (!error) updated++;
+            if (error) throw new Error('Reference update failed');
+            updated++;
         }
     }
 
@@ -191,7 +203,9 @@ export async function GET(request: NextRequest) {
         console.log('[SYNC] Starting reference data sync from OsonIsh...');
 
         // Fetch regions
+        const categoryStats = await ensureSourceCategories(supabaseAdmin, AbortSignal.timeout(15000));
         const regions = await fetchOsonishRegions();
+        if (!regions.length) throw new Error('Source regions unavailable');
         console.log(`[SYNC] Found ${regions.length} regions in OsonIsh`);
 
         // Sync regions
@@ -200,23 +214,26 @@ export async function GET(request: NextRequest) {
 
         // Fetch all districts (cities) for each region
         const allDistricts: OsonishDistrict[] = [];
-        for (const region of regions) {
-            const cities = await fetchOsonishCities(region);
-            allDistricts.push(...cities);
-            // Small delay to be nice to API
-            await new Promise(resolve => setTimeout(resolve, 100));
+        // Bound source concurrency; refuse a partial region snapshot.
+        for (let offset = 0; offset < regions.length; offset += 3) {
+            const batch = await Promise.all(regions.slice(offset, offset + 3).map(fetchOsonishCities));
+            allDistricts.push(...batch.flat());
         }
         console.log(`[SYNC] Found ${allDistricts.length} districts in OsonIsh`);
 
+        if (!allDistricts.length) throw new Error('Source districts unavailable');
         // Sync districts
         const districtStats = await syncDistricts(allDistricts);
         console.log(`[SYNC] Districts: ${districtStats.added} added, ${districtStats.updated} updated`);
 
+        const professions = await syncProfessionReferences(supabaseAdmin, AbortSignal.timeout(Math.max(1000, 270000 - (Date.now() - startTime))));
         const duration = Date.now() - startTime;
 
         return NextResponse.json({
             success: true,
             duration_ms: duration,
+            categories: categoryStats,
+            professions,
             regions: {
                 source_count: regions.length,
                 added: regionStats.added,

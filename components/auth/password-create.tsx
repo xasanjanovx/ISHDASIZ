@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Lock, Eye, EyeOff, Loader2, CheckCircle } from '@/components/ui/icons';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { onboardingPath } from '@/lib/onboarding';
 
 export function PasswordCreate() {
     const { phoneNumber, userRole, closeModal } = useAuthModal();
@@ -59,7 +60,7 @@ export function PasswordCreate() {
             closeModal();
 
             // Redirect to profile
-            router.push(role === 'employer' ? '/profile/employer' : '/profile/job-seeker');
+            router.push(onboardingPath(role));
 
         } catch (error) {
             toast.error('Tarmoq xatosi');

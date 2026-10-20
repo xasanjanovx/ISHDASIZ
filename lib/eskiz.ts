@@ -35,6 +35,7 @@ export async function getEskizToken(): Promise<string | null> {
         const res = await fetch(`${ESKIZ_BASE_URL}/auth/login`, {
             method: 'POST',
             body: formData,
+            signal: AbortSignal.timeout(10000),
         });
 
         if (!res.ok) {
@@ -92,7 +93,8 @@ export async function sendSMS(phone: string, message: string): Promise<{ success
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            body: formData
+            body: formData,
+            signal: AbortSignal.timeout(10000)
         });
 
         if (!res.ok) {

@@ -1,0 +1,12 @@
+.layout { background: radial-gradient(ellipse at 100% 0,#e2d6b64d,transparent 45%),#ece9e2; color:#30372e; }
+.layout > :global(.container) { width:min(1480px,100%); max-width:none; padding:28px 24px 40px; }
+.layout h1 { font-size:clamp(28px,3vw,42px); line-height:1.15; font-weight:750; letter-spacing:-.035em; }
+.layout h2 { font-weight:700; letter-spacing:-.015em; }
+.layout :global(.text-xs) { font-size:13px; line-height:1.5; }
+.layout label { font-size:15px; line-height:1.5; font-weight:650; }
+.layout input:not([type=checkbox]):not([type=radio]),.layout textarea,.layout select { min-height:48px; border-radius:14px; border-color:#d8cfbe; background:#faf6ec; font-size:16px; }
+.layout textarea { line-height:1.65; }
+.layout button:not([role=switch]):not([role=checkbox]) { min-height:44px; border-radius:24px; font-size:15px; font-weight:650; }
+.layout aside > div { border-color:#d8cfbe; border-radius:26px; background:#fffaf0; box-shadow:0 12px 30px #493b2408; }
+.layout :global(form.bg-card),.layout :global(section.bg-card),.layout :global(article.bg-card) { border-color:#d8cfbe; border-radius:26px; background:#fffaf0; box-shadow:0 10px 30px #493b2406; }
+@media(max-width:767px) { .layout > :global(.container) { padding:20px 16px 32px; } .layout h1 { font-size:30px; } .layout :global(form.bg-card),.layout :global(section.bg-card),.layout :global(article.bg-card) { border-radius:22px; } }

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, ArrowLeft } from '@/components/ui/icons';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import styles from './profile-layout.module.css';
 
 interface ProfileLayoutProps {
     children: ReactNode;
@@ -26,7 +27,7 @@ export function ProfileLayout({ children, userType, userName, userAvatar }: Prof
     };
 
     return (
-        <div className="account-layout min-h-screen bg-background">
+        <div className={`account-layout min-h-screen ${styles.layout}`}>
             <div className="container mx-auto px-4 py-6">
                 {/* Back button */}
                 <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">

@@ -35,7 +35,7 @@ export function catalogFilters(params: URLSearchParams): ResumeCatalogFilters {
 function cursor(row: any) {
   return Buffer.from(JSON.stringify({ date: row.created_at, id: row.id })).toString('base64url');
 }
-function card(row: any) {
+export function publicResumeCard(row: any) {
   // The public response deliberately omits contacts, birthday, owner and work history.
   const keys = ['id', 'title', 'full_name', 'city', 'region_id', 'district_id', 'experience', 'experience_years', 'expected_salary_min', 'expected_salary_max', 'created_at'];
   const place = (value: any) => value && typeof value === 'object' && !Array.isArray(value) ? { name_uz: value.name_uz || '', name_ru: value.name_ru || '' } : null;
@@ -49,7 +49,7 @@ export async function searchResumes(client: SupabaseClient, filters: ResumeCatal
   if (!result.error) {
     const rows = (result.data || []).map((row: any) => row.card);
     const page = rows.slice(0, PAGE_SIZE);
-    return { resumes: page.map(card), nextCursor: rows.length > PAGE_SIZE ? cursor(page.at(-1)) : null };
+    return { resumes: page.map(publicResumeCard), nextCursor: rows.length > PAGE_SIZE ? cursor(page.at(-1)) : null };
   }
   // Older databases keep working until the additive search function is installed.
   if (!['PGRST202', '42883'].includes(result.error.code) || !result.error.message?.includes('ishdasiz_public_resume_search')) throw result.error;
@@ -73,5 +73,5 @@ export async function searchResumes(client: SupabaseClient, filters: ResumeCatal
     && (!needle || [row.title, row.full_name, row.about, ...resumeSkills(row.skills)].some(value => typeof value === 'string' && value.toLowerCase().includes(needle))));
   const page = matches.slice(0, PAGE_SIZE);
   const nextCursor = matches.length > PAGE_SIZE ? cursor(page.at(-1)) : scan && (fallback.data?.length || 0) > SCAN_SIZE ? cursor(batch.at(-1)) : null;
-  return { resumes: page.map(card), nextCursor };
+  return { resumes: page.map(publicResumeCard), nextCursor };
 }

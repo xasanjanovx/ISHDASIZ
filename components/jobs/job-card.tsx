@@ -9,6 +9,7 @@ import { formatSalary, formatDate } from '@/lib/constants';
 import { getActiveSpecialCategories } from '@/lib/special-categories';
 import { cleanJobText, normalizeLocation } from '@/lib/text';
 import { getMappedValue } from '@/lib/mappings';
+import styles from './job-card.module.css';
 
 const iconMap: any = {
   Monitor, GraduationCap, Heart, Building2, Wheat, Factory,
@@ -77,7 +78,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
   const specialCategories = getActiveSpecialCategories(job);
 
   return (
-    <Card className="catalog-job-card group relative h-full hover:shadow-lg hover:shadow-foreground/50 transition-all duration-200 overflow-hidden border-border hover:border-border bg-card rounded-2xl">
+    <Card className={`catalog-job-card group relative h-full overflow-hidden ${styles.card}`}>
       {/* Gradient left accent — blue to teal */}
 
       <Link href={`/jobs/${job.id}`} className="absolute inset-0 z-0" aria-label={title} />

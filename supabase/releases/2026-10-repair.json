@@ -237,7 +237,7 @@
     },
     {
       "file": "20261010220000_job_work_mode.sql",
-      "sha256": "086f965b52fd45a27f9bea51d1f23a373ab3d5527dd61145cdef830e83884a8f",
+      "sha256": "8fdd9780ac2dca65ce22ac8a899fec3b9286ccb0a1a532114188eb507088c3b8",
       "requires": [
         "20261010210000_chat_actions.sql"
       ]
@@ -291,6 +291,21 @@
       "sha256": "247d8dafe317ced606a8014f5868a678f259e29cf7bb3e3af6ce915581c76bef",
       "requires": [
         "20261012130000_osonish_candidate_refresh.sql"
+      ]
+    },
+    {
+      "file": "20261020090000_catalog_filter_indexes.sql",
+      "sha256": "24690db2f2abcb764896ea65db7236eb35d54fac11aa832d0b04b290406d2c53",
+      "requires": [
+        "20261010220000_job_work_mode.sql",
+        "20261012103000_public_catalog_count_index.sql"
+      ]
+    },
+    {
+      "file": "20261020091000_osonish_queue_performance.sql",
+      "sha256": "10b8d2abedebf014ffaee0045d75172ff8be0c5b28f82a996336b7a7f8ef6ab2",
+      "requires": [
+        "20261012143000_osonish_queue_retention.sql"
       ]
     }
   ]

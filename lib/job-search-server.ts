@@ -9,6 +9,13 @@ const PUBLISHED = 'and(or(status.is.null,status.in.(active,published,open)),or(s
 const PAGE_SIZE = 1000;
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
+const readCatalogVersion = unstable_cache(async () => {
+  const result = await getAuthClient().rpc('ishdasiz_catalog_version').abortSignal(AbortSignal.timeout(5000));
+  if (result.error && !['PGRST202', '42883'].includes(result.error.code)) throw new Error('Catalog capabilities unavailable');
+  return result.data === 2;
+}, ['indexed-catalog-v2', process.env.NEXT_PUBLIC_SUPABASE_URL || ''], { revalidate: 30 });
+export const hasIndexedCatalog = () => readCatalogVersion();
+
 async function readFormatPage<T extends { error: { code?: string; message?: string } | null; status?: number }>(
   query: { abortSignal(signal: AbortSignal): PromiseLike<T> },
 ): Promise<T> {

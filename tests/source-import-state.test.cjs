@@ -223,6 +223,7 @@ const publicStatistics=async()=>(await db.query('SELECT ishdasiz_public_statisti
 const refreshClaim=async(patch={})=>{
  await db.exec(read('20261012130000_osonish_candidate_refresh.sql'));
  await db.exec(read('20261012143000_osonish_queue_retention.sql'));
+ await db.exec(read('20261020091000_osonish_queue_performance.sql'));
  const args={actor:null,id:null,request:null,start:false,max:500,...patch};
  return(await db.query('SELECT ishdasiz_claim_osonish_refresh($1,$2,$3,$4,$5) r',[args.actor,args.id,args.request,args.start,args.max])).rows[0].r;
 };
@@ -452,4 +453,31 @@ test('one homepage aggregate preserves category and special filters and returns 
   const result=(await db.query('SELECT ishdasiz_public_home_counts() r')).rows[0].r;assert.deepEqual(result,expected);assert.equal(JSON.stringify(result).includes('private'),false);
  }finally{await db.exec('RESET ROLE');}}
  await db.exec(read('20261012113500_public_home_counts.sql'));assert.deepEqual((await db.query('SELECT ishdasiz_public_home_counts() r')).rows[0].r,expected);
+});
+
+
+test('optimized refresh retains weekly history rechecks and discovers reopened listings',async()=>{
+ await db.exec("INSERT INTO jobs(source,source_id,is_imported,status,is_active,source_status) VALUES('osonish','1',true,'active',true,'active'),('osonish','2',true,'active',true,'filled'),('osonish','3',true,'draft',false,'active'),('osonish','4',true,'active',true,'filled')");
+ await db.exec("UPDATE jobs SET last_checked_at=now() WHERE source_id='2'");
+ const run=workerRun(await refreshClaim());
+ await db.exec(read('20261020091000_osonish_queue_performance.sql'));
+ const p=await candidates(run,1,['4','5'],2);
+ assert.equal(p.total,4);assert.equal(p.phase,'details');
+ assert.deepEqual((await db.query('SELECT source_id FROM source_import_items WHERE run_id=$1 ORDER BY source_id',[run.id])).rows.map(r=>r.source_id),['1','3','4','5']);
+ await refreshItem(run,'1','removed');await refreshItem(run,'3','filled');await refreshItem(run,'4','active',payload('4'));await refreshItem(run,'5','active',payload('5'));
+ assert.equal((await finishRefresh(run)).state,'completed');
+ assert.equal((await db.query("SELECT source_status FROM jobs WHERE source_id='2'")).rows[0].source_status,'filled');
+ assert.equal((await db.query("SELECT status FROM jobs WHERE source_id='3'")).rows[0].status,'draft');
+ assert.equal((await db.query("SELECT source_status FROM jobs WHERE source_id='4'")).rows[0].source_status,'active');
+ await db.exec(read('20261020091000_osonish_queue_performance.sql'));
+});
+
+
+test('batch import commits five checked outcomes with source guards and refuses duplicate IDs atomically',async()=>{
+ const run=workerRun(await refreshClaim());await candidates(run,1,['1','2','3'],3);
+ await assert.rejects(db.query('SELECT ishdasiz_osonish_refresh_batch($1,$2,$3::jsonb)',[run.id,run.token,JSON.stringify([{id:'1',state:'active',payload:payload('1')},{id:'1',state:'filled',payload:null}])]),e=>e.code==='22023');
+ assert.equal((await db.query('SELECT count(*)::int n FROM jobs')).rows[0].n,0);
+ const items=['1','2','3'].map(id=>({id,state:'active',payload:payload(id)}));
+ const p=(await db.query('SELECT ishdasiz_osonish_refresh_batch($1,$2,$3::jsonb) r',[run.id,run.token,JSON.stringify(items)])).rows[0].r;
+ assert.equal(p.processed,3);assert.equal(p.verified,3);assert.equal((await finishRefresh(run)).state,'completed');
 });

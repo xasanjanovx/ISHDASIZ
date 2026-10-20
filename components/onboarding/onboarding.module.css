@@ -1,0 +1,39 @@
+.page { min-height: 75svh; padding: 28px 20px 48px; background: radial-gradient(ellipse at 90% 10%, #dfd5b66b, transparent 45%), #ece9e2; color: #30372e; }
+.shell { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 64px; width: min(1200px, 100%); margin: auto; align-items: start; }
+.intro { position: sticky; top: 110px; padding-block: 30px; }
+.eyebrow { font-size: 14px; font-weight: 750; color: #70634d; letter-spacing: .06em; }
+.intro h1 { font-size: clamp(32px, 4vw, 56px); line-height: 1.1; letter-spacing: -.04em; font-weight: 750; margin-top: 18px; }
+.intro p { font-size: 18px; line-height: 1.65; margin-top: 20px; color: #6a6253; }
+.shortcuts { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.shortcuts a { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 9px 15px; font-size: 15px; font-weight: 650; border-radius: 24px; background: #fffaf095; }
+.panel { min-width: 0; padding: 28px; border: 1px solid #d8cfbe; border-radius: 30px; background: #fffaf0e8; box-shadow: 0 20px 60px #493b240a; }
+.progress { display: flex; gap: 8px; margin-bottom: 24px; }
+.progress span { flex: 1; height: 5px; border-radius: 5px; background: #e6e0d3; }
+.progress span[data-current=true] { background: #d1ad53; }
+.progress span[data-done=true] { background: #41523b; }
+.step { display: grid; gap: 20px; }
+.step h2 { font-size: 28px; line-height: 1.2; font-weight: 750; scroll-margin-top: 110px; }
+.step h2:focus { outline: none; }
+.step > p { color: #726754; font-size: 16px; line-height: 1.5; }
+.field { display: grid; gap: 8px; }
+.field label, .field > span { font-size: 16px; font-weight: 650; }
+.panel input:not([type=checkbox]), .panel select, .panel textarea { width: 100%; min-width: 0; border: 1px solid #d8cfbe; border-radius: 14px; background: #f6f2e8; padding: 13px 14px; font-size: 16px; color: #30372e; }
+.panel input:focus-visible, .panel select:focus-visible, .panel textarea:focus-visible { outline: 2px solid #9a824b; outline-offset: 2px; }
+.panel textarea { min-height: 130px; line-height: 1.6; resize: vertical; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.choices { display: flex; gap: 9px; flex-wrap: wrap; }
+.choices button { padding: 9px 13px; min-height: 44px; border: 1px solid #d8cfbe; border-radius: 22px; background: #f6f2e8; text-align: left; font-size: 15px; font-weight: 600; }
+.choices button[aria-pressed=true] { color: #fffaf0; background: #41523b; border-color: #41523b; }
+.summary { display: grid; gap: 15px; padding: 20px; border-radius: 20px; background: #efe9db; font-size: 16px; line-height: 1.6; }
+.summary strong { font-size: 24px; font-weight: 750; }
+.summary a { font-weight: 650; color: #526244; text-decoration: underline; }
+.visibility { display: flex; align-items: start; gap: 12px; font-size: 15px; line-height: 1.6; }
+.visibility input { margin-top: 6px; width: 20px; height: 20px; accent-color: #41523b; flex-shrink: 0; }
+.actions { display: flex; gap: 12px; margin-top: 26px; }
+.actions button { min-height: 54px; border-radius: 30px; padding-inline: 22px; font-size: 16px; font-weight: 700; }
+.actions button:last-child { flex: 1; min-width: 0; white-space: normal; line-height: 1.3; background: #41523b; color: #fffaf0; }
+.error { padding: 15px; border-radius: 14px; background: #f7e6dc; color: #8b382c; font-size: 15px; line-height: 1.6; margin-top: 18px; }
+.status { padding: 40px 0; font-size: 18px; }
+@media(max-width:767px) { .page { padding: 20px 16px 30px; } .shell { grid-template-columns: minmax(0,1fr); gap: 24px; } .intro { position: static; padding: 0; } .intro h1 { font-size: 34px; margin-top: 10px; } .intro p { font-size: 16px; margin-top: 12px; } .shortcuts { margin-top: 16px; gap: 8px; } .panel { padding: 21px 17px; border-radius: 24px; } .step h2 { font-size: 25px; } .pair { grid-template-columns: minmax(0,1fr); gap: 18px; } .actions { position: sticky; bottom: 86px; padding-top: 12px; background: #fffaf0f5; border-radius: 20px; } }
+@media(prefers-reduced-motion:no-preference) { .step { animation: appear .3s ease both; } @keyframes appear { from { opacity:0; translate:0 8px; } to { opacity:1; translate:0 0; } } }
+@media(max-width:500px) { .actions { position: static; display: grid; grid-template-columns: minmax(0,1fr); padding-top: 0; background: none; } .actions button:last-child { width: 100%; } .actions button:first-child:not(:last-child) { justify-self: start; min-height: 44px; padding-inline: 18px; } }

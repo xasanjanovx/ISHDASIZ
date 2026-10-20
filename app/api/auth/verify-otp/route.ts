@@ -5,7 +5,7 @@ import { ensureProfile, getAuthClient, getPublicUser, normalizePhone, readAuthUs
 export async function POST(request: Request) {
     const body = await request.json().catch(() => null);
     const phone = normalizePhone(body?.phone);
-    const code = body?.code;
+    const code = typeof body?.code === 'string' ? body.code.replace(/\s/g, '') : body?.code;
     const role = body?.role || 'job_seeker';
     if (!phone || typeof code !== 'string' || !/^\d{5}$/.test(code) || !['job_seeker', 'employer'].includes(role)) {
         return NextResponse.json({ error: 'Telefon, kod yoki rol noto‘g‘ri.' }, { status: 400 });
@@ -19,15 +19,15 @@ export async function POST(request: Request) {
         if (otp) {
             const expiresAt = new Date(otp.expires_at).getTime();
             if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-                return NextResponse.json({ error: 'Kod muddati tugagan. Yangi SMS oling.' }, { status: 400 });
+                return NextResponse.json({ error: 'Kod muddati tugagan. Yangi SMS oling.', errorCode: 'otp_expired' }, { status: 400 });
             }
             if (Number(otp.attempts || 0) >= 3) {
-                return NextResponse.json({ error: 'Urinishlar tugadi. Yangi SMS oling.' }, { status: 429 });
+                return NextResponse.json({ error: 'Urinishlar tugadi. Yangi SMS oling.', errorCode: 'otp_attempts_exhausted' }, { status: 429 });
             }
             if (String(otp.code) !== code) {
                 const { error: attemptError } = await client.from('otp_codes').update({ attempts: Number(otp.attempts || 0) + 1 }).eq('id', otp.id);
                 if (attemptError) throw new Error('Could not save OTP attempt');
-                return NextResponse.json({ error: 'Kod noto‘g‘ri.' }, { status: 400 });
+                return NextResponse.json({ error: 'Kod noto‘g‘ri.', errorCode: 'otp_invalid' }, { status: 400 });
             }
             const { data: consumed, error: consumeError } = await client.from('otp_codes').update({ verified: true })
                 .eq('id', otp.id).eq('verified', false).select('id').maybeSingle();
@@ -38,13 +38,13 @@ export async function POST(request: Request) {
             if (local && local.expires_at > Date.now() && local.attempts < 3) {
                 if (local.code !== code) {
                     otpStore.incrementAttempts(phone);
-                    return NextResponse.json({ error: 'Kod noto‘g‘ri.' }, { status: 400 });
+                    return NextResponse.json({ error: 'Kod noto‘g‘ri.', errorCode: 'otp_invalid' }, { status: 400 });
                 }
                 otpStore.delete(phone);
                 verified = true;
             }
         }
-        if (!verified) return NextResponse.json({ error: 'Kod topilmadi yoki ishlatilgan. Yangi SMS oling.' }, { status: 400 });
+        if (!verified) return NextResponse.json({ error: 'Kod topilmadi yoki ishlatilgan. Yangi SMS oling.', errorCode: 'otp_missing' }, { status: 400 });
         const { data: existing, error: findError } = await readAuthUser(client, 'id, phone, is_verified, password_hash', 'phone', phone);
         if (findError) throw new Error('Could not load user');
         let user = existing;

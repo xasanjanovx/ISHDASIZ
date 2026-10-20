@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { RoleSelectionWrapper } from "@/components/home/role-selection-wrapper";
 import { AuthModalProvider } from "@/contexts/auth-modal-context";
 import { AuthModal } from "@/components/auth/auth-modal";
+import { AdminRecoveryRedirect } from "@/components/auth/admin-recovery-redirect";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { TelegramProvider } from "@/contexts/telegram-context";
@@ -105,6 +106,7 @@ export default function RootLayout({
                     <RoleSelectionWrapper />
                     <MobileNav />
                     <AuthModal />
+                        <AdminRecoveryRedirect />
                   </AuthModalProvider>
                 </LanguageProvider>
               </TelegramProvider>

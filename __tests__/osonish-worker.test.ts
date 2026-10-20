@@ -9,11 +9,12 @@ const id='10000000-0000-4000-8000-000000000001',token='10000000-0000-4000-8000-0
 const progress=(patch:any={})=>({id,state:'running',phase:'list',started_at:'2026-10-09T00:00:00Z',completed_at:null,total:null,listed:0,processed:0,failed:0,verified:0,new_imported:0,updated:0,skipped_closed:0,next_page:1,verify_page:1,last_error:null,next_retry_at:null,busy:false,...patch});
 const refs:ImportReferences={regions:[{id:1,name_uz:'Toshkent viloyati',name_ru:'Ташкентская область'},{id:22,name_uz:'Toshkent shahri',name_ru:'город Ташкент'},{id:2,name_uz:'Andijon viloyati',name_ru:'Андижанская область'}],districts:[{id:100,region_id:22,name_uz:'Yunusobod tumani',name_ru:'Юнусабадский район'},{id:101,region_id:1,name_uz:'Qibray tumani',name_ru:'Кибрайский район'},{id:200,region_id:1,name_uz:'Olmazor tumani',name_ru:'Олмазорский район'},{id:201,region_id:22,name_uz:'Olmazor tumani',name_ru:'Олмазорский район'}],categories:[{id:category}]};
 const vacancy=(patch:any={})=>({source_id:'1',source_url:'https://osonish.uz/vacancies/1',title:'Dasturchi',company_name:'Demo',region_name:'Toshkent shahri',district_name:'Yunusobod tumani',has_contact:true,raw_source_json:{},...patch});
-let current:any,calls:any[],queue:string[],claimedToken:string|null,failRpc:string|null,protocol:number;
+let current:any,calls:any[],queue:string[],claimedToken:string|null,failRpc:string|null,protocol:number,batchSupported:boolean;
 function client(){return {rpc:(name:string,args:any)=>({abortSignal:async(signal:AbortSignal)=>{
  calls.push({name,args,signal});if(failRpc===name)return {data:null,error:{code:'42501'}};
  if(name==='ishdasiz_claim_osonish_refresh')return {data:{progress:current,token:claimedToken},error:null};
- if(name==='ishdasiz_osonish_work')return {data:{progress:current,ids:queue,protocol_version:protocol},error:null};
+ if(name==='ishdasiz_osonish_work')return {data:{progress:current,ids:queue,protocol_version:protocol,batch_supported:batchSupported},error:null};
+ if(name==='ishdasiz_osonish_refresh_batch'){queue=queue.filter(value=>!args.p_items.some((item:any)=>item.id===value));current={...current,processed:current.processed+args.p_items.length,verified:current.verified+args.p_items.length,phase:queue.length?'details':'verify'};}
  if(name==='ishdasiz_finish_osonish_refresh')current={...current,state:'completed',phase:'done'};
  if(name==='ishdasiz_osonish_candidates')current={...current,total:args.p_ids.length,listed:args.p_ids.length,next_page:args.p_page+1,phase:'details'};
  if(name==='ishdasiz_osonish_refresh_item'){queue=queue.filter(value=>value!==args.p_source_id);current={...current,processed:current.processed+1,verified:current.verified+1,phase:queue.length?'details':'verify'};}
@@ -22,7 +23,7 @@ function client(){return {rpc:(name:string,args:any)=>({abortSignal:async(signal
  if(name==='ishdasiz_yield_osonish_import')current={...current,busy:false,last_error:args.p_error,state:args.p_fatal?'failed':current.state};
  return {data:current,error:null};
  }}),from:(table:string)=>{const chain:any={select:()=>chain,order:()=>chain,range:()=>chain,abortSignal:async()=>({data:(refs as any)[table],error:null})};return chain;}} as any;}
-beforeEach(()=>{jest.clearAllMocks();current=progress();calls=[];queue=['1'];claimedToken=token;failRpc=null;protocol=1;(fetchVacancyIdList as jest.Mock).mockResolvedValue({ids:[1],total:1,lastPage:1});(fetchVacancyDetail as jest.Mock).mockImplementation(async value=>({success:true,detail:{id:value,status:2},status:200}));(transformDetail as jest.Mock).mockImplementation(detail=>vacancy({source_id:String(detail.id)}));(fetchCompanyContacts as jest.Mock).mockResolvedValue(null);});
+beforeEach(()=>{jest.clearAllMocks();current=progress();calls=[];queue=['1'];claimedToken=token;failRpc=null;protocol=1;batchSupported=false;(fetchVacancyIdList as jest.Mock).mockResolvedValue({ids:[1],total:1,lastPage:1});(fetchVacancyDetail as jest.Mock).mockImplementation(async value=>({success:true,detail:{id:value,status:2},status:200}));(transformDetail as jest.Mock).mockImplementation(detail=>vacancy({source_id:String(detail.id)}));(fetchCompanyContacts as jest.Mock).mockResolvedValue(null);});
 
 test('invalid options stop before leases or source requests',async()=>{for(const options of [{start:true},{runId:'bad'},{start:true,requestId:id,runId:id},{maxPages:0},{maxPages:501},{maxPages:1.5}])await expect(stepOsonishImport(client(),options)).rejects.toMatchObject({status:400});expect(calls).toHaveLength(0);expect(fetchVacancyIdList).not.toHaveBeenCalled();});
 test('busy or terminal claims perform no source request and return no lease token',async()=>{claimedToken=null;current={...current,busy:true};expect(await stepOsonishImport(client())).toEqual(current);expect(calls).toHaveLength(1);expect(fetchVacancyIdList).not.toHaveBeenCalled();});
@@ -60,4 +61,14 @@ test('candidate protocol dispatches dedicated RPCs and completes without a secon
 test('unknown queue protocols stop before source requests or writes',async()=>{
  protocol=3;expect(await stepOsonishImport(client())).toMatchObject({state:'failed',last_error:'invalid_data'});
  expect(fetchVacancyIdList).not.toHaveBeenCalled();expect(fetchVacancyDetail).not.toHaveBeenCalled();
+});
+
+
+test('batch-capable source queues persist successful neighbours and durable retries together',async()=>{
+ protocol=2;batchSupported=true;current=progress({phase:'details',total:3,listed:3});queue=['1','2','3'];
+ (fetchVacancyDetail as jest.Mock).mockImplementation(async value=>{if(value===2)throw new Error('upstream failure');return {success:true,status:200,detail:{id:value,status:2}};});
+ await stepOsonishImport(client());
+ const batches=calls.filter(c=>c.name==='ishdasiz_osonish_refresh_batch');expect(batches).toHaveLength(1);
+ expect(batches[0].args.p_items.map((item:any)=>[item.id,item.state])).toEqual([['1','active'],['2','retry'],['3','active']]);
+ expect(calls.some(c=>c.name==='ishdasiz_osonish_refresh_item')).toBe(false);
 });

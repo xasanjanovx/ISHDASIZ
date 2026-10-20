@@ -12,7 +12,6 @@ import { HowItWorksSection } from "@/components/home/how-it-works-section";
 import { loadHomeTotals } from "@/lib/home-totals";
 import { loadHomeOverview } from "@/lib/home-overview-server";
 import { HomeOverviewProvider } from "@/components/home/home-overview-provider";
-import { ReviewsSection } from "@/components/home/reviews-section";
 export const revalidate = 60;
 
 async function countHomeTotals() {
@@ -39,7 +38,6 @@ export default async function HomePage() {
         <SpecialCategoriesSection counts={overview?.specialCounts || { students: null, disabled: null, women: null }} />
         <SeekersSection resumes={seekers.resumes} unavailable={seekers.unavailable} />
         <HowItWorksSection />
-        <ReviewsSection />
       </HomeOverviewProvider>
     </div>
   );
