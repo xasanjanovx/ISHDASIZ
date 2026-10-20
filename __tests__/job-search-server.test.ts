@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { createClient } from '@supabase/supabase-js';
-import { readRemoteJobIds } from '@/lib/job-search-server';
+import { readIndexedRemoteJobIds, readRemoteJobIds } from '@/lib/job-search-server';
 jest.mock('next/cache', () => ({ unstable_cache: (fn: any) => fn }));
 jest.mock('@/lib/auth/server', () => ({ getAuthClient: jest.fn() }));
 const id = (n: number) => n.toString(16).padStart(8, '0') + '-0000-4000-8000-000000000001';
@@ -73,4 +73,21 @@ test('a transient failed page is retried without losing remote vacancies', async
     'a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001']);
   const reads = requests.filter(r => r.searchParams.get('select') !== 'work_format');
   expect(new Set(reads.map(String)).size).toBe(reads.length - 1);
+});
+
+test('indexed lookup pages only IDs through the remote index and rejects partial failed reads', async () => {
+  const seen: URL[] = [];
+  const remote = Array.from({ length: 1001 }, (_, index) => ({ id: id(index + 1) }));
+  let broken = false;
+  const indexed = createClient('https://synthetic.invalid', 'synthetic', { global: { fetch: async (input: any) => {
+    const url = new URL(String(input)); seen.push(url);
+    const after = url.searchParams.get('id')?.slice(3);
+    if (broken && after) return new Response(JSON.stringify({ code: '57014' }), { status: 500 });
+    return new Response(JSON.stringify(remote.filter(row => !after || row.id > after).slice(0, 500)));
+  } } });
+  expect(await readIndexedRemoteJobIds(indexed)).toEqual(remote.map(row => row.id));
+  expect(seen).toHaveLength(3);
+  expect(seen.every(url => url.searchParams.get('select') === 'id' && url.searchParams.get('ishdasiz_job_work_mode') === 'eq.remote' && url.searchParams.get('is_active') === 'eq.true')).toBe(true);
+  broken = true;
+  await expect(readIndexedRemoteJobIds(indexed)).rejects.toThrow('Indexed work formats unavailable');
 });

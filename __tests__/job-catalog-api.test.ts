@@ -3,10 +3,10 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GET } from '@/app/api/jobs/route';
 import { getAuthClient } from '@/lib/auth/server';
-import { getRemoteJobIds, hasIndexedCatalog } from '@/lib/job-search-server';
+import { getIndexedRemoteJobIds, getRemoteJobIds, hasIndexedCatalog } from '@/lib/job-search-server';
 import { JOB_CATALOG_FIELDS } from '@/lib/job-catalog';
 jest.mock('@/lib/auth/server', () => ({ getAuthClient: jest.fn() }));
-jest.mock('@/lib/job-search-server', () => ({ getRemoteJobIds: jest.fn(), hasIndexedCatalog: jest.fn() }));
+jest.mock('@/lib/job-search-server', () => ({ getIndexedRemoteJobIds: jest.fn(), getRemoteJobIds: jest.fn(), hasIndexedCatalog: jest.fn() }));
 const remoteId = '30000000-0000-4000-8000-000000000003';
 let requested: URL;
 let missingCount = false;
@@ -15,6 +15,7 @@ beforeEach(() => {
   missingCount = false;
   (hasIndexedCatalog as jest.Mock).mockResolvedValue(false);
   (getRemoteJobIds as jest.Mock).mockResolvedValue([remoteId]);
+  (getIndexedRemoteJobIds as jest.Mock).mockResolvedValue([remoteId]);
   (getAuthClient as jest.Mock).mockReturnValue(createClient('https://synthetic.invalid', 'synthetic', {
     global: { fetch: async (url: any) => {
       requested = new URL(String(url));
@@ -29,9 +30,18 @@ test('installed catalog indexes avoid the full remote-format scan for regional f
   const response = await GET(new NextRequest('https://synthetic.invalid/api/jobs?region=12'));
   expect(response.status).toBe(200);
   expect(getRemoteJobIds).not.toHaveBeenCalled();
-  expect(requested.searchParams.get('or')).toContain('ishdasiz_job_work_mode.eq.remote');
+  expect(getIndexedRemoteJobIds).toHaveBeenCalledTimes(1);
+  expect(requested.searchParams.get('or')).toContain(`id.in.(${remoteId})`);
+  expect(requested.searchParams.get('or')).not.toContain('ishdasiz_job_work_mode');
   expect(requested.searchParams.get('is_active')).toBe('eq.true');
   expect(requested.searchParams.get('ishdasiz_job_available')).toBe('eq.true');
+});
+test('large remote catalogs use the computed filter instead of an oversized URL', async () => {
+  (hasIndexedCatalog as jest.Mock).mockResolvedValue(true);
+  (getIndexedRemoteJobIds as jest.Mock).mockResolvedValue(Array(151).fill(remoteId));
+  expect((await GET(new NextRequest('https://synthetic.invalid/api/jobs?region=12'))).status).toBe(200);
+  expect(requested.searchParams.get('or')).toContain('ishdasiz_job_work_mode.eq.remote');
+  expect(requested.searchParams.get('or')).not.toContain('id.in.');
 });
 test('public search preserves visibility, field projection, filters and bounded pagination', async () => {
   const response = await GET(new NextRequest('https://synthetic.invalid/api/jobs?q=tikuvchi&region=22&page=2'));

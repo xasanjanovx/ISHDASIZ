@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAuthClient } from '@/lib/auth/server';
 import { accountFailure, accountResult } from '@/lib/auth/account';
 import { jobCatalogQuery, readJobFilters } from '@/lib/job-catalog';
-import { getRemoteJobIds, hasIndexedCatalog } from '@/lib/job-search-server';
+import { getIndexedRemoteJobIds, getRemoteJobIds, hasIndexedCatalog } from '@/lib/job-search-server';
 
 export const maxDuration = 60;
 
@@ -12,10 +12,12 @@ export async function GET(request: NextRequest) {
   try {
     const filters = readJobFilters(request.nextUrl.searchParams.toString());
     const needsFormats = filters.region !== 'all' || filters.district !== 'all' || filters.type === 'remote' || filters.work_mode === 'remote';
-    // After the verified database upgrade the computed field uses an expression
-    // index; a regional search no longer downloads the whole format catalog.
+    // Read only remote IDs through the installed index. A format expression
+    // inside region/text OR groups can still make the planner scan source JSON.
     const indexed = needsFormats ? await hasIndexedCatalog() : false;
-    const remoteIds = needsFormats && !indexed ? await getRemoteJobIds() : undefined;
+    const ids = needsFormats ? await (indexed ? getIndexedRemoteJobIds() : getRemoteJobIds()) : undefined;
+    // Avoid an oversized PostgREST URL if the remote catalogue grows substantially.
+    const remoteIds = indexed && ids && ids.length > 150 ? undefined : ids;
     const result = await jobCatalogQuery(getAuthClient(), filters, { remoteIds })
       .abortSignal(AbortSignal.timeout(15000));
     if (result.error || !Array.isArray(result.data) || !Number.isSafeInteger(result.count) || result.count! < 0)

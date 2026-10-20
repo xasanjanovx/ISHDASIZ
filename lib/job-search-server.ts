@@ -16,6 +16,38 @@ const readCatalogVersion = unstable_cache(async () => {
 }, ['indexed-catalog-v2', process.env.NEXT_PUBLIC_SUPABASE_URL || ''], { revalidate: 30 });
 export const hasIndexedCatalog = () => readCatalogVersion();
 
+// Keep the format expression out of the final region/text OR groups. PostgreSQL
+// can use the expression index for this small lookup; a combined OR may instead
+// evaluate source JSON for thousands of non-matching rows.
+export async function readIndexedRemoteJobIds(client: SupabaseClient): Promise<string[]> {
+  const ids: string[] = [];
+  let after: string | null = null;
+  for (;;) {
+    let query = client.from('jobs').select('id').eq('is_active', true)
+      .eq('ishdasiz_job_work_mode', 'remote').order('id').limit(500);
+    if (after) query = query.gt('id', after);
+    const result = await query.abortSignal(AbortSignal.timeout(15000));
+    if (result.error || !Array.isArray(result.data)) throw new Error('Indexed work formats unavailable');
+    const rows = result.data as { id: string }[];
+    for (const row of rows) {
+      if (!uuid.test(row.id) || after && row.id <= after) throw new Error('Invalid indexed work-format cursor');
+      ids.push(row.id); after = row.id;
+    }
+    if (rows.length < 500) return ids;
+    if (ids.length >= 100000) throw new Error('Work-format lookup exceeds its bound');
+  }
+}
+const cachedIndexedRemoteJobIds = unstable_cache(
+  () => readIndexedRemoteJobIds(getAuthClient()),
+  ['catalog-indexed-remote-ids-v1', process.env.NEXT_PUBLIC_SUPABASE_URL || ''],
+  { revalidate: 60 },
+);
+let indexedPending: Promise<string[]> | null = null;
+export function getIndexedRemoteJobIds() {
+  if (!indexedPending) indexedPending = cachedIndexedRemoteJobIds().finally(() => { indexedPending = null; });
+  return indexedPending;
+}
+
 async function readFormatPage<T extends { error: { code?: string; message?: string } | null; status?: number }>(
   query: { abortSignal(signal: AbortSignal): PromiseLike<T> },
 ): Promise<T> {

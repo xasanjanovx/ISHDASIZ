@@ -96,8 +96,8 @@ Public-list candidates always receive detail checks, including reappearing vacan
 Validation: 78 database tests pass, including rollback on a cleanup failure, exact cached progress, request idempotence, private grants and refresh cadence. A native PostgreSQL rehearsal on the real restored archive archived 40,810 temporary items in a new claim (~26 ms), preserved the exact prior summary and all 40,812 jobs. These are local measurements under an 8-second statement budget.
 
 
-## Platform follow-up — 20 October 2026 (database installation pending)
+## Platform follow-up — 20 October 2026 (database installation verified)
 
 The manifest now contains 42 migrations. The two new migrations add the indexed regional-format lookup and optimize the durable OsonIsh queue without changing public visibility, archive retention or lease fencing. Existing work-mode SQL is preserved; its stale manifest checksum was corrected against the committed file.
 
-For an already updated October database, apply only `2026-10-20-platform.sql` through SQL Editor. Do not replay the initial bundle. Installation and account recovery instructions are in `docs/platform-release-2026-10-20.md`. The application detects catalog version 2; until it is installed, the compatible former scan remains in use. Local PGlite tests and the production application build are not proof that the live database has been upgraded.
+For an already updated October database, apply only `2026-10-20-platform.sql` through SQL Editor. Do not replay the initial bundle. Installation and account recovery instructions are in `docs/platform-release-2026-10-20.md`. Live read-only checks now confirm catalog version 2 and the installed batch function. The indexed lookup reads only remote job IDs before combining geographic and text filters; the previous combined expression could still time out. The legacy metadata scan remains available for older databases. A new source import cycle has been started for verification; its completion must be checked separately.
