@@ -1,0 +1,35 @@
+body{display:flex;align-items:center;justify-content:center;gap:0;min-height:100vh;padding:24px;background:#e8e4db}
+[hidden]{display:none!important}
+.preview-stage{width:430px;max-width:100%}
+.app{height:min(870px,calc(100dvh - 48px));min-height:600px;border-radius:25px;box-shadow:0 18px 50px #302b1b12}
+.app-header{padding:17px 23px 9px;height:79px}
+.brand-button img{width:132px;height:44px}
+.home-view{padding:0 23px 22px}
+.simple-hero{position:relative;height:235px;overflow:hidden;margin:0 -23px 0}
+.simple-hero-copy{position:relative;z-index:2;padding:57px 0 0 23px;max-width:173px}
+.simple-hero h1{font-size:35px;line-height:1.09;letter-spacing:-1.6px;font-weight:650}
+.half-portrait{position:absolute;right:3px;top:8px;width:228px;height:227px;overflow:hidden}
+.half-portrait .portrait-layer{inset:0}
+.half-portrait img{position:absolute;left:50%;top:0;width:354px;max-width:none;height:auto;object-fit:initial;object-position:initial;transform:translateX(-50%);filter:none}
+.home-view .search-box{margin-top:17px;padding:14px;border-radius:18px;box-shadow:none;border-color:var(--line);display:grid;gap:10px}
+.home-view .search-input{padding:0 12px;background:var(--page);border:1px solid transparent;border-radius:10px}
+.home-view .search-input:focus-within{border-color:#9f8c61}
+.home-view .search-input input{height:48px;font-size:15px}
+.home-view .region-select{padding:0 12px;border:1px solid var(--line);border-radius:10px;gap:9px;min-height:46px}
+.home-view .region-select select{font-size:14px;padding:11px 0;color:var(--ink)}
+.home-view .region-select svg{width:18px;height:18px}
+.home-view .primary{min-height:50px;border-radius:11px;gap:9px;font-size:15px;box-shadow:none}
+.home-view .primary::before{display:none}
+.home-view .shortcuts{gap:10px;margin-top:13px}
+.home-view .shortcut{min-height:85px;border-radius:13px;padding:14px;gap:11px;background:transparent!important;box-shadow:none}
+.home-view .shortcut strong{font-size:13px;line-height:1.4;font-weight:600}
+.home-view .shortcut svg{width:21px;height:21px;color:var(--green)}
+#bottom-nav{padding:10px 17px 14px}
+#bottom-nav button{font-size:10px;gap:6px;min-height:44px}
+#bottom-nav button svg{width:21px;height:21px}
+.half-portrait .portrait-layer.active img{animation:quietBreathe 6s ease-in-out infinite}
+@keyframes quietBreathe{0%,100%{translate:0 0}50%{translate:0 -3px}}
+@media(prefers-reduced-motion:reduce){.half-portrait .portrait-layer.active img{animation:none}}
+@media(max-width:800px){body{padding:0;background:var(--bg)}.preview-stage{width:100%;max-width:480px}.app{height:100dvh;min-height:0;border-radius:0;border:0;box-shadow:none}.app-header{padding-top:max(15px,env(safe-area-inset-top))}#bottom-nav{padding-bottom:max(13px,env(safe-area-inset-bottom))}}
+@media(max-width:389px){.home-view{padding-inline:19px}.app-header{padding-inline:19px}.simple-hero{margin-inline:-19px;height:216px}.simple-hero-copy{padding-left:19px;padding-top:59px;max-width:148px}.simple-hero h1{font-size:31px;letter-spacing:-1.25px}.half-portrait{right:-7px;top:7px;width:216px;height:209px}.half-portrait img{width:326px}.home-view .shortcut{padding:12px 10px}.home-view .shortcut strong{font-size:12px}.home-view .search-input input{font-size:14px}}
+@media(max-height:760px){.simple-hero{height:183px}.simple-hero-copy{padding-top:45px}.half-portrait{top:3px;height:180px}.half-portrait img{width:286px}.home-view .search-box{margin-top:10px}.home-view .shortcut{min-height:73px;padding-top:11px;padding-bottom:11px;gap:7px}.app-header{height:71px}.simple-hero h1{font-size:30px}}

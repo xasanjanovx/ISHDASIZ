@@ -1,0 +1,73 @@
+:root{--bg:#eeece5;--paper:#fcfaf5;--page:#f0eee8;--ink:#28352c;--muted:#74796d;--line:#dedfd4;--green:#344b39;--gold:#ddbd69}
+body{background:#e5e5db}
+.app{background:var(--bg)}
+.app-header{height:76px;padding:14px 22px 10px;background:var(--bg)}
+.brand-button img{width:127px;height:43px}
+.header-controls{gap:8px}.lang{height:36px;padding:0 10px;font-size:11px;background:#faf9f470;border-color:#dbddd0}.icon-button{height:36px;width:36px;background:#faf9f470;border-color:#dbddd0}
+.focus-home{padding:7px 19px 24px}
+.focus-search-panel{background:var(--paper);border:1px solid #dadfd0;border-radius:25px;overflow:hidden;box-shadow:0 8px 24px #30432a07}
+.focus-hero{position:relative;height:205px;overflow:hidden;background:linear-gradient(120deg,#f3f5e9,#edf0e0)}
+.focus-hero h1{position:relative;z-index:2;font-size:34px;line-height:1.07;letter-spacing:-1.4px;font-weight:650;padding:37px 0 0 21px;max-width:166px}
+.focus-portrait{position:absolute;right:-4px;top:7px;height:198px;width:222px;overflow:hidden}
+.focus-portrait .portrait-layer{inset:0}
+.focus-portrait img{position:absolute;top:0;left:50%;width:328px;max-width:none;height:auto;object-fit:initial;object-position:initial;transform:translateX(-50%);filter:none}
+.focus-portrait .portrait-layer.active img{animation:quietBreathe 6s ease-in-out infinite}
+.focus-form{padding:18px;display:grid;gap:11px;background:var(--paper)}
+.focus-query{display:grid;gap:9px}
+.focus-query>span{font-size:13px;line-height:1.4;color:var(--ink);font-weight:550}
+.focus-query>div{display:flex;gap:10px;align-items:center;background:#f2f3ec;border:1px solid #e1e5d9;border-radius:12px;padding:0 12px;color:#72816b}
+.focus-query svg{width:19px;height:19px}
+.focus-query input{height:48px;min-width:0;width:100%;border:0;outline:none;background:none;color:var(--ink);font-size:16px;font-weight:400}
+.focus-query input::placeholder{color:#626e5b;opacity:1}
+.focus-query>div:focus-within,.focus-region:focus-within{border-color:#819675;box-shadow:0 0 0 3px #7e92601a}
+.focus-region{display:flex;align-items:center;gap:10px;border:1px solid #e1e5d9;border-radius:12px;padding:0 12px;min-height:47px;color:#72816b;background:#fcfcf8}
+.focus-region svg{width:18px;height:18px}
+.focus-region select{min-width:0;width:100%;border:0;outline:none;background:transparent;color:#4d5c46;font-size:14px;padding:12px 0}
+.focus-submit{display:flex;align-items:center;justify-content:center;gap:11px;min-height:51px;border-radius:13px;color:#fcfaf5;background:#344b39;font-size:15px;font-weight:650;box-shadow:0 4px 10px #344b390d;transition:background .18s,transform .18s}
+.focus-submit:hover{background:#415e46}.focus-submit:active{transform:scale(.985)}.focus-submit svg{width:17px;height:17px}
+.focus-actions{display:grid;gap:10px;margin-top:15px}
+.focus-action{display:flex;align-items:center;gap:13px;min-height:68px;width:100%;padding:12px 15px;background:var(--paper);border:1px solid #dee1d5;border-radius:17px;text-align:left;transition:border-color .18s,background .18s,transform .18s}
+.focus-action:hover{border-color:#95a284;background:#f7f8f0}.focus-action:active{transform:scale(.99)}
+.focus-action strong{flex:1;font-weight:550;font-size:16px;line-height:1.35;letter-spacing:-.3px}
+.focus-action>svg{width:17px;height:17px;color:#8a9580}
+.focus-action-icon{width:35px;height:35px;border-radius:11px;display:grid;place-items:center;background:#eaf0de;color:#4d6743;flex-shrink:0}
+.focus-action-icon svg{width:19px;height:19px}
+.focus-action-icon.hiring{background:#f6edd7;color:#947b3e}
+#bottom-nav{padding:9px 17px 13px;border-top:1px solid #dfe1d6;background:#fcfaf5}
+#bottom-nav button{min-height:47px;font-size:11px;font-weight:500;gap:5px;color:#68735f}
+#bottom-nav button svg{width:20px;height:20px;box-sizing:content-box;padding:5px 16px;border-radius:12px}
+#bottom-nav button.active{color:#344b39;font-weight:700}
+#bottom-nav button.active svg{background:#e6eddc}
+.focus-results .search-input{border:1px solid var(--line);background:var(--paper);border-radius:13px}
+.focus-results .search-input input{font-size:15px;height:48px}
+.focus-results .search-input button{background:none;padding:6px;color:var(--green);display:grid;place-items:center}
+.focus-results .filter{font-size:11px;background:var(--paper);min-height:37px}
+.focus-job{margin:12px 0;padding:18px 16px;border:1px solid var(--line);border-radius:17px;background:var(--paper)}
+.focus-job h2{font-size:19px;letter-spacing:-.5px}
+.focus-job .company{font-size:12px;line-height:1.5}
+.focus-job .salary{font-size:22px;margin:15px 0 12px}
+.focus-job .job-meta{font-size:12px;line-height:1.5;gap:7px}
+.focus-job .secondary{font-size:13px;min-height:44px;border-radius:11px;margin-top:16px;background:#eff3e8;color:#3e5639;border-color:#dce4d3}
+.field input,.field select,.field textarea{font-size:15px;min-height:50px}.field>span{font-size:13px}.primary,.gold-button,.secondary{font-size:14px}.chip{font-size:12px;min-height:43px}.form-title{font-size:25px}.form-footer .primary{min-height:51px}
+.app[data-theme="dark"] .focus-search-panel{border-color:#465240;background:#303a2b}
+.app[data-theme="dark"] .focus-hero{background:linear-gradient(120deg,#34402d,#2c3728)}
+.app[data-theme="dark"] .focus-query>div,.app[data-theme="dark"] .focus-region{background:#283223;border-color:#4b5840;color:#c1cdb5}
+.app[data-theme="dark"] .focus-query input,.app[data-theme="dark"] .focus-region select{color:#e4e9d9}
+.app[data-theme="dark"] .focus-query input::placeholder{color:#a6b398}
+.app[data-theme="dark"] .focus-submit{background:#d2ddb9;color:#293322}
+.app[data-theme="dark"] .focus-action{background:#303a2b;border-color:#465240}
+.app[data-theme="dark"] .focus-action strong{color:#eef0e5}
+.app[data-theme="dark"] .focus-action-icon{background:#45543a;color:#d2dfbd}
+.app[data-theme="dark"] .focus-action-icon.hiring{background:#4c462f;color:#e1cb91}
+.app[data-theme="dark"] #bottom-nav{background:#2a3425;border-color:#465240}
+.app[data-theme="dark"] #bottom-nav button.active{color:#e1e8d0}
+.app[data-theme="dark"] #bottom-nav button.active svg{background:#46573a}
+.app[data-theme="dark"] .focus-job .secondary{background:#3b4b30;color:#d8e5c9;border-color:#4d6041}
+@media(max-width:800px){body{background:var(--bg)}.app-header{height:74px;padding-inline:21px;padding-top:max(14px,env(safe-area-inset-top))}#bottom-nav{padding-bottom:max(11px,env(safe-area-inset-bottom))}}
+@media(max-width:359px){.focus-home{padding-inline:15px}.app-header{padding-inline:17px}.focus-hero{height:183px}.focus-hero h1{font-size:30px;max-width:142px;padding-left:17px;padding-top:36px}.focus-portrait{right:-12px;width:204px;height:177px}.focus-portrait img{width:294px}.focus-form{padding:14px;gap:10px}.focus-query input{font-size:14px}.focus-action{padding:11px 12px;gap:10px;min-height:62px}.focus-action strong{font-size:14px}.focus-actions{margin-top:12px;gap:9px}#bottom-nav{padding-inline:10px}}
+@media(max-height:730px){.app-header{height:64px}.focus-home{padding-top:3px;padding-bottom:12px}.focus-hero{height:138px}.focus-hero h1{padding-top:25px;font-size:29px}.focus-portrait{height:133px;top:5px;width:190px;right:0}.focus-portrait img{width:224px}.focus-form{padding:12px 14px;gap:8px}.focus-query>span{font-size:12px}.focus-query{gap:6px}.focus-query input{height:42px;font-size:14px}.focus-region{min-height:42px}.focus-region select{padding:9px 0;font-size:13px}.focus-submit{min-height:45px;font-size:14px}.focus-actions{margin-top:10px;gap:8px}.focus-action{min-height:55px;padding:8px 12px}.focus-action-icon{width:31px;height:31px}.focus-action strong{font-size:14px}#bottom-nav{padding-top:5px;padding-bottom:7px}#bottom-nav button{min-height:43px;font-size:9px}#bottom-nav button svg{width:18px;height:18px;padding:4px 13px}}
+@media(prefers-reduced-motion:reduce){.focus-portrait .portrait-layer.active img{animation:none}}
+@media(max-height:620px){.app-header{height:60px}.focus-hero{height:106px}.focus-hero h1{padding-top:19px;font-size:26px}.focus-portrait{height:102px;width:173px;top:4px}.focus-portrait img{width:185px}.focus-form{padding:10px 13px;gap:8px}.focus-query>span{display:none}.focus-action{min-height:52px}.focus-action strong{font-size:13px}.focus-actions{gap:8px}#bottom-nav button{font-size:10px}}
+.focus-form input,.focus-form select,.focus-results input{font-size:16px}
+@media(max-width:359px){.focus-action strong{font-size:15px}}
+@media(max-height:730px){#bottom-nav button{font-size:10.5px;min-height:44px}}
