@@ -307,6 +307,13 @@
       "requires": [
         "20261012143000_osonish_queue_retention.sql"
       ]
+    },
+    {
+      "file": "20261027090000_main_employer_channel.sql",
+      "sha256": "8876fa23016e83b628adfef48b92d5c9030e0f500b4b7c93771bf3291e926070",
+      "requires": [
+        "20261010130000_channel_deliveries.sql"
+      ]
     }
   ]
 }

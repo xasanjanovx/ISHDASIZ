@@ -41,6 +41,16 @@ test('only a missing message is an idempotent removal, never a missing chat or a
 test('a legacy receipt cannot authorize deleting a post in an unrelated Telegram channel',async()=>{
  const call=jest.fn();await expect(removeChannelMessage(call,'@unrelated_channel',10)).rejects.toThrow('not configured');expect(call).not.toHaveBeenCalled();
 });
+test('local employer jobs use a durable reservation in @ishdasiz and can later be removed there',async()=>{
+ const job=snapshot({entity:{id:R,title:'Operator',source:'local',is_active:true,status:'active',channel_account_open:true}});
+ const receipt=post({channel_username:'@ishdasiz',message_id:11});
+ const h=reader([job,[],job,I,receipt,job]),t=transport();
+ expect((await reconcileChannelEntity(h.client,{...event,entity_type:'job'},t,async()=>{})).sent).toBe(1);
+ expect(h.requests[3].body.p_channel).toBe('@ishdasiz');expect(t.send.mock.calls[0][0]).toBe('@ishdasiz');
+ const removed=reader([hidden,[receipt],true]),u=transport();
+ expect((await reconcileChannelEntity(removed.client,{...event,entity_type:'job'},u,async()=>{})).deleted).toBe(1);
+ expect(u.call).toHaveBeenCalledWith('deleteMessage',{chat_id:'@ishdasiz',message_id:11});
+});
 test('publication uses current state even for an old deactivate event and requires a saved message receipt',async()=>{
  const h=reader([snapshot(),[],snapshot(),I,post({message_id:11}),snapshot()]),t=transport();const result=await reconcileChannelEntity(h.client,{...event,action:'deactivate'} as any,t,async()=>{});expect(result.sent).toBe(1);expect(h.requests[3].body).toMatchObject({p_token:T,p_event:E,p_channel:channel});expect(h.requests[4].body).toMatchObject({p_intent:I,p_outcome:'confirmed',p_message:11});expect(t.send).toHaveBeenCalledTimes(1);
 });

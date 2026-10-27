@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { readChannelSnapshot, removeChannelMessage } from './channel-state';
-import { buildJobChannelMessage, buildResumeChannelMessage, getChannelByRegionSlug, hashMessage } from './channel-sync';
+import { buildJobChannelMessage, buildResumeChannelMessage, getChannelByRegionSlug, getJobChannel, hashMessage } from './channel-sync';
 import { resumeUuid } from './owned-resumes';
 
 type Event = { id: string; lease_token: string; entity_type: 'job'|'resume'; entity_id: string };
@@ -22,7 +22,8 @@ export async function reconcileChannelEntity(client: SupabaseClient, event: Even
     if(loaded.data.length<500)break;
   }
   const posts=records.filter(post=>post.status==='active');
-  const channel=snapshot.available?getChannelByRegionSlug(snapshot.region_slug):null;
+  const targetChannel=(state:typeof snapshot)=>!state.available?null:event.entity_type==='job'?getJobChannel(state.entity,state.region_slug):getChannelByRegionSlug(state.region_slug);
+  const channel=targetChannel(snapshot);
   const update=async(post:any,status:'active'|'deleted'|'redacted',hash:string|null=null,current:any=null)=>{
     await guard();
     const saved=await client.rpc('ishdasiz_channel_receipt_update',{p_token:event.lease_token,p_event:event.id,p_receipt:post.id,p_status:status,p_hash:hash,p_snapshot:current}).abortSignal(AbortSignal.timeout(15000));
@@ -46,7 +47,7 @@ export async function reconcileChannelEntity(client: SupabaseClient, event: Even
   if(target?.message_hash===hash){summary.skipped=1;return summary;}
   const saveEdit=async(post:any)=>{
     const current=await readChannelSnapshot(client,event.entity_type,event.entity_id);
-    if(!current.available||getChannelByRegionSlug(current.region_slug)!==channel)await remove(post);
+    if(targetChannel(current)!==channel)await remove(post);
     else await update(post,'active',hash,current);
   };
   if(target){
@@ -87,6 +88,6 @@ export async function reconcileChannelEntity(client: SupabaseClient, event: Even
   if(!resumeUuid(receipt?.id)||receipt.channel_username!==channel||Number(receipt.message_id)!==sent.message_id||receipt.status!=='active')throw new ChannelDeliveryNeedsReview();
   summary.sent=1;
   const current=await readChannelSnapshot(client,event.entity_type,event.entity_id);
-  if(!current.available||getChannelByRegionSlug(current.region_slug)!==channel)await remove(receipt);
+  if(targetChannel(current)!==channel)await remove(receipt);
   return summary;
 }
