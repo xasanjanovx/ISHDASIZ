@@ -28,7 +28,31 @@ function freshHero(){
 function freshHome(){
   return `<section class="view fresh-home"><div class="fresh-home-title"><h1>Ish va <span>xodim</span><br>topish oson.</h1></div>${freshHero()}
   <div class="fresh-intents"><button data-fresh-intent="hiring">${icon('users')}<strong>Xodim topish</strong>${icon('right')}</button><button data-fresh-intent="career">${icon('search')}<strong>Ish topish</strong>${icon('right')}</button></div>
-  ${freshFree()}</section>`;
+  ${freshFree()}${freshHomeMore()}</section>`;
+}
+function freshHomeMore(){
+  const first=!state.freeResumeUsed;
+  return `<div class="fresh-home-more">
+    <div class="fresh-home-create" aria-label="Saytda bepul e’lon yaratish">
+      <button data-nav="vacancy"><span>${icon('briefcase')}</span><strong>Vakansiya joylash</strong><small>Saytda bepul</small>${icon('right')}</button>
+      <button data-nav="resume"><span>${icon('file')}</span><strong>Rezyume yaratish</strong><small>Saytda bepul</small>${icon('right')}</button>
+    </div>
+    <section class="fresh-channel-offer" aria-labelledby="home-channel-title">
+      <div class="fresh-channel-label">${icon('send')}<span>@ishdasiz · Telegram kanali</span></div>
+      <h2 id="home-channel-title">${first?'Birinchi rezyume<br>kanalda <span>bepul.</span>':'Rezyumeni<br>kanalga joylang.'}</h2>
+      <div class="fresh-channel-art" aria-hidden="true">
+        <svg class="fresh-channel-route" viewBox="0 0 300 130"><path d="M20 110C15 30 110 135 185 48S245 25 280 30"/><path class="fresh-channel-route-pulse" pathLength="1" d="M20 110C15 30 110 135 185 48S245 25 280 30"/></svg>
+        <div class="fresh-channel-ticket"><span class="fresh-channel-ticket-icon">${icon('file')}</span><div><b>Rezyumengiz</b><small>@ishdasiz kanalida</small></div><span class="fresh-channel-ticket-check">${icon('check')}</span></div>
+        <div class="fresh-channel-stamp">${first?'<b>0</b><small>so‘m</small>':icon('send')}</div>
+        <span class="fresh-channel-plane">${icon('send')}</span>
+      </div>
+      <p>${first?'Rezyumeni to‘ldiring va @ishdasiz kanaliga joylang.':'Birinchi bepul joylashdan foydalandingiz. Keyingi rezyume uchun tarifni tanlang.'}</p>
+      <button class="primary full" ${first?'data-nav="resume"':'data-home-plans="resume"'}>${first?'Rezyumeni bepul joylash':'Rezyume tariflari'}${icon('right')}</button>
+      <div class="fresh-channel-terms">${first?'Keyingi rezyume va vakansiyalar — pullik.':'Saytda rezyume joylash doim bepul.'}</div>
+      <button class="fresh-channel-vacancy" data-home-plans="vacancy">Vakansiya tariflari${icon('right')}</button>
+    </section>
+    <div class="fresh-home-shortcuts"><button data-nav="listings">${icon('file')}<span>E’lonlarim<small>Ko‘rish va boshqarish</small></span>${icon('right')}</button><button data-nav="profile">${icon('user')}<span>Shaxsiy kabinet<small>Bitta profil, barcha imkoniyatlar</small></span>${icon('right')}</button></div>
+  </div>`;
 }
 function freshSearch(){
   const resumes=state.searchType==='resumes';
@@ -102,7 +126,7 @@ modal=function(html){modalTrigger=document.activeElement;freshBaseModal(html);ap
 closeModal=function(){freshBaseClose();app.classList.remove('sheet-open');$('#content').inert=false;$('.app-header').inert=false;if(modalTrigger?.isConnected)modalTrigger.focus();modalTrigger=null;scheduleFreshScene()};
 navigate=function(screen,options={}){freshBaseNavigate(screen,options);if(freshCampaignParams.length){const url=new URL(location.href);for(const [key,value]of freshCampaignParams)url.searchParams.set(key,value);history.replaceState(null,'',url)}};
 render=function(){freshBaseRender();clearInterval(sceneTimer);$('#bottom-nav').replaceChildren();$('#bottom-nav').hidden=true;app.dataset.screen=state.screen;app.classList.toggle('motion-disabled',!freshMotion);$('#top-marquee').hidden=state.screen!=='home';app.classList.add('fresh-ready');scheduleFreshScene()};
-function scheduleFreshScene(){clearTimeout(freshTimer);if(state.screen!=='home'||!freshMotion||freshReduced.matches||document.hidden||app.classList.contains('sheet-open')||app.classList.contains('focus-paused'))return;freshTimer=setTimeout(()=>{setFreshScene((state.scene+1)%freshScenes.length);scheduleFreshScene()},4800)}
+function scheduleFreshScene(){clearTimeout(freshTimer);const paused=document.hidden||app.classList.contains('sheet-open')||app.classList.contains('focus-paused');app.classList.toggle('home-motion-paused',paused);if(state.screen!=='home'||!freshMotion||freshReduced.matches||paused)return;freshTimer=setTimeout(()=>{setFreshScene((state.scene+1)%freshScenes.length);scheduleFreshScene()},4800)}
 function setFreshScene(index){state.scene=(index+freshScenes.length)%freshScenes.length;const stage=$('.fresh-stage');if(!stage)return;stage.dataset.scene=String(state.scene);stage.style.setProperty('--scene-color',freshScenes[state.scene].color);stage.querySelector('.fresh-word').innerHTML=letterWord(freshScenes[state.scene].name);stage.querySelectorAll('.fresh-portrait').forEach((el,i)=>el.classList.toggle('active',i===state.scene));stage.querySelector('.fresh-scene-count').innerHTML=String(state.scene+1).padStart(2,'0')+' <small>/ 08</small>'}
 
 Object.assign(screenRender,{home:freshHome,search:freshSearch,vacancy:freshForm,resume:freshForm,profile:freshProfile,listings:freshListings,plans:freshTariffs,auth:freshAuth,settings:freshSettings,preview:freshPreview});
@@ -111,6 +135,7 @@ $('#top-marquee').innerHTML=`<div class="fresh-marquee-track" aria-hidden="true"
 document.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button)return;
   if(button.hasAttribute('data-fresh-menu')){freshMenu();return}
+  if(button.dataset.homePlans){state.orderPaid=false;navigate('plans',{kind:button.dataset.homePlans});return}
   if(button.dataset.freshIntent){state.searchType=button.dataset.freshIntent==='hiring'?'resumes':'jobs';state.query='';state.region='Butun O‘zbekiston';window.dispatchEvent(new CustomEvent('ishdasiz:intent',{detail:{intent:button.dataset.freshIntent,audience:freshCampaign||'all'}}));navigate('search');return}
   if(button.hasAttribute('data-fresh-prev')||button.hasAttribute('data-fresh-next')){setFreshScene(state.scene+(button.hasAttribute('data-fresh-next')?1:-1));scheduleFreshScene();return}
   if(button.dataset.freshList){state.listTab=button.dataset.freshList;navigate('listings');return}

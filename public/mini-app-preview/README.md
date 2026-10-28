@@ -6,7 +6,9 @@ Open through HTTP: `python -m http.server 8773 --bind 127.0.0.1`, then http://12
 
 The top marquee, eight site professions, cobalt actions, new menu/profile/forms/results/tariffs and conspicuous lime «0 so‘m» offer replace the old presentation. There is no standalone pause button; motion preferences are in the settings page. Read `DESIGN.md` for applied rules and sources.
 
-Runtime: `index.html`, `styles.css`, `fresh.css`, `fresh.js`, `app.js`, `scheduling.js`, `telegram.js`, the original eight profession images, logo and bundled fonts. The old WebGL magnifier and its library are not loaded or needed by this version.
+Runtime: `index.html`, `styles.css`, `fresh.css`, `home-publishing.css`, `fresh.js`, `app.js`, `scheduling.js`, `telegram.js`, the original eight profession images, logo and bundled fonts. The old WebGL magnifier and its library are not loaded or needed by this version.
+
+The homepage continues with direct vacancy/resume creation, an animated **first channel resume free** offer, and listing/profile shortcuts. Vacancy and subsequent resume channel prices remain paid. The free channel action disappears after the local demo eligibility is used.
 
 Validation:
 
@@ -14,6 +16,8 @@ Validation:
 - `audit_fresh.py`: normal/large text contrast in both themes on eight main pages; channel preview eligibility; campaign parameters; Telegram fullscreen, fallback and insets through a synthetic host.
 - `review_fresh.py`: screenshots and runtime/overflow checks for 13 routes.
 - `record_fresh.py`: `fresh-eight-scenes.mp4`, a 19-second real browser recording demonstrating all eight scenes with manual advancement.
+- `verify_home_publishing.py`: the homepage continuation in eight sizes and both themes, contrast/touch targets, creation/tariff/profile routes, free eligibility and motion preferences.
+- `record_home_publishing.py`: `home-publishing.mp4`, a real browser recording of the homepage continuation and channel animation.
 
 The source prototype remains local/demo-only for accounts, payments and publication. It is uploaded as a noindex draft preview in the site repository, not connected to the production @IshdasizBot workflow. Any Vercel preview created by the GitHub integration may require the owner's Vercel login.
 
