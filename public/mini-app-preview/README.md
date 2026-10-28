@@ -1,24 +1,18 @@
-# ISHDASIZ Fresh V10
+# ISHDASIZ Studio V11
 
-A complete visual replacement for the rejected Impact design, covering the homepage and supporting pages.
+The latest design preview replaces Fresh V10. Vacancy and resume publication are the two dominant actions in the first viewport. The original eight professions occupy a supporting animated strip. A shared new Onest type scale, material-inspired controls, two themes, forms with a persistent action shelf, search, profile, listings, tariffs, calendar, authentication and administrative screens replace the old component presentation.
 
-Open through HTTP: `python -m http.server 8773 --bind 127.0.0.1`, then http://127.0.0.1:8773/ . `review.html` provides an interactive overview of the main screens.
+Run `python -m http.server 8775 --bind 127.0.0.1` and open http://127.0.0.1:8775/ . `review.html` provides an interactive 13-screen gallery. Sources, the pre-build design plan and critique are in `DESIGN.md`.
 
-The top marquee, eight site professions, cobalt actions, new menu/profile/forms/results/tariffs and conspicuous lime «0 so‘m» offer replace the old presentation. There is no standalone pause button; motion preferences are in the settings page. Read `DESIGN.md` for applied rules and sources.
+Runtime: `index.html`, `styles.css`, `studio.css`, `studio.js`, `app.js`, `scheduling.js`, `telegram.js`, original ISHDASIZ logo, original eight profession WebP images and the bundled Onest font. There is no external 3D dependency; the briefcase/resume elements are native layered CSS objects with real HTML labels and bounded pointer response.
 
-Runtime: `index.html`, `styles.css`, `fresh.css`, `home-publishing.css`, `fresh.js`, `app.js`, `scheduling.js`, `telegram.js`, the original eight profession images, logo and bundled fonts. The old WebGL magnifier and its library are not loaded or needed by this version.
+Validation scripts remain in the local design workspace:
 
-The homepage continues with direct vacancy/resume creation, an animated **first channel resume free** offer, and listing/profile shortcuts. Vacancy and subsequent resume channel prices remain paid. The free channel action disappears after the local demo eligibility is used.
+- `verify_studio.py`: eight viewport sizes, prominent posting actions, thirteen routes in four sizes/both themes, overflow, persistent form actions, all profession assets and text contrast.
+- `verify_studio_flows.py`: all six vacancy and five resume steps, search/detail, exact prices, scheduling navigation, unknown-phone registration, first-resume eligibility, live motion, settings and modal isolation.
+- `review_studio.py` and `capture_studio.py`: actual browser screenshots of all routes and a gallery/desktop/dark overview.
+- `record_studio.py`: `studio-demo.mp4`, a real recording of creation, forms, channel offer, menu and profile.
 
-Validation:
+This is a noindex interactive design prototype. It does not create real accounts, send SMS, verify/charge payments, generate media, moderate text, reserve production times, publish or broadcast. The production integration remains unfinished in the draft PR. Website listings stay free; the first channel resume is free, channel vacancies and subsequent resumes use the confirmed paid tariffs. No fake historical prices or fabricated audience metrics are used. Administrative counts are marked demonstration data. Telegram fullscreen/insets use the existing host integration; a real-device check follows production integration.
 
-- `verify_fresh.py`: eight phone/tablet/desktop/landscape sizes, all eight profession images, top ticker, first-viewport free offer, paired actions, search, menu/profile, confirmed prices, motion/theme persistence, all form steps and registration prompt. No API/SMS/payment requests occur.
-- `audit_fresh.py`: normal/large text contrast in both themes on eight main pages; channel preview eligibility; campaign parameters; Telegram fullscreen, fallback and insets through a synthetic host.
-- `review_fresh.py`: screenshots and runtime/overflow checks for 13 routes.
-- `record_fresh.py`: `fresh-eight-scenes.mp4`, a 19-second real browser recording demonstrating all eight scenes with manual advancement.
-- `verify_home_publishing.py`: the homepage continuation in eight sizes and both themes, contrast/touch targets, creation/tariff/profile routes, free eligibility and motion preferences.
-- `record_home_publishing.py`: `home-publishing.mp4`, a real browser recording of the homepage continuation and channel animation.
-
-The source prototype remains local/demo-only for accounts, payments and publication. It is uploaded as a noindex draft preview in the site repository, not connected to the production @IshdasizBot workflow. Any Vercel preview created by the GitHub integration may require the owner's Vercel login.
-
-Assets: original ISHDASIZ logo and eight profession WebP images; Inter Variable and its SIL OFL in `assets/inter-LICENSE.txt`; original Onest font for the base stylesheet. No credentials are included. UI UX Pro Max attribution is retained in the published design-system folder.
+No administrator credentials, environment files or private inventory documents belong in this artifact or its public preview. Administrator access notes are stored separately outside all Git repositories. No passwords were reset and no recovery messages were sent.

@@ -1,5 +1,5 @@
 /* Fresh UI prototype. All search/form/order data remains local demonstration data. */
-state.layout='fresh';state.theme=localStorage.getItem('ishdasiz-fresh-theme')||'light';state.region='Butun O‘zbekiston';
+state.layout='studio';state.theme=localStorage.getItem('ishdasiz-fresh-theme')||'light';state.region='Butun O‘zbekiston';
 const freshReduced=matchMedia('(prefers-reduced-motion:reduce)');
 let freshMotion=localStorage.getItem('ishdasiz-fresh-motion')!=='off',freshTimer,modalTrigger;
 const freshColors=['#4668ee','#e99356','#39a9be','#7960de','#e98676','#bd77af','#5da58c','#568acb'];
@@ -25,34 +25,20 @@ function freshHero(){
     <div class="fresh-scene-controls"><span class="fresh-scene-count">${String(state.scene+1).padStart(2,'0')} <small>/ 08</small></span><button data-fresh-prev aria-label="Oldingi kasb">${icon('back')}</button><button data-fresh-next aria-label="Keyingi kasb">${icon('right')}</button></div>
   </div>`;
 }
-function freshHome(){
-  return `<section class="view fresh-home"><div class="fresh-home-title"><h1>Ish va <span>xodim</span><br>topish oson.</h1></div>${freshHero()}
-  <div class="fresh-intents"><button data-fresh-intent="hiring">${icon('users')}<strong>Xodim topish</strong>${icon('right')}</button><button data-fresh-intent="career">${icon('search')}<strong>Ish topish</strong>${icon('right')}</button></div>
-  ${freshFree()}${freshHomeMore()}</section>`;
+function studioObject(kind){
+  return kind==='vacancy'?'<span class="studio-case" aria-hidden="true"><i class="case-handle"></i><i class="case-body"></i><i class="case-flap"></i><i class="case-lock"></i></span>':'<span class="studio-document" aria-hidden="true"><i class="document-back"></i><i class="document-page"><b></b><em></em><em></em><em></em></i><i class="document-seal">'+icon('check')+'</i></span>';
 }
-function freshHomeMore(){
+function studioCreateTiles(){
+  return `<div class="studio-create" aria-label="E’lon joylash"><button class="studio-create-tile hiring" data-nav="vacancy"><span class="studio-tile-top"><small>Xodim kerakmi?</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('vacancy')}<strong>Vakansiya<br>joylash</strong><span class="studio-tile-bottom"><small>Saytda bepul</small>${icon('right')}</span></button><button class="studio-create-tile career" data-nav="resume"><span class="studio-tile-top"><small>Ish izlayapsizmi?</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('resume')}<strong>Rezyume<br>joylash</strong><span class="studio-tile-bottom"><small>Saytda bepul</small>${icon('right')}</span></button></div>`;
+}
+function freshHome(){
   const first=!state.freeResumeUsed;
-  return `<div class="fresh-home-more">
-    <div class="fresh-home-create" aria-label="Saytda bepul e’lon yaratish">
-      <button data-nav="vacancy"><span>${icon('briefcase')}</span><strong>Vakansiya joylash</strong><small>Saytda bepul</small>${icon('right')}</button>
-      <button data-nav="resume"><span>${icon('file')}</span><strong>Rezyume yaratish</strong><small>Saytda bepul</small>${icon('right')}</button>
-    </div>
-    <section class="fresh-channel-offer" aria-labelledby="home-channel-title">
-      <div class="fresh-channel-label">${icon('send')}<span>@ishdasiz · Telegram kanali</span></div>
-      <h2 id="home-channel-title">${first?'Birinchi rezyume<br>kanalda <span>bepul.</span>':'Rezyumeni<br>kanalga joylang.'}</h2>
-      <div class="fresh-channel-art" aria-hidden="true">
-        <svg class="fresh-channel-route" viewBox="0 0 300 130"><path d="M20 110C15 30 110 135 185 48S245 25 280 30"/><path class="fresh-channel-route-pulse" pathLength="1" d="M20 110C15 30 110 135 185 48S245 25 280 30"/></svg>
-        <div class="fresh-channel-ticket"><span class="fresh-channel-ticket-icon">${icon('file')}</span><div><b>Rezyumengiz</b><small>@ishdasiz kanalida</small></div><span class="fresh-channel-ticket-check">${icon('check')}</span></div>
-        <div class="fresh-channel-stamp">${first?'<b>0</b><small>so‘m</small>':icon('send')}</div>
-        <span class="fresh-channel-plane">${icon('send')}</span>
-      </div>
-      <p>${first?'Rezyumeni to‘ldiring va @ishdasiz kanaliga joylang.':'Birinchi bepul joylashdan foydalandingiz. Keyingi rezyume uchun tarifni tanlang.'}</p>
-      <button class="primary full" ${first?'data-nav="resume"':'data-home-plans="resume"'}>${first?'Rezyumeni bepul joylash':'Rezyume tariflari'}${icon('right')}</button>
-      <div class="fresh-channel-terms">${first?'Keyingi rezyume va vakansiyalar — pullik.':'Saytda rezyume joylash doim bepul.'}</div>
-      <button class="fresh-channel-vacancy" data-home-plans="vacancy">Vakansiya tariflari${icon('right')}</button>
-    </section>
-    <div class="fresh-home-shortcuts"><button data-nav="listings">${icon('file')}<span>E’lonlarim<small>Ko‘rish va boshqarish</small></span>${icon('right')}</button><button data-nav="profile">${icon('user')}<span>Shaxsiy kabinet<small>Bitta profil, barcha imkoniyatlar</small></span>${icon('right')}</button></div>
-  </div>`;
+  return `<section class="view studio-home"><div class="studio-home-heading"><h1>Ish va xodim<br> topish oson.</h1><p>Kerakli insonlar.<br>Yangi imkoniyatlar.</p></div>${studioCreateTiles()}
+  <div class="studio-find" aria-label="Qidirish"><button data-fresh-intent="hiring">${icon('users')}<span>Xodim topish</span>${icon('right')}</button><button data-fresh-intent="career">${icon('search')}<span>Ish topish</span>${icon('right')}</button></div>
+  <div class="studio-professions"><div class="studio-profession-intro"><small>Har bir kasb uchun</small><b>O‘z joyingizni<br>toping.</b></div>${freshHero()}</div>
+  <section class="studio-channel" aria-labelledby="channel-title"><div class="studio-channel-heading"><span class="studio-telegram-mark">${icon('send')}</span><span>@ishdasiz<small>Telegram kanali</small></span><span class="studio-channel-tag">${first?'1-rezyume':'Rezyumelar'}</span></div><div class="studio-channel-body"><h2 id="channel-title">${first?'Birinchi rezyume.<br>Kanalda ham bepul.':'Rezyumeni<br>kanalga joylang.'}</h2><span class="studio-channel-price" aria-hidden="true">${first?'<b>0</b><small>so‘m</small>':icon('send')}</span></div><p>${first?'Rezyumeni to‘ldiring. Ish beruvchilar bilan kanalda ham uchrashing.':'Keyingi rezyume uchun mos tarifni tanlang.'}</p><button class="studio-channel-action" ${first?'data-nav="resume"':'data-home-plans="resume"'}><span>${first?'Bepul rezyume joylash':'Rezyume tariflari'}</span><i>${icon('right')}</i></button><small class="studio-channel-terms">${first?'Faqat birinchi rezyume bepul. Vakansiyalar va keyingi rezyumelar — tarif bo‘yicha.':'Saytda barcha rezyumelar doim bepul.'}</small></section>
+  <div class="studio-home-links"><button data-nav="listings">${icon('file')}<span>Mening e’lonlarim</span>${icon('right')}</button><button data-nav="profile">${icon('user')}<span>Shaxsiy kabinet</span>${icon('right')}</button></div>
+  </section>`;
 }
 function freshSearch(){
   const resumes=state.searchType==='resumes';
@@ -62,7 +48,7 @@ function freshSearch(){
     <div class="tabs"><button class="${!resumes?'active':''}" data-search-type="jobs">Vakansiyalar</button><button class="${resumes?'active':''}" data-search-type="resumes">Rezyumelar</button></div>
     <form id="results-search" class="fresh-search-form"><label>${icon('search')}<input name="query" aria-label="Qidiruv" placeholder="Kasb yoki kompaniya" value="${esc(state.query)}" autocomplete="off"></label><button type="submit" aria-label="Qidirish">${icon('right')}</button></form>
     <div class="fresh-search-tools"><button data-filter="region">${icon('pin')}${esc(state.region)}</button><button data-filter="all">${icon('filter')}Filtr</button></div>
-    <button class="fresh-inline-create" data-nav="${resumes?'vacancy':'resume'}">${icon('plus')}<span>${resumes?'Vakansiya joylash':'Rezyume yaratish'}<small>Saytda bepul</small></span>${icon('right')}</button>
+    <button class="fresh-inline-create" data-nav="${resumes?'vacancy':'resume'}">${icon('plus')}<span>${resumes?'Vakansiya joylash':'Rezyume joylash'}<small>Saytda bepul</small></span>${icon('right')}</button>
     <p class="fresh-result-caption">${resumes?'Nomzod namunasi':'Vakansiya namunalari'}</p>
     ${resumes?`<article class="fresh-result-card"><div class="fresh-card-header"><span class="fresh-initial">A</span><div><h2>Sotuvchi</h2><p>Namuna rezyume · Toshkent</p></div></div><p class="fresh-salary">4 mln so‘mdan</p><div class="fresh-tags"><span>1–3 yil tajriba</span><span>To‘liq kun</span></div><button class="primary full" data-contact>${icon('phone')}${state.loggedIn?'Kontaktni ko‘rish':'Kontakt uchun kirish'}</button><p class="fresh-private">${icon('shield')}Telefon faqat kirganlarga ko‘rinadi</p></article>`:
     matches.map((job,i)=>`<article class="fresh-result-card" style="--card-index:${i}"><div class="fresh-card-header"><span class="fresh-company-icon">${icon('briefcase')}</span><div><p>${job.company}</p><h2>${job.title}</h2></div><button class="fresh-save" data-save aria-label="Vakansiyani saqlash">${icon('bookmark')}</button></div><p class="fresh-salary">${job.salary}</p><p class="fresh-location">${icon('pin')}${job.region}</p><div class="fresh-tags"><span>${job.mode}</span><span>${job.experience}</span></div><button class="secondary full" data-job="${jobs.indexOf(job)}">Batafsil ${icon('right')}</button></article>`).join('')||`<div class="fresh-empty">${icon('search')}<h2>Hozircha topilmadi</h2><p>Boshqa so‘z yoki hududni tanlang.</p><button class="secondary full" data-fresh-reset>Barcha vakansiyalar</button></div>`}
@@ -70,17 +56,10 @@ function freshSearch(){
 }
 function freshForm(){
   const steps=formSteps[state.kind];state.step=Math.min(state.step,steps.length-1);const [heading,subtitle]=steps[state.step];
-  return `<section class="view fresh-form">${freshTitle(state.kind==='vacancy'?'Vakansiya yaratish':'Rezyume yaratish')}
-    <div class="fresh-form-progress"><b>Saytda bepul</b><span>${state.step+1} / ${steps.length} qadam</span></div><div class="step-track">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div>
-    <div class="fresh-question"><h2 class="form-title">${heading}</h2><p>${subtitle}</p></div><div class="form-surface"><div class="fields">${formContent()}</div></div>
-    <p class="saved-row">${icon('check')}Ma’lumotlaringiz shu shaklda saqlanadi</p>
-    <div class="form-footer"><button class="secondary" data-step="back">Orqaga</button><button class="primary" data-step="next">${state.step===steps.length-1?'Bepul e’lon qilish':'Davom etish'} ${icon('right')}</button></div></section>`;
+  return `<section class="view fresh-form">${freshTitle(state.kind==='vacancy'?'Vakansiya joylash':'Rezyume joylash')}<div class="studio-form-meta"><span class="studio-step-number">${state.step+1}<small>/${steps.length}</small></span><div><b>${state.kind==='vacancy'?'Yangi vakansiya':'Yangi rezyume'}</b><small>Saytga joylash bepul</small></div><span class="studio-form-free">${icon('check')}Bepul</span></div><div class="step-track" aria-label="${state.step+1} / ${steps.length} qadam">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div><div class="fresh-question"><h2 class="form-title">${heading}</h2><p>${subtitle}</p></div><div class="form-surface"><div class="fields">${formContent()}</div></div><p class="saved-row">${icon('shield')}Ma’lumotlaringiz shu shaklda saqlanadi</p><div class="form-footer"><button class="secondary" data-step="back">${icon('back')}<span>Orqaga</span></button><button class="primary" data-step="next">${state.step===steps.length-1?'Bepul joylash':'Davom etish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
 }
 function freshProfile(){
-  return `<section class="view fresh-profile">${freshTitle('Shaxsiy kabinet')}
-    <div class="fresh-account-card"><span class="fresh-account-mark">${icon('user')}</span><h2>${state.loggedIn?esc(state.form.resume.name||'Xush kelibsiz!'):'Barcha e’lonlaringiz,\nbitta joyda.'}</h2><p>${state.loggedIn?esc(state.phone):'Ish izlash va xodim topish uchun yagona profil.'}</p>${state.loggedIn?'':`<button class="primary full" data-nav="auth">Profilga kirish ${icon('right')}</button>`}</div>
-    <div class="fresh-profile-actions"><button data-fresh-list="resumes"><span>${icon('file')}</span><strong>Rezyumelarim</strong><small>Yaratish va boshqarish</small>${icon('right')}</button><button data-fresh-list="jobs"><span>${icon('briefcase')}</span><strong>Vakansiyalarim</strong><small>Joylash va boshqarish</small>${icon('right')}</button></div>
-    <div class="fresh-menu-list">${[['wallet','Kanal tariflari','plans'],['bell','Bildirishnomalar','notifications'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button ${route==='notifications'?'data-notifications':`data-nav="${route}"`}>${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>${freshFree(true)}</section>`;
+  return `<section class="view fresh-profile">${freshTitle('Shaxsiy kabinet')}<div class="studio-identity"><span class="studio-identity-avatar">${state.loggedIn?esc((state.form.resume.name||'I').slice(0,1)):icon('user')}<i>${icon('check')}</i></span><div><h2>${state.loggedIn?esc(state.form.resume.name||'Xush kelibsiz'):'Sizning profilingiz'}</h2><p>${state.loggedIn?esc(state.phone):'Ish va xodim uchun bitta profil'}</p></div></div>${state.loggedIn?'':`<button class="primary full studio-profile-login" data-nav="auth">${icon('phone')}Profilga kirish<span class="studio-button-end">${icon('right')}</span></button>`}<div class="studio-section-label"><h2>Yangi e’lon</h2><span>Saytda bepul</span></div>${studioCreateTiles()}<div class="studio-section-label"><h2>Mening e’lonlarim</h2></div><div class="studio-profile-list"><button data-fresh-list="resumes"><span class="studio-list-mark resume">${icon('file')}</span><span><b>Rezyumelarim</b><small>Ko‘rish va boshqarish</small></span>${icon('right')}</button><button data-fresh-list="jobs"><span class="studio-list-mark vacancy">${icon('briefcase')}</span><span><b>Vakansiyalarim</b><small>Ko‘rish va boshqarish</small></span>${icon('right')}</button></div><div class="fresh-menu-list">${[['wallet','Kanal tariflari','plans'],['bell','Bildirishnomalar','notifications'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button ${route==='notifications'?'data-notifications':`data-nav="${route}"`}>${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div></section>`;
 }
 function freshListings(){
   const vacancy=state.form.vacancy,resume=state.form.resume;
@@ -116,14 +95,15 @@ function freshPreview(){
     <p class="subtext" style="margin:20px 0">${eligible?'Matn va kontaktlarni tekshiring. Tasdiqlashdan so‘ng kanalga yuborish bosqichi ochiladi.':'Kanalga chiqarish uchun avval tarif va vaqtni tanlang.'}</p>
     ${eligible?`<button class="primary full" data-publish-channel>Kanalga yuborish ${icon('send')}</button>`:`<button class="primary full" data-nav="plans">Tarifni tanlash ${icon('right')}</button>`}</section>`;
 }
+
 function freshMenu(){
-  modal(`<div class="fresh-sheet-title"><h2>Menyu</h2><p>Kerakli bo‘limni tanlang</p></div><div class="fresh-menu-list">${[['home','Asosiy sahifa','home'],['user','Shaxsiy kabinet','profile'],['file','Mening e’lonlarim','listings'],['plus','Vakansiya joylash','vacancy'],['edit','Rezyume yaratish','resume'],['wallet','Kanal tariflari','plans'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button data-nav="${route}">${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>`);
+  modal(`<div class="fresh-sheet-title"><h2>Menyu</h2><p>Bugun nimadan boshlaymiz?</p></div><div class="studio-menu-create"><button data-nav="vacancy">${icon('briefcase')}<span>Vakansiya joylash</span>${icon('plus')}</button><button data-nav="resume">${icon('file')}<span>Rezyume joylash</span>${icon('plus')}</button></div><div class="fresh-menu-list">${[['home','Asosiy sahifa','home'],['user','Shaxsiy kabinet','profile'],['file','Mening e’lonlarim','listings'],['wallet','Kanal tariflari','plans'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button data-nav="${route}">${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>`);
   $('#modal-root .modal').setAttribute('aria-label','Menyu');
 }
 
 const freshBaseRender=render,freshBaseNavigate=navigate,freshBaseModal=modal,freshBaseClose=closeModal;
-modal=function(html){modalTrigger=document.activeElement;freshBaseModal(html);app.classList.add('sheet-open');$('#content').inert=true;$('.app-header').inert=true;scheduleFreshScene()};
-closeModal=function(){freshBaseClose();app.classList.remove('sheet-open');$('#content').inert=false;$('.app-header').inert=false;if(modalTrigger?.isConnected)modalTrigger.focus();modalTrigger=null;scheduleFreshScene()};
+modal=function(html){modalTrigger=document.activeElement;freshBaseModal(html);app.classList.add('sheet-open');$('#content').inert=true;$('.app-header').inert=true;$('#action-bar').inert=true;scheduleFreshScene()};
+closeModal=function(){freshBaseClose();app.classList.remove('sheet-open');$('#content').inert=false;$('.app-header').inert=false;$('#action-bar').inert=false;if(modalTrigger?.isConnected)modalTrigger.focus();modalTrigger=null;scheduleFreshScene()};
 navigate=function(screen,options={}){freshBaseNavigate(screen,options);if(freshCampaignParams.length){const url=new URL(location.href);for(const [key,value]of freshCampaignParams)url.searchParams.set(key,value);history.replaceState(null,'',url)}};
 render=function(){freshBaseRender();clearInterval(sceneTimer);$('#bottom-nav').replaceChildren();$('#bottom-nav').hidden=true;app.dataset.screen=state.screen;app.classList.toggle('motion-disabled',!freshMotion);$('#top-marquee').hidden=state.screen!=='home';app.classList.add('fresh-ready');scheduleFreshScene()};
 function scheduleFreshScene(){clearTimeout(freshTimer);const paused=document.hidden||app.classList.contains('sheet-open')||app.classList.contains('focus-paused');app.classList.toggle('home-motion-paused',paused);if(state.screen!=='home'||!freshMotion||freshReduced.matches||paused)return;freshTimer=setTimeout(()=>{setFreshScene((state.scene+1)%freshScenes.length);scheduleFreshScene()},4800)}
@@ -144,8 +124,27 @@ document.addEventListener('click',event=>{
   if(button.hasAttribute('data-fresh-motion')){freshMotion=!freshMotion;localStorage.setItem('ishdasiz-fresh-motion',freshMotion?'on':'off');render();return}
   if(button.hasAttribute('data-fresh-language')){$('#language').click();return}
 });
-document.addEventListener('focusin',event=>{if(event.target.closest('.fresh-home')&&event.target.matches(':focus-visible')){app.classList.add('focus-paused');scheduleFreshScene()}});
-document.addEventListener('focusout',event=>{if(!event.relatedTarget?.closest('.fresh-home')){app.classList.remove('focus-paused');scheduleFreshScene()}});
+document.addEventListener('focusin',event=>{if(event.target.closest('.studio-home')&&event.target.matches(':focus-visible')){app.classList.add('focus-paused');scheduleFreshScene()}});
+document.addEventListener('focusout',event=>{if(!event.relatedTarget?.closest('.studio-home')){app.classList.remove('focus-paused');scheduleFreshScene()}});
 document.addEventListener('visibilitychange',scheduleFreshScene);freshReduced.addEventListener('change',scheduleFreshScene);
 window.ISHDASIZFresh={state,navigate,setFreshScene,get motion(){return freshMotion}};
 navigate(state.screen,{step:state.step});
+
+const studioBaseRender=render;
+render=function(){
+  studioBaseRender();
+  if(['vacancy','resume'].includes(state.screen)){
+    const footer=document.querySelector('#content .form-footer');
+    if(footer)document.querySelector('#action-bar').append(footer);
+  }
+};
+render();
+const studioPointer=matchMedia('(hover:hover) and (pointer:fine)');
+document.addEventListener('pointermove',event=>{
+  if(!studioPointer.matches||!freshMotion||freshReduced.matches)return;
+  const tile=event.target.closest('.studio-create-tile');if(!tile)return;
+  const box=tile.getBoundingClientRect();
+  tile.style.setProperty('--tilt-x',`${(event.clientY-box.top-box.height/2)/box.height*-6}deg`);
+  tile.style.setProperty('--tilt-y',`${(event.clientX-box.left-box.width/2)/box.width*6}deg`);
+});
+document.addEventListener('pointerout',event=>{const tile=event.target.closest('.studio-create-tile');if(tile&&!tile.contains(event.relatedTarget)){tile.style.removeProperty('--tilt-x');tile.style.removeProperty('--tilt-y')}});
