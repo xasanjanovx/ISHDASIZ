@@ -17,7 +17,11 @@
     safely(()=>tg.onEvent?.('fullscreenFailed',()=>{safely(()=>tg.expand());sync()}));
     const supported=typeof tg.isVersionAtLeast==='function'?tg.isVersionAtLeast('8.0'):parseFloat(tg.version)>=8;
     if(supported&&!tg.isFullscreen)safely(()=>tg.requestFullscreen?.());
-    safely(()=>tg.setHeaderColor('#eeede6'));safely(()=>tg.setBackgroundColor('#eeede6'));
+    let lastColor='';
+    const syncTheme=()=>{const color=getComputedStyle(app).getPropertyValue('--bg').trim();if(!/^#[0-9a-f]{6}$/i.test(color)||color===lastColor)return;lastColor=color;safely(()=>tg.setHeaderColor(color));safely(()=>tg.setBackgroundColor(color))};
+    syncTheme();
+    const themeObserver=new MutationObserver(syncTheme);themeObserver.observe(app,{attributes:true,attributeFilter:['data-theme']});
+    window.addEventListener('pagehide',()=>themeObserver.disconnect(),{once:true});
   };
   document.querySelector('script[src="https://telegram.org/js/telegram-web-app.js"]')?.addEventListener('load',start);
   window.addEventListener('pageshow',start);start();

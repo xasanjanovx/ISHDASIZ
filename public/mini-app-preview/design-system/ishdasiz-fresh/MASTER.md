@@ -6,10 +6,10 @@
 
 ---
 
-**Project:** ISHDASIZ Impact
-**Generated:** 2026-10-27 17:51:49
+**Project:** ISHDASIZ Fresh
+**Generated:** 2026-10-28 08:46:45
 **Category:** Job Board/Recruitment
-**Design Dials:** Variance 8/10 (Bold / Asymmetric) | Motion 8/10 (Complex) | Density 4/10 (Standard)
+**Design Dials:** Variance 6/10 (Balanced / Modern) | Motion 7/10 (Standard) | Density 4/10 (Standard)
 
 ---
 
@@ -167,13 +167,13 @@
 
 ## Style Guidelines
 
-**Style:** Brutalism
+**Style:** Flat Design
 
-**Keywords:** Raw, unpolished, stark, high contrast, plain text, default fonts, visible borders, asymmetric, anti-design
+**Keywords:** 2D, minimalist, bold colors, no shadows, clean lines, simple shapes, typography-focused, modern, icon-heavy
 
-**Best For:** Design portfolios, artistic projects, counter-culture brands, editorial/media sites, tech blogs
+**Best For:** Web apps, mobile apps, cross-platform, startup MVPs, user-friendly, SaaS, dashboards, corporate
 
-**Key Effects:** No smooth transitions (instant), sharp corners (0px), bold typography (700+), visible grid, large blocks
+**Key Effects:** No gradients/shadows, simple hover (color/opacity shift), fast loading, clean transitions (150-200ms ease), minimal icons
 
 ### Page Pattern
 
@@ -187,17 +187,17 @@
 
 ## Motion
 
-**Page Transition** (Complex) — Trigger: route change | Duration: 500-800ms | Easing: `expo.inOut`
+**Stagger List** (Standard) — Trigger: load or scroll | Duration: 300-450ms | Easing: `back.out(1.4)`
 
 ```js
-const state = Flip.getState('.hero-image'); navigate(); Flip.from(state, { duration: 0.6, ease: 'expo.inOut', absolute: true, zIndex: 100 });
+gsap.from('.grid-item', { opacity: 0, scale: 0.92, y: 16, duration: 0.4, stagger: { each: 0.06, from: 'start', grid: 'auto' }, ease: 'back.out(1.4)' });
 ```
 
-**Framework notes:** Requires the GSAP Flip plugin; the 'from' and 'to' route must render the same element with a shared data-flip-id; Use matchMedia('(prefers-reduced-motion: reduce)') to skip non-essential motion and render the final state immediately
+**Framework notes:** grid: 'auto' lets GSAP infer rows/columns from a CSS grid layout for a natural wave stagger; Use matchMedia('(prefers-reduced-motion: reduce)') to skip non-essential motion and render the final state immediately
 
-- ✅ Verify the shared element exists in both DOM states before calling Flip.from to avoid a silent no-op
-- ❌ Don't use shared-element transitions across more than one element pair per navigation; compounding Flips are hard to time correctly
-- ⚡ Flip recalculates layout (FLIP technique) so test on low-end devices for jank
+- ✅ Combine with from: 'center' for a bento-grid layout to draw the eye inward first
+- ❌ Don't use back.out on dense data tables; the overshoot reads as sloppy on informational UI
+- ⚡ Group DOM writes; avoid interleaving layout reads (getBoundingClientRect) between staggered tweens
 
 ---
 

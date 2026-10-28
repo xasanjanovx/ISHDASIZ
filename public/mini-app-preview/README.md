@@ -1,24 +1,20 @@
-# ISHDASIZ Impact — interactive preview
+# ISHDASIZ Fresh V10
 
-Open `index.html` through an HTTP server (`python -m http.server 8772 --bind 127.0.0.1`). Local URL: http://127.0.0.1:8772/ .
+A complete visual replacement for the rejected Impact design, covering the homepage and supporting pages.
 
-The first screen is redesigned around an oversized black/yellow headline, a real lit 3D search object, two equal search paths, and the free website offer. It has phone and desktop layouts. The borderless marquee reaches the viewport edges; no bottom navigation is rendered.
+Open through HTTP: `python -m http.server 8773 --bind 127.0.0.1`, then http://127.0.0.1:8773/ . `review.html` provides an interactive overview of the main screens.
 
-Used sources: [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) and [Awesome DESIGN.md](https://github.com/VoltAgent/awesome-design-md). Applied choices and overrides are recorded in `design-system/ishdasiz-impact/pages/home.md`. The generic generated recommendation is in `design-system/ishdasiz-impact/MASTER.md`.
+The top marquee, eight site professions, cobalt actions, new menu/profile/forms/results/tariffs and conspicuous lime «0 so‘m» offer replace the old presentation. There is no standalone pause button; motion preferences are in the settings page. Read `DESIGN.md` for applied rules and sources.
 
-Important runtime files: `home-professional.js` (home, routes, motion controls, campaign intent), `impact-3d.js` (Three.js renderer/lifecycle), `impact.css` (semantic themes and responsive layout), and `telegram.js` (fullscreen host protocol). Existing local form/search flows are retained.
+Runtime: `index.html`, `styles.css`, `fresh.css`, `fresh.js`, `app.js`, `scheduling.js`, `telegram.js`, the original eight profession images, logo and bundled fonts. The old WebGL magnifier and its library are not loaded or needed by this version.
 
-Campaign examples:
+Validation:
 
-- `?audience=hiring` — hiring scene.
-- `?audience=career` — job-seeker scene.
-- `?screen=search&audience=hiring` — candidate search.
-- `?screen=search&audience=career` — job search.
+- `verify_fresh.py`: eight phone/tablet/desktop/landscape sizes, all eight profession images, top ticker, first-viewport free offer, paired actions, search, menu/profile, confirmed prices, motion/theme persistence, all form steps and registration prompt. No API/SMS/payment requests occur.
+- `audit_fresh.py`: normal/large text contrast in both themes on eight main pages; channel preview eligibility; campaign parameters; Telegram fullscreen, fallback and insets through a synthetic host.
+- `review_fresh.py`: screenshots and runtime/overflow checks for 13 routes.
+- `record_fresh.py`: `fresh-eight-scenes.mp4`, a 19-second real browser recording demonstrating all eight scenes with manual advancement.
 
-Audience and UTM parameters survive navigation. A local `ishdasiz:intent` CustomEvent is dispatched on hero action. No advertising platform or analytics endpoint is contacted.
+The source prototype remains local/demo-only for accounts, payments and publication. It is uploaded as a noindex draft preview in the site repository, not connected to the production @IshdasizBot workflow. Any Vercel preview created by the GitHub integration may require the owner's Vercel login.
 
-Validation scripts in the local design workspace: `verify_professional.py`, `check_quality.py`, `inspect_impact.py`, `record_professional.py`. They cover phone/tablet/desktop layouts, both themes, both funnels, full-width ticker, pause/reduced-motion behavior, actual WebGL animation and fallback, campaign entries, and a synthetic Telegram host.
-
-This preview does not create real accounts, send SMS, take payments, moderate listings, reserve publication times, broadcast or publish to Telegram. Some supporting flows and translations are still demonstrative. The preview is noindex and is not wired into @IshdasizBot as the production app.
-
-Assets: original ISHDASIZ logo; Inter with its SIL OFL in `assets/inter-LICENSE.txt`; portrait pair generated for the previous Studio iteration, prompt in the local `asset-studio-prompt.txt`; vendored Three.js 0.180.0 and MIT license in `assets/three/`. No credentials are included.
+Assets: original ISHDASIZ logo and eight profession WebP images; Inter Variable and its SIL OFL in `assets/inter-LICENSE.txt`; original Onest font for the base stylesheet. No credentials are included. UI UX Pro Max attribution is retained in the published design-system folder.
