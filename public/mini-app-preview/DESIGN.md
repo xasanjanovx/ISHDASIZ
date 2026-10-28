@@ -25,3 +25,7 @@ This is an interactive design preview. Authentication, account allowance, modera
 Evaluate against the user's ten requested requirements and executable scenarios, with a separate subjective visual review. A self-score is a score against this brief, not proof that every user will prefer the aesthetics. Continue fixing concrete failures before final delivery. Retain reduced-motion, modal/focus/hidden-page handling, contrast, 44px hit targets and Telegram safe areas.
 
 Sources remain the actually read Anthropic Frontend Design, GitHub Premium Frontend UI, local frontend-design-direction and the original site's eight profession assets; see the V11 source discussion. The latest layout and offer rules above override older versions.
+
+## Background refinement
+
+The accepted layout is retained. The canvas now combines pearl-white diagonal light, a soft blue glow near the profession art, a restrained citron reflection toward the lower content, thin contour arcs and a faint 48px grid. The dark theme uses deeper blue/green reflections and quieter contours. Static CSS pseudo-elements sit behind the content, do not intercept pointer events and introduce no new images or animation. `surface-background.css` is the editable source and is compiled into `flow.css`.

@@ -54,3 +54,44 @@ body{background:var(--bg)}.app{background:radial-gradient(ellipse at 100% 3%,#e5
 .field input::placeholder,.field textarea::placeholder,.fresh-search-form input::placeholder{color:#60758a}.app[data-theme="dark"] .field input::placeholder,.app[data-theme="dark"] .field textarea::placeholder,.app[data-theme="dark"] .fresh-search-form input::placeholder{color:#a8bdce}
 .flow-user-media{width:100%;background:var(--soft);overflow:hidden}.flow-user-media img,.flow-user-media video{display:block;width:100%;max-height:330px;object-fit:contain}.media-cover .flow-cover-logo{position:absolute;width:52px;height:52px;object-fit:contain;right:14px;top:14px;left:auto;bottom:auto;z-index:4;background:white;border-radius:10px;padding:4px}
 .flow-checkout-summary{margin:21px 0;padding:20px;border:1px solid var(--line);border-radius:17px;background:var(--paper)}.flow-checkout-summary>span{font-size:13px;color:var(--muted);line-height:1.5}.flow-checkout-summary>strong{display:block;font-size:32px;font-weight:750;letter-spacing:-1px;line-height:1.2;color:var(--ink);margin:14px 0}.flow-checkout-summary>strong>small{font-size:13px;font-weight:500;margin-left:5px;letter-spacing:0}.flow-checkout-summary>p{font-size:12px;line-height:1.7;color:var(--muted)}
+
+/* Pearl canvas: soft blue light, a quiet citron reflection and fine contour lines. */
+.app{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(ellipse 90% 65% at 109% 8%,#c9daf57a 0,transparent 78%),
+    radial-gradient(ellipse 105% 60% at -12% 93%,#e7efc45c 0,transparent 76%),
+    linear-gradient(155deg,#f8fbfd 0%,#eef4fa 55%,#f8faf3 100%);
+}
+.app::before,.app::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+}
+.app::before{
+  background-image:
+    linear-gradient(148deg,transparent 25%,#ffffff85 25.15%,#ffffff2b 39%,transparent 39.2%),
+    radial-gradient(ellipse 100% 62% at 111% 11%,transparent 54%,#88a8d128 54.15%,transparent 54.35%,transparent 69%,#ffffffb8 69.2%,transparent 69.65%);
+}
+.app::after{
+  background-image:linear-gradient(#426c9907 1px,transparent 1px),linear-gradient(90deg,#426c9907 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:linear-gradient(transparent 8%,#0007 37%,transparent 87%);
+}
+.app[data-theme="dark"]{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(ellipse 90% 65% at 109% 8%,#24558270 0,transparent 78%),
+    radial-gradient(ellipse 105% 60% at -12% 93%,#3b563b45 0,transparent 76%),
+    linear-gradient(155deg,#132534 0%,#152f41 55%,#1b302f 100%);
+}
+.app[data-theme="dark"]::before{
+  background-image:
+    linear-gradient(148deg,transparent 25%,#b5d5f008 25.15%,#b5d5f003 39%,transparent 39.2%),
+    radial-gradient(ellipse 100% 62% at 111% 11%,transparent 54%,#91b7e01a 54.15%,transparent 54.35%,transparent 69%,#dcecff0f 69.2%,transparent 69.65%);
+}
+.app[data-theme="dark"]::after{
+  background-image:linear-gradient(#a4c9ec08 1px,transparent 1px),linear-gradient(90deg,#a4c9ec08 1px,transparent 1px);
+}
