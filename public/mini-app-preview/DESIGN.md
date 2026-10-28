@@ -1,39 +1,27 @@
-# ISHDASIZ Studio — V11
+# ISHDASIZ Flow V12
 
-## Brief and direction before implementation
+Latest user brief: remove the ticker; immediately below the header put the profession animation on the right and “Ish va xodim topish oson” on the left; place vacancy/resume creation below it, each with its corresponding search indicator. Make employer creation visually dominant. Add a concise animated site/channel offer, reduce redundant hints, improve input controls and make position search immediate.
 
-The user rejected the entire Fresh UI and now wants vacancy/resume publication to dominate the first viewport. This replaces the previous search-first hierarchy. Build a working recruitment desk, using the materials of the task: vacancy slips, resume sheets, a briefcase and channel publication. Keep the actual logo, original eight professions, borderless top ticker, Uzbek Latin, both themes, fullscreen integration and no bottom navigation.
+## Product rules changed in this version
 
-Palette: canvas `#f5f6f2`, white `#ffffff`, ink `#182c32`, royal blue `#205bea`, citron `#e3ed88`, divider `#dce0dc`. Additional contextual colors belong only to the original profession imagery. Onest is the display and reading family, with deliberate 780/650/450 weights. Fields remain 16px.
+The latest instruction supersedes the prior resume-only trial: **each account receives a free channel vacancy and a free channel resume**. Website publication stays free. Do not display the numerical allowance in the headline. Do not advertise unlimited free channel posting: concise copy says “Saytda va kanalda bepul e’lon joylang” and identifies paid repeat channel posts before a purchase. Repeat creation offers paid channel plans and an explicit free website path. Eligibility is consumed only on final demo confirmation, separately by kind/account, and preserved across reloads. An interrupted form, price view, review or cancelled confirmation consumes nothing.
 
-The distinctive detail is a pair of prominent dimensional publication tiles: a blue vacancy folder and a citron resume sheet. These are real controls, with semantic labels and HTML text. Depth comes from layered CSS objects, lit edges, a controlled shadow and small pointer response. Keep the other pages more restrained while sharing a polished family of buttons, form controls, menus, sheets, tabs and selection states.
+## Composition
 
-Phone composition:
+The first section integrates the original eight professions into a compact split hero with the title on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are small, usable indicator rows. Below them is one offer surface with a flowing document/Telegram animation, followed by the account/listings links. There is no ticker and no bottom navigation.
 
-```text
-edge-to-edge ticker
-ISHDASIZ                            Menu
-Ish va xodim topish oson.
-[ Vacancy publication ][ Resume publication ]
-[ Find an employee    ][ Find a job         ]
-eight-profession animated editorial strip
-first resume free in channel / paid exceptions
-my listings / account
-```
+Use the existing Onest family, blue employer action and restrained citron accents, with a cooler layered background and a dark equivalent. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs and saved-draft captions. Retain only meaningful payment, privacy, optional-field and demo disclosures.
 
-Forms use a step rail and one clear question group, with a persistent next/back action shelf. Search uses a proper search toolbar and detailed result rows. Profile uses a personal identity header and prominent creation paths. Tariff selection uses deliberate radio states, a separated price hierarchy and a clear checkout shelf. Calendar/auth/admin/broadcast follow the same tokens and components.
+## Search and forms
 
-## Critique of the plan
+Position and region fields use an accessible searchable combobox. Titles include a read-only export of the site's public profession reference table, common titles and Russian/Uzbek aliases; no private vacancy/contact data is exported. Keyboard arrows, Enter, Escape and touch selection are supported, custom positions remain valid, and the popup adapts to the available viewport. Search results update while typing, include locally created demo records and respect region/salary filters.
 
-The previous oversized portrait placed the actual posting controls below the fold; remove that hierarchy. The previous repeated rounded cards and repeated free banners made the site look like a generic component kit; vary structure according to the job of each section, and use one precise channel offer. Do not add a preloader, scroll hijacking, huge marketing-only hero or a new animation framework to a daily-use phone app. Preserve simple task flows and accessible native scrolling.
+All six vacancy and five resume steps remain. Entered data survives navigation/reload within the session. The next/back shelf stays visible. The review screen shows the actual entered summary and destination choices; repeated channel placement opens prices before proceeding. Unknown phone numbers prompt registration. No role choice. Contacts remain sign-in gated.
 
-## Sources actually read
+## Review boundary and evaluation
 
-- [Anthropic Frontend Design](https://github.com/anthropics/skills/blob/main/skills/frontend-design/SKILL.md): subject-grounded visual identity, opinionated typography, two-pass critique, user-facing copy and purposeful structure.
-- [GitHub Premium Frontend UI](https://github.com/github/awesome-copilot/blob/main/skills/premium-frontend-ui/SKILL.md): dimensional touch/hover states, lighting, variable typography, composited motion and responsive degradation. Landing-page-specific preloaders and full-screen scroll narratives do not fit this Mini App's task-first brief.
-- Local `frontend-design-direction`: actual usable workflow in the first viewport, clear hierarchy, product-specific material and stable mobile constraints.
-- Earlier UI UX Pro Max and Awesome DESIGN.md research remains context; this version's layout supersedes V10.
+This is an interactive design preview. Authentication, account allowance, moderation, payment, records and publication are local demonstrations, not production enforcement. No SMS, payment, production database write or Telegram post is sent. Server-side account eligibility and idempotent publication are required before rollout; browser storage is not a production security boundary.
 
-## Product boundary
+Evaluate against the user's ten requested requirements and executable scenarios, with a separate subjective visual review. A self-score is a score against this brief, not proof that every user will prefer the aesthetics. Continue fixing concrete failures before final delivery. Retain reduced-motion, modal/focus/hidden-page handling, contrast, 44px hit targets and Telegram safe areas.
 
-This is the design prototype, not a production authentication/payment/publication system. Website listings are free; only the first channel resume is free, vacancies and later channel resumes are paid. No invented old prices or audience statistics. Preserve all six vacancy and five resume steps. Contacts remain gated in the demo. Motion respects OS reduced motion, the app setting, hidden-page and modal/focus states. Do not include credentials in this artifact or the public preview.
+Sources remain the actually read Anthropic Frontend Design, GitHub Premium Frontend UI, local frontend-design-direction and the original site's eight profession assets; see the V11 source discussion. The latest layout and offer rules above override older versions.

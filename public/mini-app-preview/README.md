@@ -1,18 +1,22 @@
-# ISHDASIZ Studio V11
+# ISHDASIZ Flow V12
 
-The latest design preview replaces Fresh V10. Vacancy and resume publication are the two dominant actions in the first viewport. The original eight professions occupy a supporting animated strip. A shared new Onest type scale, material-inspired controls, two themes, forms with a persistent action shelf, search, profile, listings, tariffs, calendar, authentication and administrative screens replace the old component presentation.
+Latest interactive design preview. Open `index.html` through HTTP, e.g. `python -m http.server 8777 --bind 127.0.0.1`, then http://127.0.0.1:8777/ . `review.html` presents fifteen screens.
 
-Run `python -m http.server 8775 --bind 127.0.0.1` and open http://127.0.0.1:8775/ . `review.html` provides an interactive 13-screen gallery. Sources, the pre-build design plan and critique are in `DESIGN.md`.
+The ticker is removed. The eight original profession scenes sit directly under the header, to the right of the heading. Posting controls have attached employee/job search indicators; an animated offer follows. The employer action is dominant. Fields, background and copy are refined, and the duplicated resume review is merged: six vacancy question steps, four resume question steps, then one publication review. No questions were removed.
 
-Runtime: `index.html`, `styles.css`, `studio.css`, `studio.js`, `app.js`, `scheduling.js`, `telegram.js`, original ISHDASIZ logo, original eight profession WebP images and the bundled Onest font. There is no external 3D dependency; the briefcase/resume elements are native layered CSS objects with real HTML labels and bounded pointer response.
+Position search uses 1,037 public profession titles/common aliases. Fourteen regions and 209 districts come from a read-only public reference export. Comboboxes support touch, arrows, Enter, Escape and custom positions. Search updates immediately, includes locally created entries and applies salary/region filters. Own listings can be edited/archived. Candidate contact access requires the demo sign-in.
 
-Validation scripts remain in the local design workspace:
+The latest trial rule supersedes V11: one free channel vacancy and one free channel resume per account, tracked separately in local demo storage. The numerical allowance is not advertised in the headline. Repeat channel posts show prices and preserve a free website-only path. Confirmation is idempotent within the preview. Drafts and pending sign-in return survive session reload; accounts have separate allowances and management views. Photo/video and paid-logo previews work locally. No media is placed in website search results.
 
-- `verify_studio.py`: eight viewport sizes, prominent posting actions, thirteen routes in four sizes/both themes, overflow, persistent form actions, all profession assets and text contrast.
-- `verify_studio_flows.py`: all six vacancy and five resume steps, search/detail, exact prices, scheduling navigation, unknown-phone registration, first-resume eligibility, live motion, settings and modal isolation.
-- `review_studio.py` and `capture_studio.py`: actual browser screenshots of all routes and a gallery/desktop/dark overview.
-- `record_studio.py`: `studio-demo.mp4`, a real recording of creation, forms, channel offer, menu and profile.
+Runtime: `index.html`, `styles.css`, `flow.css`, `flow.js`, `positions.js`, `app.js`, `scheduling.js`, `telegram.js`, the original logo/fonts/eight profession WebP images. Build sources and Python QA tools stay in the local design workspace. No credentials, .env files, private accounts or private job data are exported.
 
-This is a noindex interactive design prototype. It does not create real accounts, send SMS, verify/charge payments, generate media, moderate text, reserve production times, publish or broadcast. The production integration remains unfinished in the draft PR. Website listings stay free; the first channel resume is free, channel vacancies and subsequent resumes use the confirmed paid tariffs. No fake historical prices or fabricated audience metrics are used. Administrative counts are marked demonstration data. Telegram fullscreen/insets use the existing host integration; a real-device check follows production integration.
+Verification:
 
-No administrator credentials, environment files or private inventory documents belong in this artifact or its public preview. Administrator access notes are stored separately outside all Git repositories. No passwords were reset and no recovery messages were sent.
+- `verify_flow_journey.py`: full vacancy/resume creation, inline errors and autocomplete, draft/sign-in reload, free confirmation, repeated-post pricing, free website continuation, instant search/filtering, paid demo checkout, contacts and archiving.
+- `audit_flow.py`: all fifteen screens in four sizes/both themes, homepage/posting/popup checks in eight sizes, text contrast and keyboard controls.
+- `verify_flow_edges.py`: custom positions, salary validation, matching districts, account separation, motion preferences and short keyboard viewport.
+- `verify_flow_host.py`: synthetic Telegram fullscreen/fallback, native theme colors, safe-area action shelf and campaign entry.
+- `verify_flow_media.py`: actual local image/logo selection and media reset.
+- `review_flow.py`: screenshots of the actual rendered pages.
+
+**Prototype boundary:** no real accounts, SMS, charges, AI moderation/generation, production reservations, database writes or Telegram publications occur. Entries and allowances are local demo records. Client storage is not production entitlement enforcement. Real rollout requires server-side account/allowance checks, atomic/idempotent publication, moderation, verified payment and Telegram integration. The existing draft PR remains a design review, not a complete deployment of that flow.
