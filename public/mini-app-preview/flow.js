@@ -136,10 +136,17 @@ function flowInitialize(){
   if(draft?.form?.vacancy&&draft?.form?.resume)state.form=draft.form;
   else{for(const kind of ['vacancy','resume'])for(const key of ['position','company','name','salaryMin','salaryMax','description','skills','phone','telegram'])if(key in state.form[kind])state.form[kind][key]='';}
   if(account&&/^\+998\d{9}$/.test(account.phone)){state.phone=account.phone;state.loggedIn=true;}
+  const formScreen=['vacancy','resume'].includes(params.get('screen'));
+  if(!formScreen&&['vacancy','resume'].includes(draft?.kind))state.kind=draft.kind;
   if(['vacancy','resume'].includes(params.get('kind')))state.kind=params.get('kind');
-  return {defaults,activeId:draft?.activeId||flowId(),tx:draft?.tx||flowId(),channel:draft?.channel!==false,confirmedTx:draft?.confirmedTx||null,lastId:flowRead('ishdasiz-v12-last',''),pendingAuth:draft?.pendingAuth||null,switchAccount:false,priceTarget:'review',salaryFrom:'',salaryTo:'',preselectedPaid:false,confirming:false};
+  const continuing=draft&&!(formScreen&&(draft.kind!==state.kind||draft.confirmedTx===draft.tx));
+  if(continuing&&!params.has('step')&&formScreen&&Number.isInteger(draft.step))state.step=Math.max(0,Math.min(draft.step,5));
+  state.orderPaid=!!(continuing&&draft.paid&&draft.paidTx===draft.tx&&draft.kind===state.kind);
+  if(continuing&&Number.isInteger(draft.plan)&&draft.plan>=0&&draft.plan<plans.length)state.selectedPlan=draft.plan;
+  if(continuing&&draft.schedule){state.startDate=draft.schedule.startDate||state.startDate;state.scheduleMode=draft.schedule.mode||'same';state.scheduleTime=draft.schedule.time||'18:00';state.dailyTimes=draft.schedule.dailyTimes||{};}
+  return {defaults,activeId:continuing?draft.activeId||flowId():flowId(),tx:continuing?draft.tx||flowId():flowId(),channel:continuing?draft.channel!==false:true,confirmedTx:continuing?draft.confirmedTx||null:null,lastId:flowRead('ishdasiz-v12-last',''),pendingAuth:draft?.pendingAuth||null,switchAccount:false,priceTarget:'review',salaryFrom:'',salaryTo:'',preselectedPaid:!!(continuing&&draft.preselectedPaid),confirming:false};
 }
-function flowSaveDraft(){flowWrite('ishdasiz-v12-draft',{form:state.form,activeId:flow.activeId,tx:flow.tx,channel:flow.channel,confirmedTx:flow.confirmedTx,pendingAuth:flow.pendingAuth});}
+function flowSaveDraft(){flowWrite('ishdasiz-v12-draft',{form:state.form,kind:state.kind,step:state.step,activeId:flow.activeId,tx:flow.tx,channel:flow.channel,confirmedTx:flow.confirmedTx,pendingAuth:flow.pendingAuth,paid:state.orderPaid,paidTx:flow.tx,plan:state.selectedPlan,preselectedPaid:flow.preselectedPaid,schedule:{startDate:state.startDate,mode:state.scheduleMode,time:state.scheduleTime,dailyTimes:state.dailyTimes}});}
 function flowAccount(){return state.loggedIn?state.phone.replace(/\D/g,''):'guest'}
 function flowAllowances(){return flowRead('ishdasiz-v12-allowances',{},localStorage)}
 function flowFree(kind){return !flowAllowances()[flowAccount()]?.[kind]}
@@ -262,7 +269,7 @@ function flowChoose(index){
 function flowMoveOption(index){if(!flowCombo)return;flowCombo.index=(index+flowCombo.matches.length)%flowCombo.matches.length;const popup=$('#flow-options');popup.querySelectorAll('[role="option"]').forEach((el,i)=>el.setAttribute('aria-selected',String(i===flowCombo.index)));const active=popup.children[flowCombo.index];flowCombo.input.setAttribute('aria-activedescendant',active.id);if(active.offsetTop<popup.scrollTop)popup.scrollTop=active.offsetTop;else if(active.offsetTop+active.offsetHeight>popup.scrollTop+popup.clientHeight)popup.scrollTop=active.offsetTop+active.offsetHeight-popup.clientHeight;}
 
 const flowOriginalRender=render;
-render=function(){flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());};
+render=function(){flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());if(['vacancy','resume','review','schedule'].includes(state.screen))flowSaveDraft();};
 const flowOriginalNavigate=navigate;
 navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.switchAccount=false;}flowCloseCombo();flowSaveDraft();flowOriginalNavigate(screen,options);};
 const flowOriginalModal=modal;
