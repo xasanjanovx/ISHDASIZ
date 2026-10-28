@@ -269,9 +269,9 @@ function flowChoose(index){
 function flowMoveOption(index){if(!flowCombo)return;flowCombo.index=(index+flowCombo.matches.length)%flowCombo.matches.length;const popup=$('#flow-options');popup.querySelectorAll('[role="option"]').forEach((el,i)=>el.setAttribute('aria-selected',String(i===flowCombo.index)));const active=popup.children[flowCombo.index];flowCombo.input.setAttribute('aria-activedescendant',active.id);if(active.offsetTop<popup.scrollTop)popup.scrollTop=active.offsetTop;else if(active.offsetTop+active.offsetHeight>popup.scrollTop+popup.clientHeight)popup.scrollTop=active.offsetTop+active.offsetHeight-popup.clientHeight;}
 
 const flowOriginalRender=render;
-render=function(){flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());if(['vacancy','resume','review','schedule'].includes(state.screen))flowSaveDraft();};
+render=function(){flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());};
 const flowOriginalNavigate=navigate;
-navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.switchAccount=false;}flowCloseCombo();flowSaveDraft();flowOriginalNavigate(screen,options);};
+navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.switchAccount=false;}flowCloseCombo();flowOriginalNavigate(screen,options);flowSaveDraft();};
 const flowOriginalModal=modal;
 modal=function(html){flowCloseCombo();flowOriginalModal(html)};
 
@@ -290,12 +290,13 @@ document.addEventListener('keydown',event=>{
   else if(event.key==='Tab')flowCloseCombo();
 },true);
 document.addEventListener('scroll',()=>{if(flowCombo)flowPositionCombo()},true);window.visualViewport?.addEventListener('resize',flowPositionCombo);window.addEventListener('resize',flowPositionCombo);
-document.addEventListener('change',event=>{if(event.target.id==='flow-channel'){flow.channel=event.target.checked;flowSaveDraft();render();}});
+document.addEventListener('change',event=>{if(event.target.id==='schedule-start')flowSaveDraft();if(event.target.id==='flow-channel'){flow.channel=event.target.checked;flowSaveDraft();render();}});
 document.addEventListener('change',event=>{const input=event.target;if(input.id!=='flow-upload')return;const file=input.files?.[0];if(!file)return;const mode=input.dataset.mode;if(!/^(image\/(png|jpeg|webp|gif)|video\/(mp4|webm|quicktime))$/.test(file.type)||(mode==='logo'&&!file.type.startsWith('image/'))||file.size>20*1024*1024){flowError(input,'Rasm yoki video tanlang, 20 MB gacha');return;}if(flow[mode]?.url)URL.revokeObjectURL(flow[mode].url);flow[mode]={url:URL.createObjectURL(file),type:file.type,name:file.name};closeModal();render();});
 window.addEventListener('storage',event=>{if(event.key==='ishdasiz-v12-allowances'){flowSyncAllowance();if(['home','profile','review'].includes(state.screen))render();}});
 document.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
   const stop=()=>{event.preventDefault();event.stopImmediatePropagation()};
+  if(b.dataset.slot!==undefined||b.dataset.scheduleMode||b.dataset.scheduleDay!==undefined||b.dataset.plan!==undefined||b.dataset.tariffKind||b.dataset.step==='back')queueMicrotask(flowSaveDraft);
   if(b.hasAttribute('data-pay')){stop();if(!validSchedule()){toast('Boshqa vaqtni tanlang');return;}const plan=plans[state.selectedPlan];modal(`<h2>To‘lov</h2><div class="flow-checkout-summary"><span>${state.kind==='resume'?'Rezyume':'Vakansiya'} · ${plan.days}</span><strong>${money(tariffPrice(plan))}<small>so‘m</small></strong><p>${shortDate(calendarDates()[0])} · ${state.scheduleMode==='same'?state.scheduleTime:'Tanlangan vaqtlar'}${plan.pin?'<br>Zakrep — butun muddatga':''}</p></div><p>Demo: pul yechilmaydi.</p><button class="primary full" data-demo-paid>To‘lov ko‘rinishini tasdiqlash</button><button class="text-button full" data-close>Orqaga</button>`);return;}
   if(b.dataset.upload){stop();const mode=b.dataset.upload;modal(`<h2>${mode==='logo'?'Kompaniya logotipi':'Foto yoki video'}</h2><label class="field"><span>Faylni tanlang</span><input type="file" id="flow-upload" data-mode="${mode}" accept="${mode==='logo'?'image/png,image/jpeg,image/webp,image/gif':'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime'}"></label>`);return;}
   if(b.hasAttribute('data-flow-account')){stop();flow.switchAccount=true;flow.pendingAuth='profile';navigate('auth');return;}
@@ -304,7 +305,7 @@ document.addEventListener('click',event=>{
   if(b.dataset.flowPlan!==undefined){stop();state.selectedPlan=Number(b.dataset.flowPlan);const kind=state.kind;if(flow.priceTarget==='start'){closeModal();flowBegin(kind,false,true);}else{flow.preselectedPaid=true;navigate('schedule');}return;}
   if(b.hasAttribute('data-flow-site-only')){stop();if(flow.priceTarget==='start')flowBegin(state.kind,true,true);else{flow.channel=false;closeModal();render();}return;}
   if(b.dataset.flowEdit!==undefined){stop();navigate(state.kind,{step:Number(b.dataset.flowEdit)});return;}
-  if(b.dataset.step==='next'){stop();flowCloseCombo();if(!flowValidateStep())return;if(state.step<formSteps[state.kind].length-1){state.step++;render();$('#content').scrollTop=0;}else{flowSaveDraft();navigate('review');}return;}
+  if(b.dataset.step==='next'){stop();flowCloseCombo();if(!flowValidateStep())return;if(state.step<formSteps[state.kind].length-1){state.step++;flowSaveDraft();render();$('#content').scrollTop=0;}else{flowSaveDraft();navigate('review');}return;}
   if(b.hasAttribute('data-flow-publish')||b.hasAttribute('data-channel-confirm')){stop();flowPublish();return;}
   if(b.hasAttribute('data-flow-buy')){stop();if(!flowValidateAll())return;if(flow.preselectedPaid)navigate('schedule');else{flow.priceTarget='review';flowPrices(state.kind);}return;}
   if(b.hasAttribute('data-demo-paid')){stop();if(state.orderPaid){closeModal();navigate('review');return;}if(!validSchedule()){toast('Boshqa vaqtni tanlang');return}state.orderPaid=true;flow.channel=true;state.demoReservations.push(...selectedSchedule());navigate('review');return;}
