@@ -3,7 +3,7 @@ state.layout='flow';state.theme=localStorage.getItem('ishdasiz-fresh-theme')||'l
 
 const flow=flowInitialize();
 formSteps.resume.length=4;
-if(['review','done'].includes(params.get('screen')))state.screen=params.get('screen');
+if(['review','done','applications'].includes(params.get('screen')))state.screen=params.get('screen');
 flowSyncAllowance();
 const freshReduced=matchMedia('(prefers-reduced-motion:reduce)');
 let freshMotion=localStorage.getItem('ishdasiz-fresh-motion')!=='off',freshTimer,modalTrigger;
@@ -37,9 +37,7 @@ function studioCreateTiles(){
   return `<div class="flow-posting"><div class="flow-posting-group"><button class="studio-create-tile hiring" data-flow-start="vacancy"><span class="studio-tile-top"><small>Sayt + Telegram</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('vacancy')}<strong>Vakansiya<br>joylash</strong><span class="studio-tile-bottom"><small>${flowFree('vacancy')?'Bepul boshlang':'E’lon yarating'}</small>${icon('right')}</span></button><button class="flow-intent" data-fresh-intent="hiring"><i>${icon('users')}</i><span>Xodim topish</span>${icon('right')}</button></div><div class="flow-posting-group"><button class="studio-create-tile career" data-flow-start="resume"><span class="studio-tile-top"><small>Sayt + Telegram</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('resume')}<strong>Rezyume<br>joylash</strong><span class="studio-tile-bottom"><small>${flowFree('resume')?'Bepul boshlang':'E’lon yarating'}</small>${icon('right')}</span></button><button class="flow-intent" data-fresh-intent="career"><i>${icon('search')}</i><span>Ish topish</span>${icon('right')}</button></div></div>`;
 }
 function freshHome(){
-  return `<section class="view flow-home"><div class="flow-hero"><h1 class="flow-hero-title">Xodim<br><em>kerakmi?</em></h1><div class="flow-hero-visual">${freshHero()}</div></div>${studioCreateTiles()}
-  <section class="flow-offer"><div class="flow-offer-copy"><span class="flow-offer-label">${icon('gift')}Bepul joylash</span><h2>Saytda va kanalda<br>bepul e’lon joylang.</h2><button data-create>E’lon joylash ${icon('right')}</button></div><div class="flow-offer-art" aria-hidden="true"><span class="flow-promo-document">${icon('file')}<i></i><i></i></span><span class="flow-promo-plane">${icon('send')}</span><span class="flow-promo-zero"><b>0</b><small>so‘m</small></span><svg class="flow-promo-path" viewBox="0 0 140 130"><path pathLength="1" d="M10 115C-5 25 95 125 101 58S130 35 131 12"/></svg></div><p>Saytda doim bepul. Takroriy kanal e’lonlari — tarif asosida.</p></section>
-  <div class="studio-home-links"><button data-nav="listings">${icon('file')}<span>Mening e’lonlarim</span>${icon('right')}</button><button data-nav="profile">${icon('user')}<span>Shaxsiy kabinet</span>${icon('right')}</button></div></section>`;
+  return `<section class="view flow-home"><div class="flow-hero"><h1 class="flow-hero-title" aria-label="Xodim yoki ish kerakmi?"><span class="flow-hero-word" aria-hidden="true"><span class="${state.scene%2===0?'active':''}">Xodim</span><span class="${state.scene%2===1?'active':''}">Ish</span></span><em aria-hidden="true">kerakmi?</em><span class="flow-hero-signals" aria-hidden="true"><i></i><i></i><i></i></span></h1><div class="flow-hero-visual">${freshHero()}</div></div>${studioCreateTiles()}${flowHomeAccount()}</section>`;
 }
 function freshSearch(){
   return `<section class="view fresh-results flow-search">${freshTitle(state.searchType==='resumes'?'Xodim topish':'Ish topish')}<div class="tabs"><button class="${state.searchType==='jobs'?'active':''}" data-search-type="jobs">Vakansiyalar</button><button class="${state.searchType==='resumes'?'active':''}" data-search-type="resumes">Rezyumelar</button></div><form id="results-search" class="fresh-search-form"><label>${icon('search')}<input id="flow-query" name="query" aria-label="Qidiruv" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flow-options" placeholder="Lavozim yoki kompaniya" value="${esc(state.query)}" autocomplete="off" maxlength="120" data-flow-combo="query"></label><button type="submit" aria-label="Qidirish">${icon('right')}</button></form><div class="fresh-search-tools"><button data-filter="region">${icon('pin')}${esc(state.region)}</button><button data-filter="all">${icon('filter')}Filtr${flow.salaryFrom||flow.salaryTo?' · 1':''}</button></div><div id="flow-results" aria-live="polite">${flowResults()}</div></section>`;
@@ -49,7 +47,7 @@ function freshForm(){
   return `<section class="view fresh-form">${freshTitle(state.kind==='vacancy'?'Vakansiya joylash':'Rezyume joylash')}<div class="flow-step-heading"><span>${state.step+1}<small> / ${steps.length}</small></span><b>${heading}</b><i>${icon('check')}Bepul</i></div><div class="step-track" aria-label="${state.step+1} / ${steps.length} qadam">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div><div class="form-surface"><div class="fields">${formContent()}</div></div><div class="form-footer"><button class="secondary" data-step="back">${icon('back')}<span>Orqaga</span></button><button class="primary" data-step="next">${state.step===steps.length-1?'Ko‘rib chiqish':'Davom etish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
 }
 function freshProfile(){
-  return `<section class="view fresh-profile">${freshTitle('Shaxsiy kabinet')}<div class="studio-identity"><span class="studio-identity-avatar">${state.loggedIn?esc((state.form.resume.name||'I').slice(0,1)):icon('user')}<i>${icon('check')}</i></span><div><h2>${state.loggedIn?esc(state.form.resume.name||'Xush kelibsiz'):'Sizning profilingiz'}</h2><p>${state.loggedIn?esc(state.phone):'Ish va xodim uchun bitta profil'}</p></div></div>${state.loggedIn?'':`<button class="primary full studio-profile-login" data-nav="auth">${icon('phone')}Profilga kirish<span class="studio-button-end">${icon('right')}</span></button>`}${flowProfileStats()}<div class="studio-section-label"><h2>Yangi e’lon</h2><span>Saytda bepul</span></div>${studioCreateTiles()}<div class="studio-section-label"><h2>Mening e’lonlarim</h2></div><div class="studio-profile-list"><button data-fresh-list="resumes"><span class="studio-list-mark resume">${icon('file')}</span><span><b>Rezyumelarim</b></span>${icon('right')}</button><button data-fresh-list="jobs"><span class="studio-list-mark vacancy">${icon('briefcase')}</span><span><b>Vakansiyalarim</b></span>${icon('right')}</button></div><div class="fresh-menu-list">${[['wallet','Kanal tariflari','plans'],['bell','Bildirishnomalar','notifications'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button ${route==='notifications'?'data-notifications':`data-nav="${route}"`}>${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>${state.loggedIn?`<button class="text-button full" data-flow-account>Boshqa raqam bilan kirish</button>`:""}</section>`;
+  return `<section class="view fresh-profile">${freshTitle('Shaxsiy kabinet')}<div class="studio-identity"><span class="studio-identity-avatar">${state.loggedIn?esc((state.form.resume.name||'I').slice(0,1)):icon('user')}<i>${icon('check')}</i></span><div><h2>${state.loggedIn?esc(state.form.resume.name||'Xush kelibsiz'):'Sizning profilingiz'}</h2><p>${state.loggedIn?esc(state.phone):'Ish va xodim uchun bitta profil'}</p></div></div>${state.loggedIn?'':`<button class="primary full studio-profile-login" data-nav="auth">${icon('phone')}Profilga kirish<span class="studio-button-end">${icon('right')}</span></button>`}${flowProfileStats()}<div class="studio-section-label"><h2>Yangi e’lon</h2><span>Saytda bepul</span></div>${studioCreateTiles()}<div class="studio-section-label"><h2>Mening e’lonlarim</h2></div><div class="studio-profile-list"><button data-fresh-list="resumes"><span class="studio-list-mark resume">${icon('file')}</span><span><b>Rezyumelarim</b></span>${icon('right')}</button><button data-fresh-list="jobs"><span class="studio-list-mark vacancy">${icon('briefcase')}</span><span><b>Vakansiyalarim</b></span>${icon('right')}</button></div><div class="fresh-menu-list">${[['send','Arizalarim','applications'],['wallet','Kanal tariflari','plans'],['bell','Bildirishnomalar','notifications'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button ${route==='notifications'?'data-notifications':`data-nav="${route}"`}>${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>${state.loggedIn?`<button class="text-button full" data-flow-account>Boshqa raqam bilan kirish</button>`:""}</section>`;
 }
 function freshListings(){
   const records=flowOwnRecords().filter(record=>!record.archived&&(state.listTab==='all'||record.kind===(state.listTab==='jobs'?'vacancy':'resume')));
@@ -76,7 +74,7 @@ function freshPreview(){
   return `<section class="view fresh-post-preview">${freshTitle('Kanal posti','review')}<article class="fresh-telegram-post"><header><span>${icon('send')}</span><div><strong>@ishdasiz</strong><small>${resume?'Rezyume':'Vakansiya'}</small></div></header>${media}<div class="fresh-post-copy"><h2>${esc(draft.position||'Lavozim')}</h2><p>${esc(resume?draft.name:draft.company)}</p><strong>${flowSalaryLabel(draft)}</strong><p>${esc(draft.region)} · ${esc(draft.experience||'')}</p><p>${esc(resume?draft.skills:draft.description)}</p></div></article>${!resume?`<div class="media-actions"><button class="secondary" data-upload="media">${icon('image')}Foto / video</button>${state.orderPaid?`<button class="secondary" data-upload="logo">${icon('plus')}Logo</button>`:''}</div>`:''}<button class="primary full flow-preview-back" data-nav="review">Joylashga qaytish ${icon('right')}</button></section>`;
 }
 function freshMenu(){
-  modal(`<div class="fresh-sheet-title"><h2>Menyu</h2></div><div class="studio-menu-create"><button data-flow-start="vacancy">${icon('briefcase')}<span>Vakansiya joylash</span>${icon('plus')}</button><button data-flow-start="resume">${icon('file')}<span>Rezyume joylash</span>${icon('plus')}</button></div><div class="fresh-menu-list">${[['home','Asosiy sahifa','home'],['user','Shaxsiy kabinet','profile'],['file','Mening e’lonlarim','listings'],['wallet','Kanal tariflari','plans'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button data-nav="${route}">${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>`);
+  modal(`<div class="fresh-sheet-title"><h2>Menyu</h2></div><div class="studio-menu-create"><button data-flow-start="vacancy">${icon('briefcase')}<span>Vakansiya joylash</span>${icon('plus')}</button><button data-flow-start="resume">${icon('file')}<span>Rezyume joylash</span>${icon('plus')}</button></div><div class="fresh-menu-list">${[['home','Asosiy sahifa','home'],['user','Shaxsiy kabinet','profile'],['file','Mening e’lonlarim','listings'],['send','Arizalarim','applications'],['wallet','Kanal tariflari','plans'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button data-nav="${route}">${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>`);
   $('#modal-root .modal').setAttribute('aria-label','Menyu');
 }
 
@@ -86,9 +84,9 @@ closeModal=function(){freshBaseClose();app.classList.remove('sheet-open');$('#co
 navigate=function(screen,options={}){freshBaseNavigate(screen,options);if(freshCampaignParams.length){const url=new URL(location.href);for(const [key,value]of freshCampaignParams)url.searchParams.set(key,value);history.replaceState(null,'',url)}};
 render=function(){freshBaseRender();clearInterval(sceneTimer);$('#bottom-nav').replaceChildren();$('#bottom-nav').hidden=true;app.dataset.screen=state.screen;app.classList.toggle('motion-disabled',!freshMotion);app.classList.add('fresh-ready');scheduleFreshScene()};
 function scheduleFreshScene(){clearTimeout(freshTimer);const paused=document.hidden||app.classList.contains('sheet-open')||app.classList.contains('focus-paused');app.classList.toggle('home-motion-paused',paused);if(state.screen!=='home'||!freshMotion||freshReduced.matches||paused)return;freshTimer=setTimeout(()=>{setFreshScene((state.scene+1)%freshScenes.length);scheduleFreshScene()},4800)}
-function setFreshScene(index){state.scene=(index+freshScenes.length)%freshScenes.length;const stage=$('.fresh-stage');if(!stage)return;stage.dataset.scene=String(state.scene);stage.style.setProperty('--scene-color',freshScenes[state.scene].color);stage.querySelector('.fresh-word').innerHTML=letterWord(freshScenes[state.scene].name);stage.querySelectorAll('.fresh-portrait').forEach((el,i)=>el.classList.toggle('active',i===state.scene));stage.querySelector('.fresh-scene-count').innerHTML=String(state.scene+1).padStart(2,'0')+' <small>/ 08</small>'}
+function setFreshScene(index){flowSyncHero(index);state.scene=(index+freshScenes.length)%freshScenes.length;const stage=$('.fresh-stage');if(!stage)return;stage.dataset.scene=String(state.scene);stage.style.setProperty('--scene-color',freshScenes[state.scene].color);stage.querySelector('.fresh-word').innerHTML=letterWord(freshScenes[state.scene].name);stage.querySelectorAll('.fresh-portrait').forEach((el,i)=>el.classList.toggle('active',i===state.scene));stage.querySelector('.fresh-scene-count').innerHTML=String(state.scene+1).padStart(2,'0')+' <small>/ 08</small>'}
 
-Object.assign(screenRender,{review:flowReview,done:flowDone,home:freshHome,search:freshSearch,vacancy:freshForm,resume:freshForm,profile:freshProfile,listings:freshListings,plans:freshTariffs,auth:freshAuth,settings:freshSettings,preview:freshPreview});
+Object.assign(screenRender,{applications:flowApplications,review:flowReview,done:flowDone,home:freshHome,search:freshSearch,vacancy:freshForm,resume:freshForm,profile:freshProfile,listings:freshListings,plans:freshTariffs,auth:freshAuth,settings:freshSettings,preview:freshPreview});
 document.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button)return;
   if(button.hasAttribute('data-fresh-menu')){freshMenu();return}
@@ -144,9 +142,9 @@ function flowInitialize(){
   state.orderPaid=!!(continuing&&draft.paid&&draft.paidTx===draft.tx&&draft.kind===state.kind);
   if(continuing&&Number.isInteger(draft.plan)&&draft.plan>=0&&draft.plan<plans.length)state.selectedPlan=draft.plan;
   if(continuing&&draft.schedule){state.startDate=draft.schedule.startDate||state.startDate;state.scheduleMode=draft.schedule.mode||'same';state.scheduleTime=draft.schedule.time||'18:00';state.dailyTimes=draft.schedule.dailyTimes||{};}
-  return {defaults,activeId:continuing?draft.activeId||flowId():flowId(),tx:continuing?draft.tx||flowId():flowId(),channel:continuing?draft.channel!==false:true,confirmedTx:continuing?draft.confirmedTx||null:null,lastId:flowRead('ishdasiz-v12-last',''),pendingAuth:draft?.pendingAuth||null,switchAccount:false,priceTarget:'review',salaryFrom:'',salaryTo:'',preselectedPaid:!!(continuing&&draft.preselectedPaid),confirming:false};
+  return {defaults,activeId:continuing?draft.activeId||flowId():flowId(),tx:continuing?draft.tx||flowId():flowId(),channel:continuing?draft.channel!==false:true,confirmedTx:continuing?draft.confirmedTx||null:null,lastId:flowRead('ishdasiz-v12-last',''),pendingAuth:draft?.pendingAuth||null,pendingApplication:draft?.pendingApplication||null,switchAccount:false,priceTarget:'review',salaryFrom:'',salaryTo:'',preselectedPaid:!!(continuing&&draft.preselectedPaid),confirming:false};
 }
-function flowSaveDraft(){flowWrite('ishdasiz-v12-draft',{form:state.form,kind:state.kind,step:state.step,activeId:flow.activeId,tx:flow.tx,channel:flow.channel,confirmedTx:flow.confirmedTx,pendingAuth:flow.pendingAuth,paid:state.orderPaid,paidTx:flow.tx,plan:state.selectedPlan,preselectedPaid:flow.preselectedPaid,schedule:{startDate:state.startDate,mode:state.scheduleMode,time:state.scheduleTime,dailyTimes:state.dailyTimes}});}
+function flowSaveDraft(){flowWrite('ishdasiz-v12-draft',{form:state.form,kind:state.kind,step:state.step,activeId:flow.activeId,tx:flow.tx,channel:flow.channel,confirmedTx:flow.confirmedTx,pendingAuth:flow.pendingAuth,pendingApplication:flow.pendingApplication,paid:state.orderPaid,paidTx:flow.tx,plan:state.selectedPlan,preselectedPaid:flow.preselectedPaid,schedule:{startDate:state.startDate,mode:state.scheduleMode,time:state.scheduleTime,dailyTimes:state.dailyTimes}});}
 function flowAccount(){return state.loggedIn?state.phone.replace(/\D/g,''):'guest'}
 function flowAllowances(){return flowRead('ishdasiz-v12-allowances',{},localStorage)}
 function flowFree(kind){return !flowAllowances()[flowAccount()]?.[kind]}
@@ -157,7 +155,7 @@ function flowClearMedia(){for(const key of ['media','logo']){if(flow[key]?.url)U
 function flowBegin(kind,siteOnly=false,skipPrice=false){
   state.kind=kind;state.orderPaid=false;flowSyncAllowance();
   if(!siteOnly&&!skipPrice&&!flowFree(kind)){flow.priceTarget='start';flowPrices(kind);return;}
-  flowClearMedia();flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=!siteOnly;flow.preselectedPaid=skipPrice;flow.pendingAuth=null;
+  flowClearMedia();flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=!siteOnly;flow.preselectedPaid=skipPrice;flow.pendingAuth=null;flow.pendingApplication=null;
   navigate(kind);flowSaveDraft();
 }
 function flowPrices(kind){
@@ -253,9 +251,9 @@ function flowResults(){
 }
 function flowSearchUpdate(){const results=$('#flow-results');if(results)results.innerHTML=flowResults()}
 function flowDetails(id){
-  const d=flowSearchRecords().find(v=>v.id===id);if(!d)return;
+  const d=flowSearchRecords().find(v=>v.id===id);if(!d){toast('E’lon mavjud emas');return;}
   flowTrackResume(d,'views');
-  modal(`<h2>${esc(d.position||d.title)}</h2><p>${esc(d.company||d.name||'')} · ${esc(d.region)}</p><strong class="flow-detail-salary">${flowSalaryLabel(d)}</strong><p>${esc(d.description||d.skills||'')}</p><button class="primary full" data-flow-contact="${esc(d.id)}">${icon('phone')}${state.loggedIn?'Kontaktni ko‘rish':'Kontakt uchun kirish'}</button>`);
+  modal(`<h2>${esc(d.position||d.title)}</h2><p>${esc(d.company||d.name||'')} · ${esc(d.region)}</p><strong class="flow-detail-salary">${flowSalaryLabel(d)}</strong><p>${esc(d.description||d.skills||'')}</p>${d.kind==='vacancy'&&d.account!==flowAccount()?`<button class="primary full flow-apply-action" data-flow-apply="${esc(d.id)}">Ariza topshirish ${icon('send')}</button>`:''}<button class="${d.kind==='vacancy'?'secondary':'primary'} full" data-flow-contact="${esc(d.id)}">${icon('phone')}${state.loggedIn?'Kontaktni ko‘rish':'Kontakt uchun kirish'}</button>`);
 }
 function flowFilters(){
   modal(`<h2>Filtrlar</h2><div class="fields"><label class="field"><span>Hudud</span><select id="filter-region">${['Butun O‘zbekiston',...regions].map(r=>`<option ${r===state.region?'selected':''}>${r}</option>`).join('')}</select></label><div class="field-pair"><label class="field"><span>Maosh, dan</span><input id="flow-salary-from" inputmode="numeric" value="${esc(flow.salaryFrom)}" placeholder="0"></label><label class="field"><span>gacha</span><input id="flow-salary-to" inputmode="numeric" value="${esc(flow.salaryTo)}" placeholder="0"></label></div></div><div class="spacer"></div><button class="primary full" data-flow-apply-filters>Qo‘llash</button><button class="text-button" data-flow-clear-filters>Tozalash</button>`);
@@ -317,7 +315,7 @@ function flowMoveOption(index){if(!flowCombo)return;flowCombo.index=(index+flowC
 const flowOriginalRender=render;
 render=function(){flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());};
 const flowOriginalNavigate=navigate;
-navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.switchAccount=false;}flowCloseCombo();flowOriginalNavigate(screen,options);flowSaveDraft();};
+navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.pendingApplication=null;flow.switchAccount=false;}flowCloseCombo();flowOriginalNavigate(screen,options);flowSaveDraft();};
 const flowOriginalModal=modal;
 modal=function(html){flowCloseCombo();flowOriginalModal(html)};
 
@@ -355,7 +353,7 @@ document.addEventListener('click',event=>{
   if(b.hasAttribute('data-flow-publish')||b.hasAttribute('data-channel-confirm')){stop();flowPublish();return;}
   if(b.hasAttribute('data-flow-buy')){stop();if(!flowValidateAll())return;if(flow.preselectedPaid)navigate('schedule');else{flow.priceTarget='review';flowPrices(state.kind);}return;}
   if(b.hasAttribute('data-demo-paid')){stop();if(state.orderPaid){closeModal();navigate('review');return;}if(!validSchedule()){toast('Boshqa vaqtni tanlang');return}state.orderPaid=true;flow.channel=true;state.demoReservations.push(...selectedSchedule());navigate('review');return;}
-  if(b.hasAttribute('data-verify-sms')){stop();if(!/^\d{5}$/.test($('#sms-code').value)){flowError($('#sms-code'),'5 xonali kodni kiriting');return;}if(flow.switchAccount){flowClearMedia();state.form=structuredClone(flow.defaults);flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=true;state.orderPaid=false;flow.switchAccount=false;}state.loggedIn=true;state.phone='+998'+state.phone.replace(/\D/g,'').slice(-9);flowWrite('ishdasiz-v12-account',{phone:state.phone});flowSyncAllowance();const target=flow.pendingAuth||'profile';flow.pendingAuth=null;navigate(target);return;}
+  if(b.hasAttribute('data-verify-sms')){stop();if(!/^\d{5}$/.test($('#sms-code').value)){flowError($('#sms-code'),'5 xonali kodni kiriting');return;}if(flow.switchAccount){flowClearMedia();state.form=structuredClone(flow.defaults);flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=true;state.orderPaid=false;flow.switchAccount=false;}state.loggedIn=true;state.phone='+998'+state.phone.replace(/\D/g,'').slice(-9);flowWrite('ishdasiz-v12-account',{phone:state.phone});flowSyncAllowance();const target=flow.pendingAuth||'profile',application=flow.pendingApplication;flow.pendingAuth=null;flow.pendingApplication=null;navigate(target);if(application)flowApplicationModal(application);return;}
   if(b.dataset.flowClear){stop();const input=document.getElementById(b.dataset.flowClear);input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();return;}
   if(b.dataset.filter&&state.screen==='search'){stop();flowFilters();return;}
   if(b.hasAttribute('data-flow-apply-filters')){stop();const low=$('#flow-salary-from'),high=$('#flow-salary-to');if(flowNumber(low.value)&&flowNumber(high.value)&&flowNumber(low.value)>flowNumber(high.value)){flowError(high,'Qiymat boshlang‘ich maoshdan kam bo‘lmasin');return;}state.region=$('#filter-region').value;flow.salaryFrom=low.value;flow.salaryTo=high.value;closeModal();render();return;}
@@ -371,3 +369,50 @@ document.addEventListener('click',event=>{
 paths.eye='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0';
 render();
 window.ISHDASIZFlow={flow,free:flowFree,records:flowRecords,begin:flowBegin,publish:flowPublish,closeCombo:flowCloseCombo};
+
+/* Local account and application preview. No employer messages or API calls. */
+function flowSyncHero(index){
+  document.querySelectorAll('.flow-hero-word>span').forEach((el,i)=>el.classList.toggle('active',i===Math.abs(index)%2));
+}
+function flowAllApplications(){return flowRead('ishdasiz-v12-applications',[]).filter(a=>a&&typeof a.id==='string');}
+function flowAccountApplications(received=false){
+  if(!state.loggedIn)return [];
+  const ownJobs=new Set(flowOwnRecords().filter(r=>r.kind==='vacancy').map(r=>r.id));
+  return flowAllApplications().filter(a=>received?ownJobs.has(a.jobId):a.account===flowAccount());
+}
+function flowHomeAccount(){
+  const listings=flowOwnRecords().filter(r=>!r.archived).length,applications=flowAccountApplications().length+flowAccountApplications(true).length;
+  return `<section class="flow-account" aria-label="Shaxsiy kabinet"><button class="flow-account-profile" data-nav="profile"><span class="flow-account-profile-copy"><b>Profilim</b><span>${state.loggedIn?esc(state.phone):'Kirish'}${icon('right')}</span></span><span class="flow-profile-object" aria-hidden="true"><i></i><i></i><span>${icon('user')}</span></span></button><div class="flow-account-shortcuts"><button data-nav="listings"><span class="flow-account-icon">${icon('file')}</span><b>Mening<br>e’lonlarim</b>${state.loggedIn?`<span class="flow-account-count">${listings}</span>`:icon('right')}</button><button data-nav="applications"><span class="flow-account-icon">${icon('send')}</span><b>Arizalarim</b>${state.loggedIn?`<span class="flow-account-count">${applications}</span>`:icon('right')}</button></div></section>`;
+}
+function flowApplications(){
+  const received=flow.applicationTab==='received',entries=flowAccountApplications(received);
+  return `<section class="view flow-applications">${freshTitle('Arizalarim')}<div class="tabs"><button data-flow-app-tab="sent" class="${!received?'active':''}">Yuborganlarim</button><button data-flow-app-tab="received" class="${received?'active':''}">Kelganlar</button></div>${!state.loggedIn?`<div class="flow-app-empty">${icon('user')}<h2>Profilga kiring</h2><button class="primary full" data-flow-app-login>Kirish ${icon('right')}</button></div>`:entries.length?entries.map(a=>`<article class="flow-application-card"><div class="flow-application-meta"><span>${icon('send')}Demo ariza</span><time>${esc(new Intl.DateTimeFormat('uz-UZ',{day:'numeric',month:'short'}).format(new Date(a.createdAt)))}</time></div><h2>${esc(a.position)}</h2><p>${esc(received?a.candidateName:a.company)}</p><div class="flow-application-resume">${icon('file')}${esc(a.resumePosition)}</div><button class="secondary full" ${received?`data-flow-app-resume="${esc(a.resumeId)}"`:`data-flow-detail="${esc(a.jobId)}"`}>${received?'Rezyumeni ko‘rish':'Vakansiyani ko‘rish'}${icon('right')}</button></article>`).join(''):`<div class="flow-app-empty">${icon(received?'users':'send')}<h2>${received?'Hali ariza kelmagan':'Hali ariza yo‘q'}</h2><button class="primary full" ${received?'data-flow-start="vacancy"':'data-fresh-intent="career"'}>${received?'Vakansiya joylash':'Ish topish'}${icon('right')}</button></div>`}</section>`;
+}
+function flowApplicationModal(jobId){
+  const job=flowSearchRecords().find(r=>r.id===jobId&&r.kind==='vacancy');
+  if(!job){toast('Vakansiya mavjud emas');return;}
+  if(!state.loggedIn){flow.pendingApplication=jobId;flow.pendingAuth='applications';flowSaveDraft();navigate('auth');return;}
+  if(job.account===flowAccount()){toast('Bu sizning vakansiyangiz');return;}
+  if(flowAccountApplications().some(a=>a.jobId===jobId)){navigate('applications');return;}
+  const resumes=flowOwnRecords().filter(r=>r.kind==='resume'&&!r.archived);
+  if(!resumes.length){modal(`<h2>Rezyume qo‘shing</h2><button class="primary full" data-flow-start="resume">Rezyume joylash ${icon('plus')}</button>`);return;}
+  modal(`<h2>Ariza topshirish</h2><p>${esc(job.position)} · ${esc(job.company)}</p><label class="field flow-application-select"><span>Rezyume</span><select id="flow-application-resume">${resumes.map(r=>`<option value="${esc(r.id)}">${esc(r.position)} · ${esc(r.name)}</option>`).join('')}</select></label><p class="flow-demo-note">Demo: ariza ish beruvchiga yuborilmaydi.</p><button class="primary full" data-flow-app-confirm="${esc(jobId)}">Tasdiqlash ${icon('right')}</button>`);
+}
+document.addEventListener('click',event=>{
+  const b=event.target.closest('button');if(!b)return;
+  const stop=()=>{event.preventDefault();event.stopImmediatePropagation();};
+  if(b.dataset.flowAppTab){stop();flow.applicationTab=b.dataset.flowAppTab;render();return;}
+  if(b.hasAttribute('data-flow-app-login')){stop();flow.pendingAuth='applications';navigate('auth');return;}
+  if(b.dataset.flowApply){stop();flowApplicationModal(b.dataset.flowApply);return;}
+  if(b.dataset.flowAppResume){stop();flowDetails(b.dataset.flowAppResume);return;}
+  if(b.dataset.flowAppConfirm){
+    stop();if(!state.loggedIn)return;
+    const job=flowSearchRecords().find(r=>r.id===b.dataset.flowAppConfirm&&r.kind==='vacancy'),resume=flowOwnRecords().find(r=>r.id===$('#flow-application-resume')?.value&&r.kind==='resume'&&!r.archived);
+    if(!job||!resume||job.account===flowAccount()){toast('Vakansiya yoki rezyume mavjud emas');return;}
+    const entries=flowAllApplications();if(!entries.some(a=>a.account===flowAccount()&&a.jobId===job.id)){
+      entries.unshift({id:flowId(),account:flowAccount(),jobId:job.id,resumeId:resume.id,position:job.position,company:job.company,candidateName:resume.name,resumePosition:resume.position,createdAt:new Date().toISOString()});
+      flowWrite('ishdasiz-v12-applications',entries);
+    }
+    flow.applicationTab='sent';navigate('applications');return;
+  }
+},true);

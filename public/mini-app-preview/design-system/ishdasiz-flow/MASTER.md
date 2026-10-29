@@ -1,16 +1,16 @@
 # ISHDASIZ Flow V12
 
-Latest user brief (29 October): show matching positions only after a letter is entered; remove redundant microcopy; keep a single vacancy action and replace the duplicate hero button with a short editorial heading; make employee/job search controls belong to the posting-button family; use red promotional accents; improve suggestion surfaces; show matched employees after a vacancy and resume view counts to its owner.
+Latest user brief (29 October): alternate “Xodim kerakmi?” and “Ish kerakmi?” beside the profession art; remove the red promotional block shown in the screenshot and replace it with useful profile, own-listing and application navigation. Keep one vacancy creation button, the paired resume control, existing search and readable input behavior.
 
 ## Product rules changed in this version
 
-The latest instruction supersedes the prior resume-only trial: **each account receives a free channel vacancy and a free channel resume**. Website publication stays free. Do not display the numerical allowance in the headline. Do not advertise unlimited free channel posting: concise copy says “Saytda va kanalda bepul e’lon joylang” and identifies paid repeat channel posts before a purchase. Repeat creation offers paid channel plans and an explicit free website path. Eligibility is consumed only on final demo confirmation, separately by kind/account, and preserved across reloads. An interrupted form, price view, review or cancelled confirmation consumes nothing.
+The latest instruction supersedes the prior resume-only trial: **each account receives a free channel vacancy and a free channel resume**. Website publication stays free. Do not display the numerical allowance in the headline. Do not advertise unlimited free channel posting. Free badges remain on the creation tiles; the removed homepage promotion is not needed to explain eligibility. Paid repeat channel posts are identified before a purchase. Repeat creation offers paid channel plans and an explicit free website path. Eligibility is consumed only on final demo confirmation, separately by kind/account, and preserved across reloads. An interrupted form, price view, review or cancelled confirmation consumes nothing.
 
 ## Composition
 
-The first section integrates the original eight professions into a compact split hero with the short noninteractive heading “Xodim kerakmi?” on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them is a red offer surface with a flowing document/Telegram animation, followed by the account/listings links. There is no ticker and no bottom navigation.
+The first section integrates the original eight professions into a compact split hero with an alternating noninteractive “Xodim kerakmi?” / “Ish kerakmi?” heading on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them, a raised profile card and two smaller own-listing/application shortcuts replace the red promotion and old account link rows. Their counts come from local records and remain hidden for guests. There is no ticker and no bottom navigation.
 
-Use the existing Onest family, blue employer action, pearl/citron resume control and red free/bonus accents, with a cooler layered background and a dark equivalent. Red identifies the offer; blue remains the primary action. Do not fabricate discount percentages, previous prices or urgency. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs, management/settings explanations and saved-draft captions. Retain meaningful payment, privacy, optional-field and demo disclosures.
+Use the existing Onest family, blue employer action, pearl/citron resume control and red free/bonus accents, with a cooler layered background and a dark equivalent. Red identifies free/bonus badges; blue remains the primary action. Do not fabricate discount percentages, previous prices or urgency. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs, management/settings explanations and saved-draft captions. Retain meaningful payment, privacy, optional-field and demo disclosures.
 
 ## Search and forms
 
@@ -38,3 +38,12 @@ The accepted layout is retained. The canvas now combines pearl-white diagonal li
 
 
 Duplicate-action correction: the homepage has exactly one vacancy creation button and one resume creation button. The profession hero has no posting control, plus icon or button surface; its short heading leaves attention on the paired creation tiles below.
+
+
+## Account shortcuts and applications
+
+The home account module uses an original CSS layered profile object, pearl-blue surfaces and restrained dimensional file/send icons. Every card is a real navigation target. The same applications route is in the profile and menu; the sixteen-screen review gallery includes it.
+
+Applications have sent and received tabs. Guests see a sign-in action; empty states lead to jobs or vacancy creation. An application requires an active own resume, an available vacancy and demo confirmation. One application per account/job is saved in session storage, survives reload and appears in the job owner's received tab. Other accounts see neither side. Login and reload return to the requested application; own vacancies cannot be applied to. Rows are marked “Demo ariza”; no employer message is sent. Production identity, authorization, persistence and delivery still require server integration.
+
+Hero wording shares the existing 4.8-second profession timer instead of adding another interval. Manual scene controls update both. The accessible heading is static (“Xodim yoki ish kerakmi?”); visual layers animate opacity/transform without layout shifts. OS reduced motion, the animation setting, hidden-page, modal and keyboard-focus pause behavior remain honored.

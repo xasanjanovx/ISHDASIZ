@@ -1,8 +1,8 @@
 # ISHDASIZ Flow V12
 
-Latest interactive design preview. Open `index.html` through HTTP, e.g. `python -m http.server 8777 --bind 127.0.0.1`, then http://127.0.0.1:8777/ . `review.html` presents fifteen screens.
+Latest interactive design preview. Open `index.html` through HTTP, e.g. `python -m http.server 8777 --bind 127.0.0.1`, then http://127.0.0.1:8777/ . `review.html` presents sixteen screens.
 
-The ticker is removed. The eight original profession scenes sit directly under the header, beside the noninteractive heading “Xodim kerakmi?”. Posting and employee/job search controls share raised surfaces and clear labels; a red animated free-placement offer follows. The employer action is dominant. Fields, background and copy are refined, and the duplicated resume review is merged: six vacancy question steps, four resume question steps, then one publication review. No questions were removed.
+The ticker is removed. The eight original profession scenes sit directly under the header, beside the alternating noninteractive heading “Xodim kerakmi?” / “Ish kerakmi?”. Posting and employee/job search controls share raised surfaces and clear labels; a dimensional profile card and own-listing/application shortcuts replace the red promotional block. The employer action is dominant. Fields, background and copy are refined, and the duplicated resume review is merged: six vacancy question steps, four resume question steps, then one publication review. No questions were removed.
 
 Position search uses 1,037 public profession titles/common aliases, with suggestions only after at least one letter is entered. Fourteen regions and 209 districts come from a read-only public reference export. Comboboxes support touch, arrows, Enter, Escape and custom positions. Search updates immediately, includes locally created entries and applies salary/region filters. Own listings can be edited/archived. Candidate contact access requires the demo sign-in.
 
@@ -15,14 +15,15 @@ Runtime: `index.html`, `styles.css`, `flow.css`, `flow.js`, `positions.js`, `app
 Verification:
 
 - `verify_flow_journey.py`: full vacancy/resume creation, inline errors and autocomplete, draft/sign-in reload, free confirmation, repeated-post pricing, free website continuation, instant search/filtering, paid demo checkout, contacts and archiving.
-- `audit_flow.py`: all fifteen screens in four sizes/both themes, homepage/posting/popup checks in eight sizes, text contrast and keyboard controls.
+- `audit_flow.py`: all sixteen screens in four sizes/both themes, homepage/posting/popup checks in eight sizes, text contrast and keyboard controls.
 - `verify_flow_edges.py`: custom positions, salary validation, matching districts, account separation, motion preferences and short keyboard viewport.
 - `verify_flow_host.py`: synthetic Telegram fullscreen/fallback, native theme colors, safe-area action shelf and campaign entry.
 - `verify_flow_media.py`: actual local image/logo selection and media reset.
 - `verify_employer_refinements.py`: letter-gated suggestions/aliases, candidate review and confirmation, ranking/filtering/search handoff, actual resume event counts, deduplication/owner exclusion/contact privacy and populated responsive states.
+- `verify_account_home.py`: all home shortcuts, sign-in/reload return, sent/received applications, required own resume, confirmation, deduplication, account separation, real counts and alternating/reduced-motion wording.
 - `review_flow.py`: screenshots of the actual rendered pages.
 
-**Prototype boundary:** no real accounts, SMS, charges, AI moderation/generation, production reservations, database writes or Telegram publications occur. Entries and allowances are local demo records. Client storage is not production entitlement enforcement. Real rollout requires server-side account/allowance checks, atomic/idempotent publication, moderation, verified payment and Telegram integration. The existing draft PR remains a design review, not a complete deployment of that flow.
+**Prototype boundary:** no real accounts, SMS, charges, AI moderation/generation, production reservations, database writes or Telegram publications occur. Entries, applications and allowances are local demo records. No employer is notified. Applications are labeled as demo, require an own resume and appear in sent/received account views only. Client storage is not production entitlement enforcement. Real rollout requires server-side account/allowance checks, atomic/idempotent publication, moderation, verified payment and Telegram integration. The existing draft PR remains a design review, not a complete deployment of that flow.
 
 
 Duplicate-action correction: the homepage has exactly one vacancy creation button and one resume creation button. The profession hero has no posting control, plus icon or button surface; its short heading leaves attention on the paired creation tiles below.
