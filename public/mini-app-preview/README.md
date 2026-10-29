@@ -2,7 +2,7 @@
 
 Latest interactive design preview. Open `index.html` through HTTP, e.g. `python -m http.server 8777 --bind 127.0.0.1`, then http://127.0.0.1:8777/ . `review.html` presents fifteen screens.
 
-The ticker is removed. The eight original profession scenes sit directly under the header, beside a vacancy action replacing the old slogan. Posting and employee/job search controls share raised surfaces and clear labels; a red animated free-placement offer follows. The employer action is dominant. Fields, background and copy are refined, and the duplicated resume review is merged: six vacancy question steps, four resume question steps, then one publication review. No questions were removed.
+The ticker is removed. The eight original profession scenes sit directly under the header, beside the noninteractive heading “Xodim kerakmi?”. Posting and employee/job search controls share raised surfaces and clear labels; a red animated free-placement offer follows. The employer action is dominant. Fields, background and copy are refined, and the duplicated resume review is merged: six vacancy question steps, four resume question steps, then one publication review. No questions were removed.
 
 Position search uses 1,037 public profession titles/common aliases, with suggestions only after at least one letter is entered. Fourteen regions and 209 districts come from a read-only public reference export. Comboboxes support touch, arrows, Enter, Escape and custom positions. Search updates immediately, includes locally created entries and applies salary/region filters. Own listings can be edited/archived. Candidate contact access requires the demo sign-in.
 
@@ -23,3 +23,6 @@ Verification:
 - `review_flow.py`: screenshots of the actual rendered pages.
 
 **Prototype boundary:** no real accounts, SMS, charges, AI moderation/generation, production reservations, database writes or Telegram publications occur. Entries and allowances are local demo records. Client storage is not production entitlement enforcement. Real rollout requires server-side account/allowance checks, atomic/idempotent publication, moderation, verified payment and Telegram integration. The existing draft PR remains a design review, not a complete deployment of that flow.
+
+
+Duplicate-action correction: the homepage has exactly one vacancy creation button and one resume creation button. The profession hero has no posting control, plus icon or button surface; its short heading leaves attention on the paired creation tiles below.

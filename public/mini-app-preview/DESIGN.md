@@ -1,6 +1,6 @@
 # ISHDASIZ Flow V12
 
-Latest user brief (29 October): show matching positions only after a letter is entered; remove redundant microcopy; replace the hero slogan with a vacancy action; make employee/job search controls belong to the posting-button family; use red promotional accents; improve suggestion surfaces; show matched employees after a vacancy and resume view counts to its owner.
+Latest user brief (29 October): show matching positions only after a letter is entered; remove redundant microcopy; keep a single vacancy action and replace the duplicate hero button with a short editorial heading; make employee/job search controls belong to the posting-button family; use red promotional accents; improve suggestion surfaces; show matched employees after a vacancy and resume view counts to its owner.
 
 ## Product rules changed in this version
 
@@ -8,7 +8,7 @@ The latest instruction supersedes the prior resume-only trial: **each account re
 
 ## Composition
 
-The first section integrates the original eight professions into a compact split hero with an actionable vacancy button on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them is a red offer surface with a flowing document/Telegram animation, followed by the account/listings links. There is no ticker and no bottom navigation.
+The first section integrates the original eight professions into a compact split hero with the short noninteractive heading “Xodim kerakmi?” on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them is a red offer surface with a flowing document/Telegram animation, followed by the account/listings links. There is no ticker and no bottom navigation.
 
 Use the existing Onest family, blue employer action, pearl/citron resume control and red free/bonus accents, with a cooler layered background and a dark equivalent. Red identifies the offer; blue remains the primary action. Do not fabricate discount percentages, previous prices or urgency. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs, management/settings explanations and saved-draft captions. Retain meaningful payment, privacy, optional-field and demo disclosures.
 
@@ -35,3 +35,6 @@ Sources remain the actually read Anthropic Frontend Design, GitHub Premium Front
 ## Background refinement
 
 The accepted layout is retained. The canvas now combines pearl-white diagonal light, a soft blue glow near the profession art, a restrained citron reflection toward the lower content, thin contour arcs and a faint 48px grid. The dark theme uses deeper blue/green reflections and quieter contours. Static CSS pseudo-elements sit behind the content, do not intercept pointer events and introduce no new images or animation. `surface-background.css` is the editable source and is compiled into `flow.css`.
+
+
+Duplicate-action correction: the homepage has exactly one vacancy creation button and one resume creation button. The profession hero has no posting control, plus icon or button surface; its short heading leaves attention on the paired creation tiles below.
