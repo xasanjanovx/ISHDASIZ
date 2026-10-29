@@ -34,10 +34,10 @@ function studioObject(kind){
   return kind==='vacancy'?'<span class="studio-case" aria-hidden="true"><i class="case-handle"></i><i class="case-body"></i><i class="case-flap"></i><i class="case-lock"></i></span>':'<span class="studio-document" aria-hidden="true"><i class="document-back"></i><i class="document-page"><b></b><em></em><em></em><em></em></i><i class="document-seal">'+icon('check')+'</i></span>';
 }
 function studioCreateTiles(){
-  return `<div class="flow-posting"><div class="flow-posting-group"><button class="studio-create-tile hiring" data-flow-start="vacancy"><span class="studio-tile-top"><small>Sayt + Telegram</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('vacancy')}<strong>Vakansiya<br>joylash</strong><span class="studio-tile-bottom"><small>${flowFree('vacancy')?'Bepul boshlang':'E’lon yarating'}</small>${icon('right')}</span></button><button class="flow-intent" data-fresh-intent="hiring"><i>${icon('users')}</i><span>Xodim topish</span>${icon('right')}</button></div><div class="flow-posting-group"><button class="studio-create-tile career" data-flow-start="resume"><span class="studio-tile-top"><small>Sayt + Telegram</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('resume')}<strong>Rezyume<br>joylash</strong><span class="studio-tile-bottom"><small>${flowFree('resume')?'Bepul boshlang':'E’lon yarating'}</small>${icon('right')}</span></button><button class="flow-intent" data-fresh-intent="career"><i>${icon('search')}</i><span>Ish topish</span>${icon('right')}</button></div></div>`;
+  return `<div class="flow-posting"><button class="studio-create-tile hiring" data-flow-start="vacancy"><span class="studio-tile-top"><small>Ish beruvchilar uchun</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('vacancy')}<strong>Xodim<br>izlash</strong><span class="studio-tile-bottom"><small>Vakansiya joylash</small>${icon('right')}</span></button><button class="studio-create-tile career" data-flow-start="resume"><span class="studio-tile-top"><small>Ish izlovchilar uchun</small><span class="studio-tile-plus">${icon('plus')}</span></span>${studioObject('resume')}<strong>Ish<br>topish</strong><span class="studio-tile-bottom"><small>Rezyume yaratish</small>${icon('right')}</span></button></div>`;
 }
 function freshHome(){
-  return `<section class="view flow-home"><div class="flow-hero">${flowHeroMessage()}<div class="flow-hero-visual">${freshHero()}</div></div>${studioCreateTiles()}${flowHomeAccount()}</section>`;
+  return `<section class="view flow-home"><div class="flow-hero">${flowHeroMessage()}<div class="flow-hero-visual">${freshHero()}</div></div>${studioCreateTiles()}${discoveryHomeMap()}${flowHomeAccount()}</section>`;
 }
 function freshSearch(){
   return `<section class="view fresh-results flow-search">${freshTitle(state.searchType==='resumes'?'Xodim topish':'Ish topish')}<div class="tabs"><button class="${state.searchType==='jobs'?'active':''}" data-search-type="jobs">Vakansiyalar</button><button class="${state.searchType==='resumes'?'active':''}" data-search-type="resumes">Rezyumelar</button></div><form id="results-search" class="fresh-search-form"><label>${icon('search')}<input id="flow-query" name="query" aria-label="Qidiruv" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flow-options" placeholder="Lavozim yoki kompaniya" value="${esc(state.query)}" autocomplete="off" maxlength="120" data-flow-combo="query"></label><button type="submit" aria-label="Qidirish">${icon('right')}</button></form><div class="fresh-search-tools"><button data-filter="region">${icon('pin')}${esc(state.region)}</button><button data-filter="all">${icon('filter')}Filtr${flow.salaryFrom||flow.salaryTo?' · 1':''}</button></div><div id="flow-results" aria-live="polite">${flowResults()}</div></section>`;
@@ -51,11 +51,11 @@ function freshProfile(){
 }
 function freshListings(){
   const records=flowOwnRecords().filter(record=>!record.archived&&(state.listTab==='all'||record.kind===(state.listTab==='jobs'?'vacancy':'resume')));
-  return `<section class="view">${freshTitle('Mening e’lonlarim','profile')}<button class="primary full flow-new-listing" data-create>${icon('plus')}E’lon joylash</button><div class="tabs"><button class="${state.listTab==='all'?'active':''}" data-list-tab="all">Barchasi</button><button class="${state.listTab==='jobs'?'active':''}" data-list-tab="jobs">Vakansiya</button><button class="${state.listTab==='resumes'?'active':''}" data-list-tab="resumes">Rezyume</button></div>${records.map(record=>`<article class="fresh-listing"><div class="fresh-listing-top"><span class="fresh-company-icon ${record.kind==='resume'?'mint':''}">${icon(record.kind==='resume'?'file':'briefcase')}</span><span class="fresh-status">${record.channel?'Sayt + kanal ko‘rinishi':'Saytdagi ko‘rinish'}</span></div><h2>${esc(record.position)}</h2><p>${esc(record.kind==='vacancy'?record.company:record.name)} · ${esc(record.region)}</p><strong class="fresh-listing-free">${flowSalaryLabel(record)}</strong>${record.kind==='resume'?flowResumeStats(record):`<button class="secondary full flow-candidate-link" data-flow-candidates="${esc(record.id)}">${icon('users')}Mos xodimlar ${icon('right')}</button>`}<button class="primary full" data-flow-repost="${esc(record.id)}">Kanalga joylash ${icon('send')}</button><div class="fresh-edit-actions"><button data-flow-edit-record="${esc(record.id)}">${icon('edit')}Tahrirlash</button><button data-flow-archive="${esc(record.id)}">${icon('trash')}Olib tashlash</button></div></article>`).join('')||`<div class="fresh-empty">${icon('file')}<h2>Hali e’lon yo‘q</h2><button class="secondary full" data-create>E’lon joylash</button></div>`}</section>`;
+  return `<section class="view">${freshTitle('Mening e’lonlarim','profile')}<button class="primary full flow-new-listing" data-create>${icon('plus')}E’lon joylash</button><div class="tabs"><button class="${state.listTab==='all'?'active':''}" data-list-tab="all">Barchasi</button><button class="${state.listTab==='jobs'?'active':''}" data-list-tab="jobs">Vakansiya</button><button class="${state.listTab==='resumes'?'active':''}" data-list-tab="resumes">Rezyume</button></div>${records.map(record=>`<article class="fresh-listing"><div class="fresh-listing-top"><span class="fresh-company-icon ${record.kind==='resume'?'mint':''}">${icon(record.kind==='resume'?'file':'briefcase')}</span><span class="fresh-status">${record.kind==='resume'?'Rezyume bazasi':record.channel?'Sayt + kanal ko‘rinishi':'Saytdagi ko‘rinish'}</span></div><h2>${esc(record.position)}</h2><p>${esc(record.kind==='vacancy'?record.company:record.name)} · ${esc(record.region)}</p><strong class="fresh-listing-free">${flowSalaryLabel(record)}</strong>${record.kind==='resume'?flowResumeStats(record):`<button class="secondary full flow-candidate-link" data-flow-candidates="${esc(record.id)}">${icon('users')}Mos xodimlar ${icon('right')}</button>`}${record.kind==='vacancy'?`<button class="primary full" data-flow-repost="${esc(record.id)}">Kanalga joylash ${icon('send')}</button>`:''}<div class="fresh-edit-actions"><button data-flow-edit-record="${esc(record.id)}">${icon('edit')}Tahrirlash</button><button data-flow-archive="${esc(record.id)}">${icon('trash')}Olib tashlash</button></div></article>`).join('')||`<div class="fresh-empty">${icon('file')}<h2>Hali e’lon yo‘q</h2><button class="secondary full" data-create>E’lon joylash</button></div>`}</section>`;
 }
-function freshTariffs(){
+function freshTariffs(){state.kind='vacancy';
   return `<section class="view fresh-tariffs">${freshTitle('Kanal tariflari','review')}
-    <div class="tabs"><button class="${state.kind==='vacancy'?'active':''}" data-tariff-kind="vacancy">Vakansiya</button><button class="${state.kind==='resume'?'active':''}" data-tariff-kind="resume">Rezyume</button></div>
+    <div class="tabs"><button class="${state.kind==='vacancy'?'active':''}" data-tariff-kind="vacancy">Vakansiya</button></div>
 
     <div class="plans">${plans.map((plan,index)=>`<button class="plan ${state.selectedPlan===index?'selected':''}" data-plan="${index}" aria-pressed="${state.selectedPlan===index}"><span class="plan-radio">${state.selectedPlan===index?icon('check'):''}</span><span class="plan-duration">${plan.days}<small>${plan.count} ta post · har kuni</small>${plan.pin?'<em>Zakrep sovg‘a</em>':''}</span><span class="plan-prices"><strong>${money(tariffPrice(plan))}</strong><small>so‘m</small></span></button>`).join('')}</div>
     <div class="fresh-site-note">${icon('check')}Saytga joylash bepul. Tarif — kanal uchun.</div>
@@ -69,7 +69,7 @@ function freshSettings(){
   return `<section class="view">${freshTitle('Sozlamalar','profile')}<div class="fresh-settings-card"><div class="fresh-setting-row"><span><b>Tungi rejim</b></span><button class="fresh-switch ${state.theme==='dark'?'on':''}" data-fresh-theme role="switch" aria-checked="${state.theme==='dark'}" aria-label="Tungi rejim"><i></i></button></div><div class="fresh-setting-row"><span><b>Animatsiyalar</b></span><button class="fresh-switch ${freshMotion?'on':''}" data-fresh-motion role="switch" aria-checked="${freshMotion}" aria-label="Animatsiyalar"><i></i></button></div><button class="fresh-language-row" data-fresh-language><span><b>Til</b><small>O‘zbekcha</small></span>${icon('right')}</button></div></section>`;
 }
 function freshPreview(){
-  const draft=state.form[state.kind],resume=state.kind==='resume';
+  const draft=state.form[state.kind],resume=state.kind==='resume';if(resume)return discoveryReview();
   const media=!resume&&flow.media?`<div class="flow-user-media">${flow.media.type.startsWith('video/')?`<video src="${esc(flow.media.url)}" controls playsinline></video>`:`<img src="${esc(flow.media.url)}" alt="Tanlangan foto">`}</div>`:!resume&&state.orderPaid?`<div class="media-cover"><img src="assets/profession-salesperson-v1.webp" alt="Muqova namunasi"><strong class="cover-title">${esc(draft.position)}</strong>${flow.logo?`<img class="flow-cover-logo" src="${esc(flow.logo.url)}" alt="Kompaniya logotipi">`:''}</div>`:'';
   return `<section class="view fresh-post-preview">${freshTitle('Kanal posti','review')}<article class="fresh-telegram-post"><header><span>${icon('send')}</span><div><strong>@ishdasiz</strong><small>${resume?'Rezyume':'Vakansiya'}</small></div></header>${media}<div class="fresh-post-copy"><h2>${esc(draft.position||'Lavozim')}</h2><p>${esc(resume?draft.name:draft.company)}</p><strong>${flowSalaryLabel(draft)}</strong><p>${esc(draft.region)} · ${esc(draft.experience||'')}</p><p>${esc(resume?draft.skills:draft.description)}</p></div></article>${!resume?`<div class="media-actions"><button class="secondary" data-upload="media">${icon('image')}Foto / video</button>${state.orderPaid?`<button class="secondary" data-upload="logo">${icon('plus')}Logo</button>`:''}</div>`:''}<button class="primary full flow-preview-back" data-nav="review">Joylashga qaytish ${icon('right')}</button></section>`;
 }
@@ -147,29 +147,22 @@ function flowInitialize(){
 function flowSaveDraft(){flowWrite('ishdasiz-v12-draft',{form:state.form,kind:state.kind,step:state.step,activeId:flow.activeId,tx:flow.tx,channel:flow.channel,confirmedTx:flow.confirmedTx,pendingAuth:flow.pendingAuth,pendingApplication:flow.pendingApplication,paid:state.orderPaid,paidTx:flow.tx,plan:state.selectedPlan,preselectedPaid:flow.preselectedPaid,schedule:{startDate:state.startDate,mode:state.scheduleMode,time:state.scheduleTime,dailyTimes:state.dailyTimes}});}
 function flowAccount(){return state.loggedIn?state.phone.replace(/\D/g,''):'guest'}
 function flowAllowances(){return flowRead('ishdasiz-v12-allowances',{},localStorage)}
-function flowFree(kind){return !flowAllowances()[flowAccount()]?.[kind]}
+function flowFree(kind){return kind==='resume'||!flowAllowances()[flowAccount()]?.[kind]}
 function flowSyncAllowance(){state.freeResumeUsed=!flowFree('resume');state.freeVacancyUsed=!flowFree('vacancy')}
 function flowRecords(){return flowRead('ishdasiz-v12-records',[]).filter(v=>v&&typeof v.id==='string')}
 function flowOwnRecords(){return flowRecords().filter(v=>v.account===flowAccount())}
 function flowClearMedia(){for(const key of ['media','logo']){if(flow[key]?.url)URL.revokeObjectURL(flow[key].url);flow[key]=null;}}
 function flowBegin(kind,siteOnly=false,skipPrice=false){
-  state.kind=kind;state.orderPaid=false;flowSyncAllowance();
-  if(!siteOnly&&!skipPrice&&!flowFree(kind)){flow.priceTarget='start';flowPrices(kind);return;}
-  flowClearMedia();flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=!siteOnly;flow.preselectedPaid=skipPrice;flow.pendingAuth=null;flow.pendingApplication=null;
+  if(kind==='resume')siteOnly=true;state.kind=kind;state.orderPaid=false;flow.discoveryPartial=false;flowSyncAllowance();
+  flowClearMedia();flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=false;flow.preselectedPaid=skipPrice;flow.pendingAuth=null;flow.pendingApplication=null;
   navigate(kind);flowSaveDraft();
 }
 function flowPrices(kind){
-  flowCloseCombo();state.kind=kind;
+  flowCloseCombo();if(kind==='resume'){flow.channel=false;navigate('review');return;}state.kind=kind;
   modal(`<h2>Kanalga joylash</h2><div class="flow-price-options">${plans.map((p,index)=>`<button data-flow-plan="${index}"><span>${p.days}<small>${p.count} ta post${p.pin?' · Zakrep sovg‘a':''}</small></span><b>${money(kind==='resume'?p.resumePrice:p.price)}<small>so‘m</small></b>${icon('right')}</button>`).join('')}</div><button class="secondary full" data-flow-site-only>Saytga bepul joylash</button>`);
 }
-function flowReview(){
-  const d=state.form[state.kind],free=flowFree(state.kind),pay=flow.channel&&!free&&!state.orderPaid;
-  return `<section class="view flow-review">${freshTitle('E’lonni joylash')}<article class="flow-summary"><div class="flow-summary-label"><span>${icon(state.kind==='vacancy'?'briefcase':'file')}${state.kind==='vacancy'?'Vakansiya':'Rezyume'}</span><button data-flow-edit="0">${icon('edit')}Tahrirlash</button></div><h2>${esc(d.position||'Lavozim')}</h2><p>${esc(state.kind==='vacancy'?d.company:d.name)}</p><strong>${flowSalaryLabel(d)}</strong><span class="flow-summary-region">${icon('pin')}${esc(d.region||'Hudud')}</span></article><div class="flow-destinations"><div class="flow-destination"><span class="flow-dest-icon">${icon('home')}</span><div><b>ishdasiz.uz</b><small>Saytda bepul</small></div><span class="flow-dest-check">${icon('check')}</span></div><label class="flow-destination channel"><span class="flow-dest-icon">${icon('send')}</span><span><b>@ishdasiz</b><small>${state.orderPaid?'Tarif tanlandi':free?'Kanalda bepul':(flow.preselectedPaid?money(tariffPrice(plans[state.selectedPlan]))+' so‘m':money(tariffPrice(plans[0]))+' so‘mdan')}</small></span><input type="checkbox" id="flow-channel" ${flow.channel?'checked':''}></label></div>${flow.channel?'<button class="text-button flow-show-post" data-nav="preview">Post ko‘rinishi '+icon('right')+'</button>':''}${state.kind==='vacancy'?flowCandidateSection(d):''}<p class="flow-demo-note">Demo: haqiqiy e’lon va to‘lov yuborilmaydi.</p><div class="form-footer"><button class="secondary" data-flow-edit="${formSteps[state.kind].length-1}">${icon('back')}Orqaga</button><button class="primary" ${pay?'data-flow-buy':'data-flow-publish'}>${pay?'Tarifni tanlash':state.loggedIn?'Joylash':'Kirish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
-}
-function flowDone(){
-  const record=flowOwnRecords().find(v=>v.id===flow.lastId);
-  return `<section class="view flow-done"><span class="flow-done-mark">${icon('check')}</span><h1>Ko‘rinish tayyor.</h1>${record?`<p>${esc(record.position)}</p><div class="flow-done-destinations"><span>${icon('check')}Sayt${record.channel?' + kanal':''}</span><span>${record.channel&&record.channelPaid?'Tanlangan tarif':'Bepul'}</span></div>${record.kind==='vacancy'?flowCandidateSection(record):flowResumeStats(record)}`:''}<button class="primary full" data-nav="listings">E’lonlarim ${icon('right')}</button><button class="secondary full" data-create>Yangi e’lon joylash</button><button class="text-button" data-nav="home">Bosh sahifa</button><small>Demo ko‘rinishi saqlandi.</small></section>`;
-}
+function flowReview(){return discoveryReview();}
+function flowDone(){return discoveryDone();}
 function flowViewStats(record){
   const events=flowRead('ishdasiz-v12-resume-events',{}),value=events[record.id]||{};
   return {views:Array.isArray(value.views)?value.views.length:0,contacts:Array.isArray(value.contacts)?value.contacts.length:0};
@@ -194,22 +187,10 @@ function flowPositionTerms(value){
   const catalog=window.ISHDASIZ_POSITIONS||[],definition=catalog.find(p=>(' '+flowNormalize(p.aliases)+' ').includes(' '+title+' '))||catalog.find(p=>flowNormalize(p.title)===title);
   return new Set([definition?flowNormalize(definition.title):title]);
 }
-function flowCandidates(vacancy){
-  const terms=flowPositionTerms(vacancy.position);if(!terms.size)return [];
-  return flowSearchRecords().filter(r=>r.kind==='resume'&&r.account!==flowAccount()).flatMap(r=>{
-    const titles=flowPositionTerms(r.position),sameRole=[...titles].some(t=>terms.has(t));if(!sameRole)return [];
-    const sameRegion=!!vacancy.region&&!!r.region&&flowRegionKey(vacancy.region)===flowRegionKey(r.region);
-    const vacancyLow=flowNumber(vacancy.salaryMin),vacancyHigh=flowNumber(vacancy.salaryMax)||vacancyLow,requested=flowNumber(r.salaryMin);
-    const salaryFits=!!vacancyHigh&&!!requested&&requested<=vacancyHigh;
-    const reasons=['Lavozim mos',...(sameRegion?['Bir hudud']:[]),...(salaryFits?['Maosh mos']:[])];
-    return [{record:r,score:4+Number(sameRegion)*2+Number(salaryFits),reasons}];
-  }).sort((a,b)=>b.score-a.score||a.record.id.localeCompare(b.record.id));
-}
-function flowCandidateSection(vacancy){
-  const matches=flowCandidates(vacancy),id=vacancy.id||'draft';
-  return `<section class="flow-candidates"><div class="flow-candidates-heading"><span>${icon('users')}</span><div><h2>Mos xodimlar</h2><p>${esc(vacancy.position)}</p></div><b>${matches.length}</b></div>${matches.slice(0,3).map(({record,reasons})=>`<article class="flow-match-card"><span class="flow-match-avatar">${icon('user')}</span><div><h3>${esc(record.position)}</h3><p>${esc(record.name||'Nomzod')}${record.sample?' · Namuna':''}</p><span class="flow-match-region">${esc(record.region)} · ${flowSalaryLabel(record)}</span><div class="flow-match-reasons">${reasons.map(reason=>`<span>${icon('check')}${reason}</span>`).join('')}</div></div><button data-flow-detail="${esc(record.id)}" aria-label="${esc(record.name||'Nomzod')} rezyumesini ko‘rish">${icon('right')}</button></article>`).join('')||'<div class="flow-match-empty">Hozircha mos rezyume yo‘q.</div>'}<button class="secondary full" data-flow-candidates="${esc(id)}">${matches.length?'Barcha nomzodlar':'Xodimlarni qidirish'}${icon('search')}</button></section>`;
-}
+function flowCandidates(vacancy){return discoveryMatches({...vacancy,kind:'vacancy'});}
+function flowCandidateSection(vacancy){return discoveryCandidateSection(vacancy);}
 function flowPublish(){
+  if(state.kind==='resume'){flow.channel=false;state.orderPaid=false;}
   if(flow.confirming)return;
   if(flow.confirmedTx===flow.tx){navigate('done');return;}
   if(!flowValidateAll())return;
@@ -220,7 +201,7 @@ function flowPublish(){
   const record={...state.form[state.kind],id:flow.activeId,kind:state.kind,account:flowAccount(),phone:state.form[state.kind].phone||state.phone,channel:flow.channel,channelPaid:flow.channel&&state.orderPaid,createdAt:new Date().toISOString()};
   const records=flowRecords(),index=records.findIndex(v=>v.id===record.id);if(index<0)records.unshift(record);else records[index]={...records[index],...record};
   if(flow.channel&&!state.orderPaid){const allowances=flowAllowances();allowances[flowAccount()]={...allowances[flowAccount()],[state.kind]:true};flowWrite('ishdasiz-v12-allowances',allowances,localStorage);}
-  flowWrite('ishdasiz-v12-records',records);flow.lastId=record.id;flow.confirmedTx=flow.tx;flowWrite('ishdasiz-v12-last',record.id);flowSaveDraft();flow.confirming=false;flowSyncAllowance();navigate('done');
+  flowWrite('ishdasiz-v12-records',records);if(record.kind==='vacancy'&&record.channel)discoveryGrant(record);flow.lastId=record.id;flow.confirmedTx=flow.tx;flowWrite('ishdasiz-v12-last',record.id);flowSaveDraft();flow.confirming=false;flowSyncAllowance();navigate('done');
 }
 function flowNormalize(value){
   const map={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'j','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'sh','ы':'i','э':'e','ю':'yu','я':'ya','ў':'o','қ':'q','ғ':'g','ҳ':'h','ь':'','ъ':''};
@@ -229,9 +210,9 @@ function flowNormalize(value){
 function flowNumber(value){const n=Number(String(value||'').replace(/[^\d.]/g,''));return Number.isFinite(n)?n:0}
 function flowRegionKey(value){const key=flowNormalize(value);if(key.startsWith('toshkent'))return key.includes('viloyat')?'toshkent-viloyati':'toshkent-shahri';return key.replace(/viloyati|shahri|respublikasi/g,'').trim()}
 function flowSalaryLabel(d){const low=flowNumber(d.salaryMin),high=flowNumber(d.salaryMax);return low||high?`${low?money(low):''}${low&&high?' — ':''}${high?money(high):''} so‘m`:esc(d.salary||'Kelishiladi')}
-function flowSampleJobs(){return jobs.map((j,i)=>({...j,id:'sample-job-'+i,kind:'vacancy',position:j.title,salaryMin:[4000000,5000000,6000000][i],salaryMax:[6000000,8000000,9000000][i],employment:j.mode,sample:true}))}
+function flowSampleJobs(){return jobs.map((j,i)=>({...j,id:'sample-job-'+i,kind:'vacancy',position:j.title,salaryMin:[4000000,5000000,6000000][i],salaryMax:[6000000,8000000,9000000][i],employment:j.mode,workMode:'Ish joyida',sample:true}))}
 function flowSearchRecords(){
-  const sampleCV={id:'sample-resume',kind:'resume',position:'Sotuvchi',name:'Namuna nomzod',salaryMin:4000000,region:'Toshkent shahri',employment:'To‘liq kun',experience:'1–3 yil',sample:true};
+  const sampleCV={id:'sample-resume',kind:'resume',position:'Sotuvchi',name:'Namuna nomzod',salaryMin:4000000,region:'Toshkent shahri',employment:'To‘liq kun',workMode:'Ish joyida',experience:'1–3 yil',sample:true};
   return [...flowRecords().filter(v=>!v.archived),...flowSampleJobs(),sampleCV];
 }
 function flowMatches(record){
@@ -244,17 +225,14 @@ function flowMatches(record){
   if(flow.salaryTo&&low>flowNumber(flow.salaryTo))return false;
   return true;
 }
-function flowResults(){
+function discoveryOriginalResults(){
   const resume=state.searchType==='resumes',records=flowSearchRecords().filter(v=>v.kind===(resume?'resume':'vacancy')&&flowMatches(v));
   const create=`<button class="fresh-inline-create" data-flow-start="${resume?'vacancy':'resume'}">${icon('plus')}<span>${resume?'Vakansiya joylash':'Rezyume joylash'}</span>${icon('right')}</button>`;
   return create+`<p class="fresh-result-caption">${records.length} ta ${resume?'rezyume':'vakansiya'}</p>`+records.map(record=>`<article class="fresh-result-card"><div class="fresh-card-header"><span class="fresh-company-icon ${resume?'mint':''}">${icon(resume?'user':'briefcase')}</span><div><p>${esc(record.company||record.name||'')}${record.sample?' · Namuna':''}</p><h2>${esc(record.position||record.title)}</h2></div>${!resume?`<button class="fresh-save ${flowRead('ishdasiz-v12-saved',[]).includes(record.id)?'saved':''}" data-flow-save="${esc(record.id)}" aria-label="Vakansiyani saqlash" aria-pressed="${flowRead('ishdasiz-v12-saved',[]).includes(record.id)}">${icon('bookmark')}</button>`:''}</div><p class="fresh-salary">${flowSalaryLabel(record)}</p><p class="fresh-location">${icon('pin')}${esc(record.region)}</p><div class="fresh-tags"><span>${esc(record.employment||record.mode||'To‘liq kun')}</span><span>${esc(record.experience||'')}</span></div><button class="secondary full" data-flow-detail="${esc(record.id)}">${resume?'Rezyumeni ko‘rish':'Batafsil'} ${icon('right')}</button></article>`).join('')+(records.length?'':`<div class="fresh-empty">${icon('search')}<h2>E’lon topilmadi</h2><button class="secondary full" data-flow-reset>Barchasini ko‘rish</button></div>`);
 }
+function flowResults(){return discoveryResults();}
 function flowSearchUpdate(){const results=$('#flow-results');if(results)results.innerHTML=flowResults()}
-function flowDetails(id){
-  const d=flowSearchRecords().find(v=>v.id===id);if(!d){toast('E’lon mavjud emas');return;}
-  flowTrackResume(d,'views');
-  modal(`<h2>${esc(d.position||d.title)}</h2><p>${esc(d.company||d.name||'')} · ${esc(d.region)}</p><strong class="flow-detail-salary">${flowSalaryLabel(d)}</strong><p>${esc(d.description||d.skills||'')}</p>${d.kind==='vacancy'&&d.account!==flowAccount()?`<button class="primary full flow-apply-action" data-flow-apply="${esc(d.id)}">Ariza topshirish ${icon('send')}</button>`:''}<button class="${d.kind==='vacancy'?'secondary':'primary'} full" data-flow-contact="${esc(d.id)}">${icon('phone')}${state.loggedIn?'Kontaktni ko‘rish':'Kontakt uchun kirish'}</button>`);
-}
+function flowDetails(id){return discoveryDetails(id);}
 function flowFilters(){
   modal(`<h2>Filtrlar</h2><div class="fields"><label class="field"><span>Hudud</span><select id="filter-region">${['Butun O‘zbekiston',...regions].map(r=>`<option ${r===state.region?'selected':''}>${r}</option>`).join('')}</select></label><div class="field-pair"><label class="field"><span>Maosh, dan</span><input id="flow-salary-from" inputmode="numeric" value="${esc(flow.salaryFrom)}" placeholder="0"></label><label class="field"><span>gacha</span><input id="flow-salary-to" inputmode="numeric" value="${esc(flow.salaryTo)}" placeholder="0"></label></div></div><div class="spacer"></div><button class="primary full" data-flow-apply-filters>Qo‘llash</button><button class="text-button" data-flow-clear-filters>Tozalash</button>`);
 }
@@ -267,10 +245,12 @@ function flowValidateStep(){
     if(!input.checkValidity()){flowError(input,input.type==='date'?'Sanani tekshiring':'Ma’lumotni tekshiring');return false;}
   }
   const d=state.form[state.kind];
+  if(state.kind==='vacancy'&&state.step===2&&d.workMode!=='Masofaviy'&&!discoveryPoint(d)){toast('Ish joyini xaritada belgilang');document.querySelector('[data-map]')?.focus();return false;}
+  if(state.kind==='resume'&&state.step===2&&!d.workMode){toast('Ish shaklini tanlang');return false;}
   for(const [lowKey,highKey] of [['salaryMin','salaryMax'],['ageMin','ageMax']]){if(d[lowKey]&&d[highKey]&&flowNumber(d[lowKey])>flowNumber(d[highKey])){const input=document.querySelector(`[data-field="${highKey}"]`);if(input){flowError(input,'Bu qiymat boshlang‘ich qiymatdan kam bo‘lmasin');return false;}}}
   return true;
 }
-function flowValidateAll(){const d=state.form[state.kind],required=state.kind==='vacancy'?[['position',0],['company',0],['description',4]]:[['name',0],['position',0]];for(const [key,step]of required){if(!String(d[key]||'').trim()){navigate(state.kind,{step});const input=document.querySelector(`[data-field="${key}"]`);if(input)flowError(input,'Bu maydonni to‘ldiring');return false;}}return true}
+function flowValidateAll(){const d=state.form[state.kind];if(state.kind==='vacancy'&&d.workMode!=='Masofaviy'&&!discoveryPoint(d)){navigate('vacancy',{step:2});toast('Ish joyini xaritada belgilang');return false;}if(state.kind==='resume'&&!d.workMode){navigate('resume',{step:2});toast('Ish shaklini tanlang');return false;}const required=state.kind==='vacancy'?[['position',0],['company',0],['description',4]]:[['name',0],['position',0]];for(const [key,step]of required){if(!String(d[key]||'').trim()){navigate(state.kind,{step});const input=document.querySelector(`[data-field="${key}"]`);if(input)flowError(input,'Bu maydonni to‘ldiring');return false;}}return true}
 
 let flowCombo=null;
 const flowOriginalField=field;
@@ -313,14 +293,15 @@ function flowChoose(index){
 function flowMoveOption(index){if(!flowCombo)return;flowCombo.index=(index+flowCombo.matches.length)%flowCombo.matches.length;const popup=$('#flow-options');popup.querySelectorAll('[role="option"]').forEach((el,i)=>el.setAttribute('aria-selected',String(i===flowCombo.index)));const active=popup.children[flowCombo.index];flowCombo.input.setAttribute('aria-activedescendant',active.id);if(active.offsetTop<popup.scrollTop)popup.scrollTop=active.offsetTop;else if(active.offsetTop+active.offsetHeight>popup.scrollTop+popup.clientHeight)popup.scrollTop=active.offsetTop+active.offsetHeight-popup.clientHeight;}
 
 const flowOriginalRender=render;
-render=function(){flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());};
+render=function(){if(state.kind==='resume'&&['plans','schedule','preview'].includes(state.screen))state.screen='review';flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());discoveryAfterRender();};
 const flowOriginalNavigate=navigate;
 navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.pendingApplication=null;flow.switchAccount=false;}flowCloseCombo();flowOriginalNavigate(screen,options);flowSaveDraft();};
 const flowOriginalModal=modal;
 modal=function(html){flowCloseCombo();flowOriginalModal(html)};
+const discoveryOriginalClose=closeModal;closeModal=function(){if(flow.discoveryPicker){flow.discoveryPicker.remove();flow.discoveryPicker=null;flow.pickedMarker=null;}discoveryOriginalClose();};
 
 document.addEventListener('input',event=>{
-  const input=event.target;if(input.dataset.field){if(flow.confirmedTx===flow.tx){flow.tx=flowId();flow.activeId=flowId();flow.confirmedTx=null;state.orderPaid=false;}if(input.dataset.field==='region'&&state.form[state.kind].region!==input.value){state.form[state.kind].district='';const district=document.querySelector('[data-field="district"]');if(district)district.value='';}state.form[state.kind][input.dataset.field]=input.value;flowClearError(input);const clear=input.closest('.field')?.querySelector('[data-flow-clear]');if(clear)clear.hidden=!input.value;flowSaveDraft();}
+  const input=event.target;if(input.dataset.field){if(flow.confirmedTx===flow.tx){flow.tx=flowId();flow.activeId=flowId();flow.confirmedTx=null;state.orderPaid=false;}if(input.dataset.field==='region'&&state.form[state.kind].region!==input.value){state.form[state.kind].district='';if(state.kind==='vacancy')state.form.vacancy.coordinates=null;const district=document.querySelector('[data-field="district"]');if(district)district.value='';}if(state.kind==='vacancy'&&input.dataset.field==='district'&&state.form.vacancy.district!==input.value)state.form.vacancy.coordinates=null;state.form[state.kind][input.dataset.field]=input.value;flowClearError(input);const clear=input.closest('.field')?.querySelector('[data-flow-clear]');if(clear)clear.hidden=!input.value;flowSaveDraft();}
   if(input.dataset.flowCombo==='query'){state.query=input.value;flowSearchUpdate();}
   if(input.dataset.flowCombo)flowOpenCombo(input);
 },true);
@@ -341,7 +322,7 @@ document.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
   const stop=()=>{event.preventDefault();event.stopImmediatePropagation()};
   if(b.dataset.slot!==undefined||b.dataset.scheduleMode||b.dataset.scheduleDay!==undefined||b.dataset.plan!==undefined||b.dataset.tariffKind||b.dataset.step==='back')queueMicrotask(flowSaveDraft);
-  if(b.hasAttribute('data-pay')){stop();if(!validSchedule()){toast('Boshqa vaqtni tanlang');return;}const plan=plans[state.selectedPlan];modal(`<h2>To‘lov</h2><div class="flow-checkout-summary"><span>${state.kind==='resume'?'Rezyume':'Vakansiya'} · ${plan.days}</span><strong>${money(tariffPrice(plan))}<small>so‘m</small></strong><p>${shortDate(calendarDates()[0])} · ${state.scheduleMode==='same'?state.scheduleTime:'Tanlangan vaqtlar'}${plan.pin?'<br>Zakrep — butun muddatga':''}</p></div><p>Demo: pul yechilmaydi.</p><button class="primary full" data-demo-paid>To‘lov ko‘rinishini tasdiqlash</button><button class="text-button full" data-close>Orqaga</button>`);return;}
+  if(b.hasAttribute('data-pay')){stop();if(state.kind==='resume'){navigate('review');return;}if(!validSchedule()){toast('Boshqa vaqtni tanlang');return;}const plan=plans[state.selectedPlan];modal(`<h2>To‘lov</h2><div class="flow-checkout-summary"><span>${state.kind==='resume'?'Rezyume':'Vakansiya'} · ${plan.days}</span><strong>${money(tariffPrice(plan))}<small>so‘m</small></strong><p>${shortDate(calendarDates()[0])} · ${state.scheduleMode==='same'?state.scheduleTime:'Tanlangan vaqtlar'}${plan.pin?'<br>Zakrep — butun muddatga':''}</p></div><p>Demo: pul yechilmaydi.</p><button class="primary full" data-demo-paid>To‘lov ko‘rinishini tasdiqlash</button><button class="text-button full" data-close>Orqaga</button>`);return;}
   if(b.dataset.upload){stop();const mode=b.dataset.upload;modal(`<h2>${mode==='logo'?'Kompaniya logotipi':'Foto yoki video'}</h2><label class="field"><span>Faylni tanlang</span><input type="file" id="flow-upload" data-mode="${mode}" accept="${mode==='logo'?'image/png,image/jpeg,image/webp,image/gif':'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime'}"></label>`);return;}
   if(b.hasAttribute('data-flow-account')){stop();flow.switchAccount=true;flow.pendingAuth='profile';navigate('auth');return;}
   if(b.dataset.flowStart){stop();flowBegin(b.dataset.flowStart);return;}
@@ -353,16 +334,16 @@ document.addEventListener('click',event=>{
   if(b.hasAttribute('data-flow-publish')||b.hasAttribute('data-channel-confirm')){stop();flowPublish();return;}
   if(b.hasAttribute('data-flow-buy')){stop();if(!flowValidateAll())return;if(flow.preselectedPaid)navigate('schedule');else{flow.priceTarget='review';flowPrices(state.kind);}return;}
   if(b.hasAttribute('data-demo-paid')){stop();if(state.orderPaid){closeModal();navigate('review');return;}if(!validSchedule()){toast('Boshqa vaqtni tanlang');return}state.orderPaid=true;flow.channel=true;state.demoReservations.push(...selectedSchedule());navigate('review');return;}
-  if(b.hasAttribute('data-verify-sms')){stop();if(!/^\d{5}$/.test($('#sms-code').value)){flowError($('#sms-code'),'5 xonali kodni kiriting');return;}if(flow.switchAccount){flowClearMedia();state.form=structuredClone(flow.defaults);flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=true;state.orderPaid=false;flow.switchAccount=false;}state.loggedIn=true;state.phone='+998'+state.phone.replace(/\D/g,'').slice(-9);flowWrite('ishdasiz-v12-account',{phone:state.phone});flowSyncAllowance();const target=flow.pendingAuth||'profile',application=flow.pendingApplication;flow.pendingAuth=null;flow.pendingApplication=null;navigate(target);if(application)flowApplicationModal(application);return;}
+  if(b.hasAttribute('data-verify-sms')){stop();if(!/^\d{5}$/.test($('#sms-code').value)){flowError($('#sms-code'),'5 xonali kodni kiriting');return;}if(flow.switchAccount){flowClearMedia();state.form=structuredClone(flow.defaults);flow.activeId=flowId();flow.tx=flowId();flow.confirmedTx=null;flow.channel=false;state.orderPaid=false;flow.switchAccount=false;}state.loggedIn=true;state.phone='+998'+state.phone.replace(/\D/g,'').slice(-9);flowWrite('ishdasiz-v12-account',{phone:state.phone});flowSyncAllowance();const target=flow.pendingAuth||'profile',application=flow.pendingApplication;flow.pendingAuth=null;flow.pendingApplication=null;navigate(target);if(application)flowApplicationModal(application);return;}
   if(b.dataset.flowClear){stop();const input=document.getElementById(b.dataset.flowClear);input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();return;}
   if(b.dataset.filter&&state.screen==='search'){stop();flowFilters();return;}
   if(b.hasAttribute('data-flow-apply-filters')){stop();const low=$('#flow-salary-from'),high=$('#flow-salary-to');if(flowNumber(low.value)&&flowNumber(high.value)&&flowNumber(low.value)>flowNumber(high.value)){flowError(high,'Qiymat boshlang‘ich maoshdan kam bo‘lmasin');return;}state.region=$('#filter-region').value;flow.salaryFrom=low.value;flow.salaryTo=high.value;closeModal();render();return;}
   if(b.hasAttribute('data-flow-clear-filters')||b.hasAttribute('data-flow-reset')){stop();state.region='Butun O‘zbekiston';state.query='';flow.salaryFrom='';flow.salaryTo='';closeModal();render();return;}
-  if(b.dataset.flowCandidates){stop();const vacancy=b.dataset.flowCandidates==='draft'?state.form.vacancy:flowOwnRecords().find(r=>r.id===b.dataset.flowCandidates);if(!vacancy)return;state.searchType='resumes';state.query=vacancy.position||'';state.region='Butun O‘zbekiston';flow.salaryFrom='';flow.salaryTo='';navigate('search');return;}
+  if(b.dataset.flowCandidates){stop();discoveryOpenCandidates(b.dataset.flowCandidates);return;}
   if(b.dataset.flowDetail){stop();flowDetails(b.dataset.flowDetail);return;}
   if(b.dataset.flowSave){stop();const saved=new Set(flowRead('ishdasiz-v12-saved',[]));saved.has(b.dataset.flowSave)?saved.delete(b.dataset.flowSave):saved.add(b.dataset.flowSave);flowWrite('ishdasiz-v12-saved',[...saved]);flowSearchUpdate();return;}
-  if(b.dataset.flowContact){stop();if(!state.loggedIn){flow.pendingAuth='search';navigate('auth');return;}const record=flowSearchRecords().find(v=>v.id===b.dataset.flowContact);if(!record)return;flowTrackResume(record,'contacts');modal(`<h2>Aloqa</h2><p>${record.sample?'Demo: haqiqiy kontakt yo‘q.':esc(record.phone||'Kontakt kiritilmagan')}</p><button class="secondary full" data-close>Yopish</button>`);return;}
-  if(b.dataset.flowRepost||b.dataset.flowEditRecord){stop();const record=flowOwnRecords().find(v=>v.id===(b.dataset.flowRepost||b.dataset.flowEditRecord));if(!record)return;state.kind=record.kind;state.form[record.kind]={...record};flow.activeId=record.id;flow.tx=flowId();flow.confirmedTx=null;flow.channel=!!b.dataset.flowRepost;state.orderPaid=false;if(b.dataset.flowRepost&&!flowFree(record.kind)){flow.priceTarget='review';flowPrices(record.kind);}else navigate(b.dataset.flowRepost?'review':record.kind);return;}
+  if(b.dataset.flowContact){stop();if(!state.loggedIn){flow.pendingAuth='search';navigate('auth');return;}const record=flowSearchRecords().find(v=>v.id===b.dataset.flowContact);if(!record)return;if(record.kind==='resume'&&!discoveryCanReadResume(record)){modal(discoveryGate(discoveryContext()));return;}flowTrackResume(record,'contacts');modal(discoveryContactMarkup(record));return;}
+  if(b.dataset.flowRepost||b.dataset.flowEditRecord){stop();const record=flowOwnRecords().find(v=>v.id===(b.dataset.flowRepost||b.dataset.flowEditRecord));if(!record)return;if(b.dataset.flowRepost&&record.kind==='resume'){toast('Rezyume faqat bazada saqlanadi');return;}state.kind=record.kind;state.form[record.kind]={...record};flow.activeId=record.id;flow.tx=flowId();flow.confirmedTx=null;flow.channel=!!b.dataset.flowRepost;state.orderPaid=false;if(b.dataset.flowRepost&&!flowFree(record.kind)){flow.priceTarget='review';flowPrices(record.kind);}else navigate(b.dataset.flowRepost?'review':record.kind);return;}
   if(b.dataset.flowArchive){stop();modal(`<h2>E’lonni olib tashlash?</h2><button class="primary full" data-flow-archive-confirm="${esc(b.dataset.flowArchive)}">Olib tashlash</button><button class="secondary full" data-close>Bekor qilish</button>`);return;}
   if(b.dataset.flowArchiveConfirm){stop();flowWrite('ishdasiz-v12-records',flowRecords().map(v=>v.id===b.dataset.flowArchiveConfirm&&v.account===flowAccount()?{...v,archived:true}:v));closeModal();render();return;}
 },true);
@@ -391,13 +372,9 @@ function flowAccountApplications(received=false){
   return flowAllApplications().filter(a=>received?ownJobs.has(a.jobId):a.account===flowAccount());
 }
 function flowHomeAccount(){
-  const listings=flowOwnRecords().filter(r=>!r.archived).length,applications=flowAccountApplications().length+flowAccountApplications(true).length;
-  return `<section class="flow-account" aria-label="Shaxsiy kabinet"><button class="flow-account-profile" data-nav="profile"><span class="flow-account-profile-copy"><b>Profilim</b><span>${state.loggedIn?esc(state.phone):'Kirish'}${icon('right')}</span></span><span class="flow-profile-object" aria-hidden="true"><i></i><i></i><span>${icon('user')}</span></span></button><div class="flow-account-shortcuts"><button data-nav="listings"><span class="flow-account-icon">${icon('file')}</span><b>Mening<br>e’lonlarim</b>${state.loggedIn?`<span class="flow-account-count">${listings}</span>`:icon('right')}</button><button data-nav="applications"><span class="flow-account-icon">${icon('send')}</span><b>Arizalarim</b>${state.loggedIn?`<span class="flow-account-count">${applications}</span>`:icon('right')}</button></div></section>`;
+  return `<nav class="discovery-account-row" aria-label="Shaxsiy kabinet"><button data-nav="profile">${icon('user')}<span>Profilim</span></button><button data-nav="listings">${icon('file')}<span>Mening<br>e’lonlarim</span></button><button data-nav="applications">${icon('send')}<span>Arizalarim</span></button></nav>`;
 }
-function flowApplications(){
-  const received=flow.applicationTab==='received',entries=flowAccountApplications(received);
-  return `<section class="view flow-applications">${freshTitle('Arizalarim')}<div class="tabs"><button data-flow-app-tab="sent" class="${!received?'active':''}">Yuborganlarim</button><button data-flow-app-tab="received" class="${received?'active':''}">Kelganlar</button></div>${!state.loggedIn?`<div class="flow-app-empty">${icon('user')}<h2>Profilga kiring</h2><button class="primary full" data-flow-app-login>Kirish ${icon('right')}</button></div>`:entries.length?entries.map(a=>`<article class="flow-application-card"><div class="flow-application-meta"><span>${icon('send')}Demo ariza</span><time>${esc(new Intl.DateTimeFormat('uz-UZ',{day:'numeric',month:'short'}).format(new Date(a.createdAt)))}</time></div><h2>${esc(a.position)}</h2><p>${esc(received?a.candidateName:a.company)}</p><div class="flow-application-resume">${icon('file')}${esc(a.resumePosition)}</div><button class="secondary full" ${received?`data-flow-app-resume="${esc(a.resumeId)}"`:`data-flow-detail="${esc(a.jobId)}"`}>${received?'Rezyumeni ko‘rish':'Vakansiyani ko‘rish'}${icon('right')}</button></article>`).join(''):`<div class="flow-app-empty">${icon(received?'users':'send')}<h2>${received?'Hali ariza kelmagan':'Hali ariza yo‘q'}</h2><button class="primary full" ${received?'data-flow-start="vacancy"':'data-fresh-intent="career"'}>${received?'Vakansiya joylash':'Ish topish'}${icon('right')}</button></div>`}</section>`;
-}
+function flowApplications(){return discoveryApplications();}
 function flowApplicationModal(jobId){
   const job=flowSearchRecords().find(r=>r.id===jobId&&r.kind==='vacancy');
   if(!job){toast('Vakansiya mavjud emas');return;}
@@ -414,7 +391,7 @@ document.addEventListener('click',event=>{
   if(b.dataset.flowAppTab){stop();flow.applicationTab=b.dataset.flowAppTab;render();return;}
   if(b.hasAttribute('data-flow-app-login')){stop();flow.pendingAuth='applications';navigate('auth');return;}
   if(b.dataset.flowApply){stop();flowApplicationModal(b.dataset.flowApply);return;}
-  if(b.dataset.flowAppResume){stop();flowDetails(b.dataset.flowAppResume);return;}
+  if(b.dataset.flowAppResume){stop();const job=flowOwnRecords().find(r=>r.id===b.dataset.discoveryJob);if(job)discoverySetContext(job.id);flowDetails(b.dataset.flowAppResume);return;}
   if(b.dataset.flowAppConfirm){
     stop();if(!state.loggedIn)return;
     const job=flowSearchRecords().find(r=>r.id===b.dataset.flowAppConfirm&&r.kind==='vacancy'),resume=flowOwnRecords().find(r=>r.id===$('#flow-application-resume')?.value&&r.kind==='resume'&&!r.archived);
@@ -426,3 +403,149 @@ document.addEventListener('click',event=>{
     flow.applicationTab='sent';navigate('applications');return;
   }
 },true);
+
+/* V13 discovery preview: local records, explicit publication grants and voluntary coordinates. */
+function discoveryPoint(record){const p=record?.coordinates;return Array.isArray(p)&&p.length===2&&p.every(Number.isFinite)&&Math.abs(p[0])<=90&&Math.abs(p[1])<=180?p:null;}
+function discoveryKm(a,b){if(!a||!b)return null;const r=v=>v*Math.PI/180,dlat=r(b[0]-a[0]),dlon=r(b[1]-a[1]),s=Math.sin(dlat/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dlon/2)**2;return 6371*2*Math.atan2(Math.sqrt(s),Math.sqrt(Math.max(0,1-s)));}
+function discoveryDistance(a,b){const n=discoveryKm(discoveryPoint(a),discoveryPoint(b));return n===null?'':`≈ ${new Intl.NumberFormat('uz-UZ',{maximumFractionDigits:1}).format(n)} km · to‘g‘ri chiziq`;}
+function discoveryExperience(value){const text=flowNormalize(value);if(!text)return null;if(text.includes('tajribasiz')||text.includes('ahamiyatsiz'))return 0;const n=text.match(/\d+/);return n?Number(n[0]):null;}
+function discoveryMatch(vacancy,resume){
+  const sameRole=[...flowPositionTerms(vacancy.position)].some(t=>flowPositionTerms(resume.position).has(t));
+  const work=flowNormalize(vacancy.workMode),desired=flowNormalize(resume.workMode),sameMode=!!work&&!!desired&&(work===desired||desired==='farqi yoq');
+  if(!sameRole||!sameMode)return {eligible:false,reasons:[],issues:[]};
+  const reasons=['Lavozim mos',work==='masofaviy'?'Masofaviy ish':'Ish shakli mos'],issues=[];
+  const min=flowNumber(resume.salaryMin),max=flowNumber(vacancy.salaryMax)||flowNumber(vacancy.salaryMin);
+  if(min&&max){if(min>max)issues.push('Kutilgan maosh yuqoriroq');else reasons.push('Maosh mos');}else issues.push('Maosh aniqlashtiriladi');
+  if(vacancy.employment&&resume.employment&&flowNormalize(vacancy.employment)!==flowNormalize(resume.employment))issues.push('Bandlik turi farq qiladi');
+  if(vacancy.days&&resume.days&&flowNormalize(vacancy.days)!==flowNormalize(resume.days))issues.push('Ish kunlari farq qiladi');
+  const neededLanguages=String(vacancy.languages||'').split(',').map(flowNormalize).filter(Boolean),knownLanguages=String(resume.languages||'').split(',').map(flowNormalize);
+  if(neededLanguages.some(language=>!knownLanguages.includes(language)))issues.push('Til talabi aniqlashtiriladi');
+  const need=discoveryExperience(vacancy.experience),have=discoveryExperience(resume.experience);
+  if(need!==null&&need>0){if(have===null)issues.push('Tajriba aniqlashtiriladi');else if(have<need)issues.push('Ko‘proq tajriba talab qilinadi');else reasons.push('Tajriba mos');}
+  const km=discoveryKm(discoveryPoint(vacancy),discoveryPoint(resume));
+  if(work!=='masofaviy'){
+    if(vacancy.region&&resume.region&&flowRegionKey(vacancy.region)!==flowRegionKey(resume.region))issues.push('Boshqa hudud');
+    if(km!==null){reasons.push(discoveryDistance(vacancy,resume));if(resume.maxDistanceKm&&km>Number(resume.maxDistanceKm))issues.push('Belgilangan masofadan uzoq');}
+    else if(vacancy.region&&resume.region&&flowRegionKey(vacancy.region)===flowRegionKey(resume.region))reasons.push(vacancy.district&&resume.district&&flowNormalize(vacancy.district)===flowNormalize(resume.district)?'Bir tuman':'Bir hudud');
+  }
+  return {eligible:true,reasons,issues,exact:issues.length===0,distance:km,score:reasons.length-(issues.length*3)};
+}
+function discoveryMatches(subject){return flowSearchRecords().filter(r=>r.kind!==(subject.kind||state.kind)&&r.account!==flowAccount()).flatMap(record=>{const match=subject.kind==='resume'||(!subject.kind&&state.kind==='resume')?discoveryMatch(record,subject):discoveryMatch(subject,record);return match.eligible?[{record,...match}]:[];}).sort((a,b)=>Number(b.exact)-Number(a.exact)||(a.distance??Infinity)-(b.distance??Infinity)||b.score-a.score);}
+function discoveryFingerprint(job){return JSON.stringify({role:[...flowPositionTerms(job.position)],mode:flowNormalize(job.workMode),employment:flowNormalize(job.employment),days:flowNormalize(job.days),languages:flowNormalize(job.languages),region:flowRegionKey(job.region),district:flowNormalize(job.district),salaryMin:flowNumber(job.salaryMin),salaryMax:flowNumber(job.salaryMax),experience:discoveryExperience(job.experience),coordinates:discoveryPoint(job)?.map(v=>Number(v.toFixed(5)))||null});}
+function discoveryGrants(){return flowRead('ishdasiz-v13-channel-grants',{},localStorage);}
+function discoveryUnlocked(job){const saved=job?.id&&flowOwnRecords().find(r=>r.id===job.id&&r.kind==='vacancy'&&!r.archived),grant=job?.id&&discoveryGrants()[job.id];return !!(state.loggedIn&&saved&&grant?.account===flowAccount()&&grant.fingerprint===discoveryFingerprint(saved)&&grant.fingerprint===discoveryFingerprint(job));}
+function discoveryGrant(job){const grants=discoveryGrants();grants[job.id]={account:flowAccount(),fingerprint:discoveryFingerprint(job),confirmedAt:new Date().toISOString()};flowWrite('ishdasiz-v13-channel-grants',grants,localStorage);}
+function discoveryContext(){const id=flowRead('ishdasiz-v13-candidate-context',{})[flowAccount()];return flowOwnRecords().find(r=>r.id===id&&r.kind==='vacancy'&&!r.archived)||null;}
+function discoverySetContext(id){const contexts=flowRead('ishdasiz-v13-candidate-context',{});contexts[flowAccount()]=id;flowWrite('ishdasiz-v13-candidate-context',contexts);}
+function discoveryCanReadResume(record){if(record.account===flowAccount()&&state.loggedIn)return true;const job=discoveryContext();return !!(discoveryUnlocked(job)&&discoveryMatch(job,record).eligible);}
+function discoveryGate(job){
+  const total=flowSearchRecords().filter(r=>r.kind==='resume'&&r.account!==flowAccount()).length,matches=job?discoveryMatches({...job,kind:'vacancy'}).length:0;
+  return `<section class="discovery-gate"><span class="discovery-lock">${icon('shield')}</span><h2>Vakansiyangizga mos nomzodlar</h2><div class="discovery-counts"><div><strong>${total}</strong><span>Bazadagi rezyume</span></div><div><strong>${matches}</strong><span>Mos kelishi mumkin</span></div></div><p>Nomzodlarni ko‘rish uchun shu vakansiyani kanalga joylang.</p><button class="primary full" ${job?`data-discovery-unlock="${esc(job.id||'draft')}"`:'data-flow-start="vacancy"'}>${job?(flowFree('vacancy')?'Kanalga bepul joylash':'Kanalga joylash'):'Vakansiya yaratish'}${icon('send')}</button>${flowFree('vacancy')?'<small>Birinchi vakansiya kanalda bepul.</small>':''}</section>`;
+}
+function discoveryOpenCandidates(id){const job=id==='draft'?{...state.form.vacancy,kind:'vacancy'}:flowOwnRecords().find(r=>r.id===id&&r.kind==='vacancy');if(!job)return;if(job.id)discoverySetContext(job.id);state.searchType='resumes';state.query='';state.region='Butun O‘zbekiston';flow.salaryFrom='';flow.salaryTo='';if(!discoveryUnlocked(job)){modal(discoveryGate(job));return;}navigate('search');}
+function discoveryMatchCards(subject){
+  const entries=discoveryMatches(subject).filter(m=>state.screen!=='search'||state.searchType!=='resumes'||flowMatches(m.record)),partial=flow.discoveryPartial===true,shown=entries.filter(m=>m.exact!==partial),resumes=subject.kind==='vacancy';
+  return `<section class="flow-candidates discovery-matches"><div class="flow-candidates-heading"><span>${icon(resumes?'users':'briefcase')}</span><div><h2>${resumes?'Mos nomzodlar':'Sizga mos ishlar'}</h2><p>${esc(subject.position)} · ${esc(subject.region||'')}</p></div><b>${entries.length}</b></div><div class="tabs discovery-match-tabs"><button data-discovery-match-tab="exact" class="${!partial?'active':''}">Mos · ${entries.filter(m=>m.exact).length}</button><button data-discovery-match-tab="partial" class="${partial?'active':''}">Aniqlashtirish · ${entries.filter(m=>!m.exact).length}</button></div>${shown.slice(0,12).map(({record,reasons,issues})=>`<article class="flow-match-card"><span class="flow-match-avatar">${icon(resumes?'user':'briefcase')}</span><div><h3>${esc(record.position)}</h3><p>${esc(resumes?record.name:record.company)}${record.sample?' · Namuna':''}</p><span class="flow-match-region">${esc(record.region||'')} · ${flowSalaryLabel(record)}</span><div class="flow-match-reasons">${reasons.map(reason=>`<span>${icon('check')}${esc(reason)}</span>`).join('')}${issues.map(issue=>`<span class="discovery-mismatch">${esc(issue)}</span>`).join('')}</div></div><button data-flow-detail="${esc(record.id)}" aria-label="${resumes?'Rezyumeni':'Vakansiyani'} ko‘rish">${icon('right')}</button></article>`).join('')||`<div class="flow-match-empty">${partial?'Aniqlashtirish talab qiladigan e’lon yo‘q.':'Hozircha to‘liq mos e’lon yo‘q.'}</div>`}</section>`;
+}
+function discoveryCandidateSection(job){const subject={...job,kind:'vacancy'};return discoveryUnlocked(subject)?discoveryMatchCards(subject):discoveryGate(subject);}
+function discoveryReview(){
+  const resume=state.kind==='resume',d=state.form[state.kind],pay=!resume&&flow.channel&&!flowFree('vacancy')&&!state.orderPaid;
+  return `<section class="view flow-review">${freshTitle(resume?'Rezyumeni saqlash':'Vakansiyani tekshirish')}<article class="flow-summary"><div class="flow-summary-label"><span>${icon(resume?'file':'briefcase')}${resume?'Rezyume':'Vakansiya'}</span><button data-flow-edit="0">${icon('edit')}Tahrirlash</button></div><h2>${esc(d.position||'Lavozim')}</h2><p>${esc(resume?d.name:d.company)}</p><strong>${flowSalaryLabel(d)}</strong><span class="flow-summary-region">${icon('pin')}${esc(d.region||'Hudud')} · ${esc(d.district||'')}</span></article>${resume?`<div class="discovery-base-note">${icon('shield')}Rezyume bazada saqlanadi. Kanalga yuborilmaydi.</div>`:`<div class="flow-destinations"><div class="flow-destination"><span class="flow-dest-icon">${icon('home')}</span><div><b>ishdasiz.uz</b><small>Saytda bepul</small></div>${icon('check')}</div><label class="flow-destination channel"><span class="flow-dest-icon">${icon('send')}</span><span><b>@ishdasiz</b><small>${flowFree('vacancy')?'Birinchi vakansiya bepul':state.orderPaid?'Tarif tanlandi':money(plans[0].price)+' so‘mdan'}</small></span><input type="checkbox" id="flow-channel" ${flow.channel?'checked':''}></label></div>${discoveryCandidateSection({...d,id:flow.activeId})}`}
+  <p class="flow-demo-note">Demo: haqiqiy e’lon va to‘lov yuborilmaydi.</p><div class="form-footer"><button class="secondary" data-flow-edit="${formSteps[state.kind].length-1}">${icon('back')}Orqaga</button><button class="primary" ${pay?'data-flow-buy':'data-flow-publish'}>${pay?'Tarifni tanlash':!state.loggedIn?'Kirish':resume?'Rezyumeni saqlash':flow.channel?'Sayt va kanalga joylash':'Saytga saqlash'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
+}
+function discoveryDone(){
+  const record=flowOwnRecords().find(r=>r.id===flow.lastId),resume=record?.kind==='resume';
+  if(record&&!resume&&discoveryUnlocked(record))discoverySetContext(record.id);
+  return `<section class="view flow-done"><span class="flow-done-mark">${icon('check')}</span><h1>${resume?'Rezyume saqlandi.':'Vakansiya saqlandi.'}</h1>${record?`<p>${esc(record.position)}</p>${resume?flowResumeStats(record)+discoveryMatchCards(record):discoveryCandidateSection(record)}`:''}<button class="secondary full" data-nav="listings">E’lonlarim ${icon('right')}</button><button class="text-button" data-nav="home">Bosh sahifa</button><small>Demo: ma’lumotlar shu brauzerda saqlandi.</small></section>`;
+}
+function discoveryResults(){if(state.searchType==='resumes'){const job=discoveryContext();return discoveryUnlocked(job)?discoveryMatchCards(job):discoveryGate(job);}return discoveryOriginalResults();}
+function discoveryDetails(id){
+  const d=flowSearchRecords().find(r=>r.id===id);if(!d){toast('E’lon mavjud emas');return;}
+  if(d.kind==='resume'&&!discoveryCanReadResume(d)){modal(discoveryGate(discoveryContext()));return;}
+  flowTrackResume(d,'views');
+  const resume=d.kind==='resume',own=flowOwnRecords().find(r=>r.kind==='resume'&&!r.archived),distance=!resume&&own?discoveryDistance(d,own):resume&&discoveryContext()?discoveryDistance(discoveryContext(),d):'',point=!resume&&discoveryPoint(d);
+  modal(`<h2>${esc(d.position)}</h2><p>${esc(resume?d.name:d.company)}${d.sample?' · Namuna':''}</p><strong class="flow-detail-salary">${flowSalaryLabel(d)}</strong><div class="discovery-detail-grid">${[['Hudud',[d.region,d.district].filter(Boolean).join(' · ')],['Manzil',!resume?d.address:''],['Ish shakli',d.workMode],['Bandlik',d.employment],['Ish vaqti',!resume?[d.days,d.hours].filter(Boolean).join(' · '):''],['Tajriba',d.experience]].filter(([,value])=>value).map(([label,value])=>`<div><span>${label}</span><b>${esc(value)}</b></div>`).join('')}</div>${distance?`<p class="discovery-distance">${icon('pin')}${esc(distance)}</p>`:''}${point?`<a class="secondary full discovery-map-link" target="_blank" rel="noopener noreferrer" href="https://www.openstreetmap.org/?mlat=${point[0]}&mlon=${point[1]}#map=16/${point[0]}/${point[1]}">${icon('pin')}Xaritada ko‘rish</a>`:''}${[['',d.description||d.skills],['Vazifalar',d.duties],['Talablar',d.requirements],['Qulayliklar',d.benefits]].filter(([,value])=>value).map(([label,value])=>`<div class="discovery-detail-copy">${label?`<b>${label}</b>`:''}<p>${esc(value)}</p></div>`).join('')}${!resume&&d.account!==flowAccount()?`<button class="primary full flow-apply-action" data-flow-apply="${esc(d.id)}">Ariza topshirish ${icon('send')}</button>`:''}<button class="${resume?'primary':'secondary'} full" data-flow-contact="${esc(d.id)}">${icon('phone')}${state.loggedIn?'Kontaktni ko‘rish':'Kontakt uchun kirish'}</button>`);
+}
+function discoveryContactMarkup(record){
+  if(record.sample)return '<h2>Aloqa</h2><p>Demo: haqiqiy kontakt yo‘q.</p><button class="secondary full" data-close>Yopish</button>';
+  const phone=String(record.phone||'').replace(/[^+0-9]/g,''),username=String(record.telegram||'').replace(/^@/,'');
+  return `<h2>Aloqa</h2>${record.hr?`<p>${esc(record.hr)}</p>`:''}<p>${esc(record.phone||'Kontakt kiritilmagan')}</p>${/^\+?\d{7,16}$/.test(phone)?`<a class="secondary full discovery-map-link" href="tel:${phone}">${icon('phone')}Qo‘ng‘iroq qilish</a>`:''}${/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(username)?`<a class="secondary full discovery-map-link" target="_blank" rel="noopener noreferrer" href="https://t.me/${username}">${icon('send')}Telegram</a>`:''}<button class="text-button full" data-close>Yopish</button>`;
+}
+function discoveryApplications(){
+  const received=flow.applicationTab==='received',entries=flowAccountApplications(received);
+  return `<section class="view flow-applications">${freshTitle('Arizalarim')}<div class="tabs"><button data-flow-app-tab="sent" class="${!received?'active':''}">Yuborganlarim</button><button data-flow-app-tab="received" class="${received?'active':''}">Kelganlar</button></div>${!state.loggedIn?`<div class="flow-app-empty">${icon('user')}<h2>Profilga kiring</h2><button class="primary full" data-flow-app-login>Kirish ${icon('right')}</button></div>`:entries.length?entries.map(a=>{
+    const job=flowOwnRecords().find(r=>r.id===a.jobId),resume=flowSearchRecords().find(r=>r.id===a.resumeId),readable=!received||(resume&&discoveryUnlocked(job)&&discoveryMatch(job,resume).eligible);
+    return `<article class="flow-application-card"><div class="flow-application-meta"><span>${icon('send')}Demo ariza</span><time>${esc(new Intl.DateTimeFormat('uz-UZ',{day:'numeric',month:'short'}).format(new Date(a.createdAt)))}</time></div><h2>${esc(a.position)}</h2><p>${esc(received?(readable?a.candidateName:'Nomzod ma’lumoti yopiq'):a.company)}</p>${readable?`<div class="flow-application-resume">${icon('file')}${esc(a.resumePosition)}</div>`:''}<button class="secondary full" ${received?readable?`data-flow-app-resume="${esc(a.resumeId)}" data-discovery-job="${esc(a.jobId)}"`:`data-discovery-unlock="${esc(a.jobId)}"`:`data-flow-detail="${esc(a.jobId)}"`}>${received?(readable?'Rezyumeni ko‘rish':'Shu vakansiya uchun nomzodlarni ochish'):'Vakansiyani ko‘rish'}${icon('right')}</button></article>`;
+  }).join(''):`<div class="flow-app-empty">${icon(received?'users':'send')}<h2>${received?'Hali ariza kelmagan':'Hali ariza yo‘q'}</h2><button class="primary full" ${received?'data-flow-start="vacancy"':'data-fresh-intent="career"'}>${received?'Vakansiya joylash':'Ish topish'}${icon('right')}</button></div>`}</section>`;
+}
+function discoveryHomeMap(){
+  const counts=discoveryMapCounts(null);
+  return `<section class="discovery-map-card"><header><div><span>${icon('pin')}Toshkent</span><h2>Yaqindagi imkoniyatlar</h2></div><span class="discovery-demo-badge">Demo</span></header><div class="discovery-map-surface"><div id="discovery-map" aria-label="Toshkentdagi ishlar xaritasi"></div><div class="discovery-map-tools"><button data-discovery-locate="map" aria-label="Joylashuvim">${icon('pin')}</button></div><div class="discovery-map-error" hidden>Xarita yuklanmadi. Ro‘yxatni ochishingiz mumkin.</div></div><div class="discovery-map-counts"><button data-discovery-map-list="jobs">${icon('briefcase')}<span><b id="discovery-job-count">${counts.jobs}</b> vakansiya</span>${icon('right')}</button><button data-discovery-map-list="resumes">${icon('users')}<span><b id="discovery-resume-count">${counts.resumes}</b> rezyume</span>${icon('right')}</button></div><small>Hudud bo‘yicha · namuna va shu brauzerdagi e’lonlar</small></section>`;
+}
+function discoveryMapCounts(bounds){
+  const center=[41.3111,69.2797],records=flowSearchRecords().filter(r=>{const point=r.kind==='vacancy'?discoveryPoint(r):null;if(point)return !bounds||bounds.contains(point);return flowRegionKey(r.region)==='toshkent-shahri'&&(!bounds||bounds.contains(center));});
+  return {jobs:records.filter(r=>r.kind==='vacancy').length,resumes:records.filter(r=>r.kind==='resume').length};
+}
+function discoveryMountMap(){
+  const target=$('#discovery-map');if(!target||target.dataset.ready)return;
+  target.dataset.ready='true';if(!window.L){target.parentElement.querySelector('.discovery-map-error').hidden=false;return;}
+  const map=L.map(target,{center:flow.mapCenter||[41.3111,69.2797],zoom:12,zoomControl:false,scrollWheelZoom:false,attributionControl:true});flow.discoveryMap=map;
+  L.control.zoom({position:'bottomright'}).addTo(map);map.attributionControl.setPrefix(false);
+  let loaded=false;const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(map);
+  tiles.on('tileload',()=>{loaded=true;target.parentElement.querySelector('.discovery-map-error').hidden=true;});tiles.on('tileerror',()=>{if(!loaded)target.parentElement.querySelector('.discovery-map-error').hidden=false;});
+  const layers=L.layerGroup().addTo(map),update=()=>{
+    const counts=discoveryMapCounts(map.getBounds());const cityLabel=$('.discovery-map-card>header>div>span');if(cityLabel)cityLabel.innerHTML=icon('pin')+(map.getBounds().contains([41.3111,69.2797])?'Toshkent':'Tanlangan hudud');$('#discovery-job-count').textContent=counts.jobs;$('#discovery-resume-count').textContent=counts.resumes;layers.clearLayers();
+    const city=[41.3111,69.2797];if(map.getBounds().contains(city))L.marker(city,{icon:L.divIcon({className:'discovery-map-cluster',html:`<button data-discovery-map-list="jobs" aria-label="Xaritadagi vakansiyalar">${icon('briefcase')}<b>${counts.jobs}</b></button><button data-discovery-map-list="resumes" aria-label="Xaritadagi rezyumelar">${icon('users')}<b>${counts.resumes}</b></button>`,iconSize:[120,48],iconAnchor:[60,24]})}).addTo(layers).bindTooltip('Hudud bo‘yicha jami — aniq ish yoki uy manzili emas');
+    for(const record of flowSearchRecords().filter(r=>r.kind==='vacancy'&&discoveryPoint(r))){const marker=L.circleMarker(discoveryPoint(record),{radius:7,color:'#fff',weight:2,fillColor:'#185bec',fillOpacity:1}).addTo(layers);marker.on('click',()=>flowDetails(record.id));}
+  };map.on('moveend',update);update();
+}
+function discoveryMapPicker(){
+  modal(`<h2>Ish joyini belgilang</h2><div id="discovery-picker" aria-label="Ish joyini xaritada tanlang"></div><button class="text-button full" data-discovery-picker-center>Markazdagi nuqtani tanlash</button><p id="discovery-picked-point">Xaritadan ish joyini tanlang.</p><button class="primary full" data-discovery-save-point disabled>Shu joyni tanlash ${icon('check')}</button>`);
+  if(!window.L)return;
+  const map=L.map('discovery-picker',{center:discoveryPoint(state.form.vacancy)||[41.3111,69.2797],zoom:13,scrollWheelZoom:false});map.attributionControl.setPrefix(false);flow.discoveryPicker=map;flow.pickedPoint=null;
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  const select=point=>{flow.pickedPoint=point;if(flow.pickedMarker)flow.pickedMarker.remove();flow.pickedMarker=L.circleMarker(point,{radius:10,color:'#fff',weight:3,fillColor:'#185bec',fillOpacity:1}).addTo(map);$('#discovery-picked-point').textContent=point.map(v=>v.toFixed(5)).join(', ');$('[data-discovery-save-point]').disabled=false;};
+  flow.pickerSelect=select;map.on('click',e=>select([e.latlng.lat,e.latlng.lng]));if(discoveryPoint(state.form.vacancy))select(discoveryPoint(state.form.vacancy));
+}
+function discoveryLocate(mode){
+  if(!navigator.geolocation){toast('Bu qurilmada geolokatsiya mavjud emas');return;}
+  const button=document.querySelector(`[data-discovery-locate="${mode}"]`);if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
+  navigator.geolocation.getCurrentPosition(position=>{
+    if(button?.isConnected){button.disabled=false;button.removeAttribute('aria-busy');}
+    const point=[position.coords.latitude,position.coords.longitude];if(!discoveryPoint({coordinates:point}))return;
+    if(mode==='resume'){state.form.resume.coordinates=point;state.form.resume.coordinateAccuracyM=position.coords.accuracy;flowSaveDraft();render();}else{flow.mapCenter=point;if(flow.discoveryMap)flow.discoveryMap.setView(point,13,{animate:!freshReduced.matches&&freshMotion});}
+  },()=>{if(button?.isConnected){button.disabled=false;button.removeAttribute('aria-busy');}toast('Joylashuv olinmadi. Hududni qo‘lda tanlang.');},{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+}
+function discoveryWelcomeKey(){return 'ishdasiz-v13-welcome-'+flowAccount();}
+function discoveryPlanWelcome(){
+  clearTimeout(flow.welcomeTimer);
+  if(window.self!==window.top||document.hidden||state.screen!=='home'||flowRead(discoveryWelcomeKey(),false,localStorage)||flowOwnRecords().length||state.form.vacancy.position||state.form.vacancy.company||state.form.resume.name||state.form.resume.position)return;
+  flow.welcomeTimer=setTimeout(()=>{
+    if(document.hidden||state.screen!=='home'||$('.modal')||flowOwnRecords().length||state.form.vacancy.position||state.form.resume.name||state.form.resume.position)return;
+    flowWrite(discoveryWelcomeKey(),true,localStorage);
+    modal(`<div class="discovery-welcome-art" aria-hidden="true">${studioObject('vacancy')}${studioObject('resume')}</div><span class="discovery-welcome-eyebrow">ISHDASIZ</span><h2>Nimadan boshlaymiz?</h2><div class="discovery-welcome-choices"><button data-discovery-welcome="vacancy">${icon('users')}<span>Xodim<br>izlayapman</span>${icon('right')}</button><button data-discovery-welcome="resume">${icon('briefcase')}<span>Ish<br>izlayapman</span>${icon('right')}</button></div><button class="text-button full" data-close>Keyinroq</button>`);const welcome=$('.modal');welcome.classList.add('discovery-welcome');const heading=welcome.querySelector('h2');heading.id='discovery-welcome-title';heading.tabIndex=-1;welcome.setAttribute('aria-labelledby',heading.id);heading.focus({preventScroll:true});
+  },3000);
+}
+function discoveryAfterRender(){
+  if(flow.discoveryMap&&!$('#discovery-map')?.contains(flow.discoveryMap.getContainer())){flow.discoveryMap.remove();flow.discoveryMap=null;}
+  if(state.screen==='home')discoveryMountMap();if(state.screen==='vacancy'&&state.step===2&&discoveryPoint(state.form.vacancy)&&document.querySelector('[data-map]'))document.querySelector('[data-map]').innerHTML=icon('check')+'Ish joyi belgilandi';
+  if(state.screen==='resume'&&state.step===2){const fields=$('#content .fields');if(fields&&!$('#discovery-resume-location'))fields.insertAdjacentHTML('beforeend',`<div id="discovery-resume-location"><button class="secondary full" data-discovery-locate="resume">${icon('pin')}${discoveryPoint(state.form.resume)?'Joylashuv qo‘shildi':'Joylashuvimni qo‘shish'}</button>${discoveryPoint(state.form.resume)?'<button class="text-button full" data-discovery-clear-location>Joylashuvni o‘chirish</button>':''}<small>Faqat masofani hisoblash uchun. Aniq nuqta nomzodlar xaritasida ko‘rsatilmaydi.</small></div>`);}
+  discoveryPlanWelcome();
+}
+document.addEventListener('visibilitychange',discoveryPlanWelcome);
+document.addEventListener('click',event=>{
+  const b=event.target.closest('button');if(!b)return;const stop=()=>{event.preventDefault();event.stopImmediatePropagation();};
+  if(b.dataset.discoveryWelcome){stop();closeModal();flowBegin(b.dataset.discoveryWelcome);return;}
+  if(b.dataset.discoveryMapList){stop();state.searchType=b.dataset.discoveryMapList;state.query='';state.region='Toshkent shahri';navigate('search');return;}
+  if(b.dataset.discoveryMatchTab){stop();flow.discoveryPartial=b.dataset.discoveryMatchTab==='partial';render();return;}
+  if(b.dataset.discoveryUnlock){
+    stop();if(b.dataset.discoveryUnlock!=='draft'){const job=flowOwnRecords().find(r=>r.id===b.dataset.discoveryUnlock&&r.kind==='vacancy');if(!job)return;state.form.vacancy={...job};flow.activeId=job.id;flow.tx=flowId();flow.confirmedTx=null;}
+    state.kind='vacancy';flow.channel=true;state.orderPaid=false;flowSaveDraft();navigate('review');return;
+  }
+  if(b.hasAttribute('data-discovery-clear-location')){stop();state.form.resume.coordinates=null;state.form.resume.coordinateAccuracyM=null;flowSaveDraft();render();return;}
+  if(b.hasAttribute('data-map')){stop();discoveryMapPicker();return;}
+  if(b.hasAttribute('data-discovery-picker-center')){stop();const center=flow.discoveryPicker?.getCenter();if(center)flow.pickerSelect([center.lat,center.lng]);return;}
+  if(b.hasAttribute('data-discovery-save-point')){stop();if(!discoveryPoint({coordinates:flow.pickedPoint}))return;state.form.vacancy.coordinates=flow.pickedPoint;flowSaveDraft();closeModal();render();return;}
+  if(b.dataset.discoveryLocate){stop();discoveryLocate(b.dataset.discoveryLocate);return;}
+},true);
+discoveryAfterRender();
