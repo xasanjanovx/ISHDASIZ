@@ -1,6 +1,6 @@
 # ISHDASIZ Flow V12
 
-Latest user brief (29 October): alternate “Xodim kerakmi?” and “Ish kerakmi?” beside the profession art; remove the red promotional block shown in the screenshot and replace it with useful profile, own-listing and application navigation. Keep one vacancy creation button, the paired resume control, existing search and readable input behavior.
+Latest user brief (29 October): animate a four-beat typed sequence beside the profession art: “Xodim kerakmi?”, “Ish kerakmi?”, “Unda hoziroq e’lon bering” and “Saytda mutlaqo bepul”, then draw an arrow toward creation; remove the red promotional block shown in the screenshot and replace it with useful profile, own-listing and application navigation. Keep one vacancy creation button, the paired resume control, existing search and readable input behavior.
 
 ## Product rules changed in this version
 
@@ -8,7 +8,7 @@ The latest instruction supersedes the prior resume-only trial: **each account re
 
 ## Composition
 
-The first section integrates the original eight professions into a compact split hero with an alternating noninteractive “Xodim kerakmi?” / “Ish kerakmi?” heading on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them, a raised profile card and two smaller own-listing/application shortcuts replace the red promotion and old account link rows. Their counts come from local records and remain hidden for guests. There is no ticker and no bottom navigation.
+The first section integrates the original eight professions into a compact split hero with a noninteractive four-phase typed message on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them, a raised profile card and two smaller own-listing/application shortcuts replace the red promotion and old account link rows. Their counts come from local records and remain hidden for guests. There is no ticker and no bottom navigation.
 
 Use the existing Onest family, blue employer action, pearl/citron resume control and red free/bonus accents, with a cooler layered background and a dark equivalent. Red identifies free/bonus badges; blue remains the primary action. Do not fabricate discount percentages, previous prices or urgency. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs, management/settings explanations and saved-draft captions. Retain meaningful payment, privacy, optional-field and demo disclosures.
 
@@ -46,4 +46,7 @@ The home account module uses an original CSS layered profile object, pearl-blue 
 
 Applications have sent and received tabs. Guests see a sign-in action; empty states lead to jobs or vacancy creation. An application requires an active own resume, an available vacancy and demo confirmation. One application per account/job is saved in session storage, survives reload and appears in the job owner's received tab. Other accounts see neither side. Login and reload return to the requested application; own vacancies cannot be applied to. Rows are marked “Demo ariza”; no employer message is sent. Production identity, authorization, persistence and delivery still require server integration.
 
-Hero wording shares the existing 4.8-second profession timer instead of adding another interval. Manual scene controls update both. The accessible heading is static (“Xodim yoki ish kerakmi?”); visual layers animate opacity/transform without layout shifts. OS reduced motion, the animation setting, hidden-page, modal and keyboard-focus pause behavior remain honored.
+Hero wording shares the existing 4.8-second profession timer instead of adding another interval. Manual scene controls update both. The accessible heading contains the entire static sentence without repeated live announcements. Four overlapping message panels preserve layout. CSS letter reveals use a 32ms stagger, restrained cursor and a curved SVG arrow drawn toward the posting controls after the invitation. “Saytda” qualifies the free offer, so the channel is not advertised as perpetually free. No extra posting button is introduced. OS reduced motion, the animation setting, hidden-page, modal and keyboard-focus pause behavior remain honored.
+
+
+Hero motion validation: every phase is checked in five viewports and both themes for overflow and stable action geometry; the arrow cannot cover actions. A real browser recording verifies automatic progression, completed letter/arrow reveals, modal pause (including cursor/path) and disabled/reduced motion. The preview adds no timers or network dependencies for this effect.

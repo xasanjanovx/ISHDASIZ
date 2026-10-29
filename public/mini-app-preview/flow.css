@@ -141,6 +141,37 @@ body{background:var(--bg)}.app{background:radial-gradient(ellipse at 100% 3%,#e5
 @media(min-width:1024px){.flow-account{grid-column:2;grid-row:2;margin:0;align-self:stretch;grid-template-rows:1fr 1fr;gap:15px}.flow-account-profile{min-height:0}.flow-account-shortcuts>button{min-height:0}.flow-profile-object{width:86px;height:86px}}
 @media(max-height:500px) and (min-width:600px) and (max-width:1023px){.flow-account{grid-column:1/3;grid-row:2;grid-template-columns:1fr 1fr;gap:13px}.flow-account-profile{min-height:115px}.flow-account-shortcuts>button{min-height:115px}}
 
+/* Four quiet editorial beats, with a drawn cue toward the creation tiles. */
+.flow-hero-title{--copy-letter-delay:32ms;--copy-reveal-duration:120ms;--copy-panel-duration:280ms;--copy-arrow-duration:850ms;padding-bottom:32px}
+.flow-message-panels{display:grid;position:relative;isolation:isolate}
+.flow-message-panels>span{grid-area:1/1;min-width:0;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity var(--copy-panel-duration) var(--ease),transform var(--copy-panel-duration) var(--ease)}
+.flow-hero-title[data-phase="0"] .flow-message-question,.flow-hero-title[data-phase="1"] .flow-message-question,.flow-hero-title[data-phase="2"] .flow-message-pitch,.flow-hero-title[data-phase="3"] .flow-message-free{opacity:1;transform:translateY(0)}
+.flow-message-question>em{white-space:nowrap}
+.flow-message-pitch,.flow-message-free{align-self:center}
+.flow-message-lead{display:block;font-size:13px;font-weight:550;letter-spacing:-.25px;color:var(--muted);line-height:1.5;margin-bottom:7px}
+.flow-message-pitch>strong,.flow-message-free>strong{display:block;font-size:30px;font-weight:780;line-height:1.07;letter-spacing:-1.1px;color:var(--ink)}
+.flow-message-pitch [data-flow-type="post"],.flow-message-free>strong{color:var(--accent)}
+.flow-copy-letter{display:inline-block;white-space:pre;animation:flowInk var(--copy-reveal-duration) linear both;animation-delay:calc(var(--letter)*var(--copy-letter-delay))}
+.flow-message-question>em>.flow-copy-letter:last-child::after,.flow-message-panels [data-caret]>.flow-copy-letter:last-child::after{content:'';display:inline-block;vertical-align:-.04em;width:2px;height:.8em;margin:0 0 0 3px;border-radius:1px;background:var(--accent);animation:flowCaret 800ms step-end 6}
+.flow-hero-signals{gap:5px;margin-top:14px}.flow-hero-signals i,.flow-hero-signals i:first-child,.flow-hero-signals i:last-child{width:16px;height:3px;opacity:.15;transition:opacity 280ms ease,transform 280ms ease}
+.flow-hero-title[data-phase="0"] .flow-hero-signals i:nth-child(1),.flow-hero-title[data-phase="1"] .flow-hero-signals i:nth-child(2),.flow-hero-title[data-phase="2"] .flow-hero-signals i:nth-child(3),.flow-hero-title[data-phase="3"] .flow-hero-signals i:nth-child(4){opacity:.85;transform:scaleX(1.3)}
+.flow-hero-arrow{position:absolute;left:0;bottom:-35px;width:112px;height:52px;overflow:visible;pointer-events:none;opacity:0;transform:translateY(-3px);transition:opacity var(--copy-panel-duration) ease,transform var(--copy-panel-duration) var(--ease);stroke:var(--accent);stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.flow-hero-title[data-phase="2"] .flow-hero-arrow,.flow-hero-title[data-phase="3"] .flow-hero-arrow{opacity:1;transform:translateY(0)}
+.flow-arrow-line{stroke-dasharray:1;stroke-dashoffset:1}.flow-arrow-head{opacity:0}
+.flow-hero-title[data-phase="2"] .flow-arrow-line,.flow-hero-title[data-phase="3"] .flow-arrow-line{animation:flowDraw var(--copy-arrow-duration) var(--ease) 450ms both}
+.flow-hero-title[data-phase="2"] .flow-arrow-head,.flow-hero-title[data-phase="3"] .flow-arrow-head{animation:flowArrowHead 200ms ease 1050ms both}
+.home-motion-paused .flow-copy-letter,.home-motion-paused .flow-copy-letter::after,.home-motion-paused .flow-arrow-line,.home-motion-paused .flow-arrow-head{animation-play-state:paused!important}
+.motion-disabled .flow-copy-letter{animation:none;opacity:1;transform:none}.motion-disabled .flow-message-panels>span,.motion-disabled .flow-hero-arrow{transition:none;transform:none}.motion-disabled .flow-copy-letter::after{animation:none!important;opacity:0}.motion-disabled .flow-arrow-line,.motion-disabled .flow-arrow-head{animation:none;stroke-dashoffset:0;opacity:1}
+@keyframes flowInk{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+@keyframes flowCaret{0%,45%{opacity:.8}46%,100%{opacity:0}}
+@keyframes flowDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes flowArrowHead{from{opacity:0;transform:translate(-2px,-1px)}to{opacity:1;transform:translate(0,0)}}
+@media(max-width:340px){.flow-message-pitch>strong,.flow-message-free>strong{font-size:26px;letter-spacing:-.9px}.flow-message-lead{font-size:12px}.flow-hero-arrow{width:96px}}
+@media(max-height:650px) and (max-width:1023px){.flow-message-pitch>strong,.flow-message-free>strong{font-size:26px}.flow-message-lead{font-size:12px;margin-bottom:5px}.flow-hero-title{padding-bottom:27px}.flow-hero-arrow{height:42px;bottom:-20px}.flow-hero-signals{margin-top:10px}}
+@media(min-width:768px){.flow-message-pitch>strong,.flow-message-free>strong{font-size:38px;letter-spacing:-1.5px}.flow-message-lead{font-size:15px}.flow-hero-title{padding-bottom:39px}.flow-hero-arrow{width:132px;height:60px}}
+@media(min-width:1024px){.flow-message-pitch>strong,.flow-message-free>strong{font-size:48px;letter-spacing:-1.9px}.flow-message-lead{font-size:17px}.flow-hero-arrow{width:145px;height:64px}}
+@media(prefers-reduced-motion:reduce){.flow-copy-letter{animation:none;opacity:1;transform:none}.flow-message-panels>span,.flow-hero-arrow{transition:none;transform:none}.flow-message-question .flow-copy-letter::after,[data-caret] .flow-copy-letter::after{animation:none;opacity:0}.flow-arrow-line,.flow-arrow-head{animation:none!important;stroke-dashoffset:0;opacity:1}}
+
 /* Pearl canvas: soft blue light, a quiet citron reflection and fine contour lines. */
 .app{
   background-color:var(--bg);
