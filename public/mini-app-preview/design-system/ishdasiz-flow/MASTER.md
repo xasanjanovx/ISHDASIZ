@@ -1,6 +1,6 @@
 # ISHDASIZ Flow V12
 
-Latest user brief: remove the ticker; immediately below the header put the profession animation on the right and “Ish va xodim topish oson” on the left; place vacancy/resume creation below it, each with its corresponding search indicator. Make employer creation visually dominant. Add a concise animated site/channel offer, reduce redundant hints, improve input controls and make position search immediate.
+Latest user brief (29 October): show matching positions only after a letter is entered; remove redundant microcopy; replace the hero slogan with a vacancy action; make employee/job search controls belong to the posting-button family; use red promotional accents; improve suggestion surfaces; show matched employees after a vacancy and resume view counts to its owner.
 
 ## Product rules changed in this version
 
@@ -8,15 +8,21 @@ The latest instruction supersedes the prior resume-only trial: **each account re
 
 ## Composition
 
-The first section integrates the original eight professions into a compact split hero with the title on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are small, usable indicator rows. Below them is one offer surface with a flowing document/Telegram animation, followed by the account/listings links. There is no ticker and no bottom navigation.
+The first section integrates the original eight professions into a compact split hero with an actionable vacancy button on the left. It follows the logo/header directly. Posting tiles remain adjacent; their attached search actions are raised controls with matching colors, icons and clear labels. Below them is a red offer surface with a flowing document/Telegram animation, followed by the account/listings links. There is no ticker and no bottom navigation.
 
-Use the existing Onest family, blue employer action and restrained citron accents, with a cooler layered background and a dark equivalent. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs and saved-draft captions. Retain only meaningful payment, privacy, optional-field and demo disclosures.
+Use the existing Onest family, blue employer action, pearl/citron resume control and red free/bonus accents, with a cooler layered background and a dark equivalent. Red identifies the offer; blue remains the primary action. Do not fabricate discount percentages, previous prices or urgency. Fields have 16px text, stronger focus states, compact labels and contextual inline errors. Remove repeated introductory paragraphs, management/settings explanations and saved-draft captions. Retain meaningful payment, privacy, optional-field and demo disclosures.
 
 ## Search and forms
 
-Position and region fields use an accessible searchable combobox. Titles include a read-only export of the site's public profession reference table, common titles and Russian/Uzbek aliases; no private vacancy/contact data is exported. Keyboard arrows, Enter, Escape and touch selection are supported, custom positions remain valid, and the popup adapts to the available viewport. Search results update while typing, include locally created demo records and respect region/salary filters.
+Position and region fields use an accessible searchable combobox. Position/query suggestions require a letter; empty focus, arrow keys, whitespace, digits and clearing do not expose the catalog. One typed letter shows only matching titles/aliases. Exact aliases receive priority. The popup uses a raised layered surface, dimensional role icons, highlighted literal matches and a clear selected state. Titles include a read-only export of the site's public profession reference table, common titles and Russian/Uzbek aliases; no private vacancy/contact data is exported. Keyboard arrows, Enter, Escape and touch selection are supported, custom positions remain valid, and the popup adapts to the available viewport. Search results update while typing, include locally created demo records and respect region/salary filters.
 
-All six vacancy and five resume steps remain. Entered data survives navigation/reload within the session. The next/back shelf stays visible. The review screen shows the actual entered summary and destination choices; repeated channel placement opens prices before proceeding. Unknown phone numbers prompt registration. No role choice. Contacts remain sign-in gated.
+All questions remain in six vacancy and four resume steps, followed by one shared publication review. Entered data survives navigation/reload within the session. The next/back shelf stays visible. The review screen shows the actual entered summary and destination choices; repeated channel placement opens prices before proceeding. Unknown phone numbers prompt registration. No role choice. Contacts remain sign-in gated.
+
+## Recommendations and resume results
+
+Vacancy review and confirmation show up to three matching local CVs. Matching uses a canonical role or known alias; region and salary compatibility affect ranking. Each card states its matching reasons rather than a made-up AI percentage. Archived CVs and the viewer's own CVs are excluded. No match has an explicit empty state and a search action; the full-search button carries the vacancy position. The sample CV remains clearly marked as a sample. This is deterministic local matching, not a production candidate service.
+
+Own resume listings show view and contact-open counts; the profile totals active own resumes. Counts start at zero. A resume-detail open and an authenticated contact open record distinct local session events; the same visitor/session counts once per metric/resume, own visits and sample CVs do not count. Rendering cards or recommendations does not count as a view. Reload retains local counts; archiving removes a CV from the profile total. These are preview events, not site or Telegram-channel audience statistics. Production rollout requires authenticated server-side event collection, access control, deduplication and reporting.
 
 ## Review boundary and evaluation
 
