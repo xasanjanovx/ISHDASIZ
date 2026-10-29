@@ -109,8 +109,10 @@ with sync_playwright() as p:
     page.evaluate("ISHDASIZFresh.navigate('listings')")
     assert page.locator('[data-flow-repost]').count()==0
     page.evaluate("state.kind='resume';ISHDASIZFresh.navigate('plans')")
-    assert page.locator('#app').get_attribute('data-screen')=='review'
-    assert page.locator('[data-pay],.flow-price-options,#flow-channel').count()==0
+    assert page.locator('#app').get_attribute('data-screen')=='plans'
+    assert page.evaluate("state.kind==='vacancy'")
+    assert page.locator('[data-tariff-kind=resume],.flow-price-options,#flow-channel').count()==0
+    assert '59 000' in page.locator('.plans').inner_text()
     page.evaluate("ISHDASIZFlow.begin('resume')")
     assert page.locator('.flow-price-options').count()==0
     assert page.locator('#app').get_attribute('data-screen')=='resume'
