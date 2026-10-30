@@ -1,6 +1,6 @@
 # Supabase availability and load — 30 October 2026
 
-The owner reported a CPU/compute warning and an unavailable database. The exact dashboard warning is requested but has not yet been supplied. This report does not claim a confirmed CPU root cause or a repaired production instance.
+The owner reported an unavailable database and subsequently clarified that the dashboard shows 97% CPU. This is an owner-reported value; the resource metrics endpoint has not independently returned a sample. The workload responsible for the CPU load has not been identified, and the production instance is not reported as recovered.
 
 ## Observed
 
@@ -21,7 +21,18 @@ These changes reduce avoidable application work; they have not been deployed and
 
 ## Access needed for the next step
 
-Supabase integration was found but is not yet installed/connected. Once the owner connects it to this project, read current project status, active queries, blockers, top normalized statement statistics, memory/IO and schedule metadata before deciding on changes. An owner-provided SQL-capable credential file is an alternative. Do not treat a service-role REST key as a Management token or database password.
+Supabase integration is now installed and available. The configured URL was matched to project `awkjrolplhvrscuqqive` (`bolt-native-database-61888304`, ap-south-1); the separate `SELF` project was not modified. The control plane reports `ACTIVE_HEALTHY`, which does not establish SQL/API availability. Performance/security advisory reads timed out. A metadata-only `pg_stat_activity` query with a three-second statement deadline could not establish its SQL connection (`Connection terminated due to connection timeout`). Do not repeat the earlier request to install the integration.
+
+For 16:47:47–17:47:47 UTC (21:47:47–22:47:47 Asia/Tashkent), remote logs were readable. They show:
+
+- 72 HTTP 504 responses on `/rest/v1/telegram_sessions`, average origin time about 130.7 seconds, plus two 525 responses.
+- HTTP 504 responses on jobs, users, regions and categories, alongside a few successful small reference reads.
+- PostgreSQL SQLSTATE 57014 during ordinary reads, PARSE, BIND and even SET. Monitoring (`postgres_exporter`), dashboard and management queries also time out. Six FATAL messages say `canceling authentication due to timeout`.
+- No out-of-memory or exhausted-connection-slot message was identified by the bounded classification query. Their absence in that window does not rule out memory/IO or another resource issue.
+
+The available integration has pause/restore tools but no restart operation. Pause/restore was not used as a substitute for restarting an active production project. The owner was asked to use **Restart project** in this project's General settings and report when it completes. No restart, paid upgrade, query cancellation or writable SQL was performed. Restart may provide only temporary recovery and is not a diagnosis of the original load.
+
+Once SQL becomes reachable, read active queries, blockers, normalized statement statistics, memory/IO and schedule metadata before changing anything. Apply no Mini App migration while the incident is unresolved. The Management API's documented restart operation is `POST /v1/projects/{ref}/restart`; an API-key-only environment does not authorize that endpoint.
 
 `scripts/diagnose-database-health.sql` is a metadata-only, read-only, five-second diagnostic prepared for that connection. It does not expose SQL text or cron commands and makes no changes. Follow the evidence: fix the demonstrated query/index/retry issue, or pause a demonstrated runaway task, rather than guessing from an upgrade banner. Any paid compute change needs the actual size and price agreed with the owner first.
 
