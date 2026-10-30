@@ -21,7 +21,7 @@ with sync_playwright() as p:
   elif path=='/api/auth/session':data={'user':state['user']};status=200 if state['user'] else 401
   elif path=='/api/mini-app/catalog':data={'data':[FIXTURE_JOB],'count':1}
   elif path=='/api/jobs/'+JOB:data={'job':FIXTURE_JOB}
-  elif path=='/api/map/jobs':data={'jobs':[FIXTURE_JOB],'total':1}
+  elif path=='/api/map/jobs':data={'total':1} if parse_qs(urlparse(req.url).query).get('mode')==['count'] else {'jobs':[FIXTURE_JOB],'total':None,'hasMore':False}
   elif path=='/api/mini-app/records':
    if req.method=='GET':
     data={'jobs':[{**FIXTURE_JOB,'id':r['id']} for r in state['saved'] if r['kind']=='vacancy'],'resumes':[{'id':r['id'],'title':r['form']['position'],'full_name':r['form']['name'],'phone':r['form']['phone'],'views':7,'regions':{'name_uz':REGION['name_uz']}} for r in state['saved'] if r['kind']=='resume'],'entries':[{'id':r['id'],'metadata':r['form'],'kind':r['kind']} for r in state['saved']]}
@@ -59,6 +59,7 @@ with sync_playwright() as p:
  def stage(n):assert page.evaluate('state.step')==n,(n,page.evaluate('state.step'),page.locator('#toast').inner_text(),page.evaluate('journeyFirstError(state.step)'))
  def place():
   fill('place','Chil');page.get_by_role('option').filter(has_text='Chilonzor tumani').first.click();page.locator('[data-field=company]').click() if page.locator('[data-field=company]').count() else page.locator('[data-field=name]').click()
+ assert not any(path in ['/api/map/jobs','/api/mini-app/catalog'] for path,method in state['requests']),'Hidden catalogs loaded while completing a form'
  assert page.locator('[data-field=category]').count()==0
  assert page.locator('.polish-publication-note').is_visible()
  position=page.locator('[data-field=position]');position.click();assert page.locator('#flow-options').count()==0

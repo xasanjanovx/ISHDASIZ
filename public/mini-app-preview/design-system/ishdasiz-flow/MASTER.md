@@ -40,6 +40,8 @@ Before a specific vacancy is confirmed in the channel, return aggregate counts o
 
 ## Real data and rollout limits
 
+Load follow-up: creation/home do not preload the hidden job catalog. Map pages are count-free with look-ahead; one separate aggregate supplies the total. Public bootstrap data and map totals revalidate through a 30-second server cache with cold-request coalescing. These public snapshots may lag new writes; account data and candidate permissions remain uncached. A cached aggregate is not evidence that the live database has recovered from an outage.
+
 Public catalog counts are exact, with 12 rows per page. The map initially loads four pages of 50 real points, then more on request. Global totals cover the entire available catalog. Failed reads show a retry rather than false zero counts. Native listings are readable/editable/archivable; this new channel-order/proof flow applies to Mini App-created records.
 
 Own listings load up to 100 per kind. Matching scans at most 300 recent candidates in a category or 200 title-filtered jobs and returns up to 50 results; these are bounded results, not exhaustive match counts. Unknown legacy work formats are not guessed. Existing local-only discovery/location/compensation/polish tests describe the previous journey and are not the acceptance suite for this integration.

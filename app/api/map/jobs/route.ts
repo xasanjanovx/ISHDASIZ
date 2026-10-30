@@ -1,6 +1,7 @@
 import { AccountError, accountFailure, accountResult, isUuid } from '@/lib/auth/account';
 import { getAuthClient } from '@/lib/auth/server';
 import { JOB_MAP_PAGE_SIZE, jobMapQuery } from '@/lib/job-map-query';
+import { publicMapTotal } from '@/lib/job-map-total';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 35;
@@ -28,9 +29,16 @@ export async function GET(request: Request) {
   try {
     const params = new URL(request.url).searchParams;
     const rawPage = params.get('page') ?? '0';
-    if (Array.from(params.keys()).some(key => key !== 'page') || params.getAll('page').length > 1
+    const mode=params.get('mode');
+    if (Array.from(params.keys()).some(key => !['page','mode'].includes(key)) || params.getAll('page').length > 1 || params.getAll('mode').length>1 || mode!==null&&!['page','count'].includes(mode)
       || !/^(0|[1-9]\d{0,3})$/.test(rawPage)) throw new AccountError(400, 'Некорректная страница / Noto‘g‘ri sahifa');
     const page = Number(rawPage);
+    if(mode==='count')return accountResult({total:await publicMapTotal()});
+    if(mode==='page'){
+      const result=await jobMapQuery(getAuthClient(),page,JOB_MAP_PAGE_SIZE,{count:'none',lookAhead:true}).abortSignal(AbortSignal.timeout(8000));
+      if(result.error||!Array.isArray(result.data)||result.data.length>JOB_MAP_PAGE_SIZE+1)throw Error('Map unavailable');
+      return accountResult({jobs:result.data.slice(0,JOB_MAP_PAGE_SIZE).map(project),total:null,hasMore:result.data.length>JOB_MAP_PAGE_SIZE});
+    }
     // An anonymous database request has a shorter SQL deadline than this visibility/count query.
     // The published-job predicate also excludes closed accounts and unavailable source records.
     const query = jobMapQuery(getAuthClient(), page);

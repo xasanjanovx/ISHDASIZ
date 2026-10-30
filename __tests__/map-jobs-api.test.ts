@@ -3,9 +3,10 @@ import { GET } from '@/app/api/map/jobs/route';
 import { getAuthClient } from '@/lib/auth/server';
 import { JOB_MAP_FIELDS, JOB_MAP_PAGE_SIZE } from '@/lib/job-map-query';
 jest.mock('@/lib/auth/server', () => ({ getAuthClient: jest.fn() }));
+jest.mock('next/cache',()=>({unstable_cache:(fn:any)=>fn}));
 const query: any = {};
 const read = jest.fn();
-for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'range']) query[method] = jest.fn(() => query);
+for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'range','limit']) query[method] = jest.fn(() => query);
 query.abortSignal = read;
 const from = jest.fn(() => query);
 const row = { id: '10000000-0000-4000-8000-000000000001', title_ru: 'Врач', latitude: 41.3, longitude: 69.2,
@@ -70,4 +71,22 @@ test('a transient SQL timeout retries the failed read once and retains the real 
   expect(response.status).toBe(200);
   expect((await response.json()).total).toBe(6405);
   expect(read).toHaveBeenCalledTimes(2);
+});
+
+test('point pages never recount the table and use one extra row for hasMore',async()=>{
+ read.mockResolvedValue({data:Array.from({length:51},(_,i)=>({...row,id:`10000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`})),count:null,error:null});
+ const response=await GET(request('?mode=page&page=2'));expect(response.status).toBe(200);
+ expect(query.select).toHaveBeenCalledWith(JOB_MAP_FIELDS,{count:undefined});
+ expect(query.eq).toHaveBeenCalledWith('is_active',true);expect(query.range).toHaveBeenCalledWith(100,150);
+ const body=await response.json();expect(body.jobs).toHaveLength(50);expect(body).toMatchObject({total:null,hasMore:true});expect(read).toHaveBeenCalledTimes(1);
+});
+test('a burst of map-count callers shares one bounded ID-only read',async()=>{
+ const results=await Promise.all(Array.from({length:10},()=>GET(request('?mode=count'))));
+ expect(read).toHaveBeenCalledTimes(1);expect(query.select).toHaveBeenCalledWith('id',{count:'exact'});expect(query.limit).toHaveBeenCalledWith(0);
+ expect(query.range).not.toHaveBeenCalled();expect(query.order).not.toHaveBeenCalled();
+ for(const response of results)expect(await response.json()).toEqual({total:6405});
+});
+test('failed point-page reads do not immediately repeat an overloaded query',async()=>{
+ read.mockResolvedValue({data:null,count:null,error:{code:'57014'},status:500});
+ expect((await GET(request('?mode=page'))).status).toBe(503);expect(read).toHaveBeenCalledTimes(1);
 });

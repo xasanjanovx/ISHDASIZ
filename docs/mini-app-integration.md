@@ -40,3 +40,9 @@ Live read-only checks returned 11,868 jobs and 6,549 jobs with coordinates; CV t
 4. Click checkout credentials/callback verification, paid repeated schedules/broadcasts and generated paid channel media remain a separate integration. The current channel route returns `paymentReady:false` for paid requests; the client states that payment is unavailable and preserves the website listing. No paid success is simulated. The new channel/proof flow applies to Mini App-created records; older native records can be read/edited/archived but are not silently given new publication proof.
 
 Current development URL: `http://127.0.0.1:8779/mini-app`. Use webpack because this worktree's shared `node_modules` junction is incompatible with the local Turbopack root. Do not mistake local verification or the draft PR for a production rollout.
+
+## Subsequent database availability report
+
+The owner subsequently reported a CPU/compute warning and database outage. One-row API reads and metrics then timed out despite fast TCP/TLS connection establishment. The earlier successful catalog counts are historical measurements, not evidence of recovery. See `docs/database-health-2026-10-30.md` for observations, bounded read-only SQL diagnostics and the missing management/SQL connection.
+
+The load follow-up removes hidden catalog preloading, separates map pages from whole-table counts, explicitly filters active map rows and shares public bootstrap/map-count reads through a 30-second Next.js data cache with in-flight coalescing. No account/candidate/contact/permission response is cached. Existing exact-count map clients remain compatible. These changes are prepared and tested, not yet deployed; they do not establish the root cause of the infrastructure warning.

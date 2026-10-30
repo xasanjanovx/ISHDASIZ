@@ -11,7 +11,7 @@ with sync_playwright() as p:
    path=r.request.url
    if '/bootstrap' in path:r.fulfill(json={'regions':[],'districts':[],'categories':[],'stats':{'availableJobs':0,'byRegion':[]},'resumeCount':0,'storageReady':False})
    elif '/catalog' in path:r.fulfill(json={'data':[],'count':0})
-   elif '/map/jobs' in path:r.fulfill(json={'jobs':[],'total':0})
+   elif '/map/jobs' in path:r.fulfill(json={'jobs':[],'total':0,'hasMore':False})
    elif '/salary' in path:r.fulfill(json={'estimate':None})
    else:r.fulfill(status=401,json={'user':None,'error':'Kiring'})
   c.route('**/api/**',api);c.route('https://tile.openstreetmap.org/**',lambda r:r.fulfill(body=TILE,content_type='image/png'))
