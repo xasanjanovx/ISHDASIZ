@@ -22,6 +22,8 @@ def select(page,key,query,title):
 with sync_playwright() as p:
     browser=p.chromium.launch();errors=[];apis=[]
     page=new_page(browser,welcome=True)
+    page.clock.install(time=0)
+    page.clock.pause_at(1000)
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto(URL,wait_until='networkidle')
     assert page.locator('.flow-intent').count()==0
@@ -32,11 +34,12 @@ with sync_playwright() as p:
     assert page.locator('#discovery-job-count').inner_text()=='2'
     assert page.locator('#discovery-resume-count').inner_text()=='1'
     assert page.locator('.discovery-welcome').count()==0
+    page.clock.fast_forward(3000)
     page.locator('.discovery-welcome').wait_for(timeout=5000)
     page.locator('[data-discovery-welcome="resume"]').click()
     assert page.locator('#app').get_attribute('data-screen')=='resume'
     page.evaluate("ISHDASIZFresh.navigate('home')")
-    page.wait_for_timeout(3200)
+    page.clock.fast_forward(3200)
     assert page.locator('.discovery-welcome').count()==0,'Welcome repeated'
     boxes=[b.bounding_box() for b in page.locator('.discovery-account-row>button').all()]
     assert len(boxes)==3 and max(b['y'] for b in boxes)-min(b['y'] for b in boxes)<1
@@ -172,10 +175,23 @@ with sync_playwright() as p:
     page.evaluate("flowWrite('ishdasiz-v12-records',flowRecords().map(r=>r.id==='job-a'?{...r,position:'Buxgalter'}:r));ISHDASIZFresh.navigate('listings')")
     assert not page.evaluate("discoveryUnlocked(flowOwnRecords().find(r=>r.id==='job-a'))"),'Edited criteria reused old publication grant'
     assert not page.evaluate("flowFree('vacancy')"),'Publication allowance reset'
+    # Reopening a completed listing must not reveal prices before confirmation.
+    page.evaluate("ISHDASIZFresh.navigate('vacancy',{step:0})")
+    assert page.locator('.polish-publication-note').inner_text()=='Saytda bepul joylang'
+    assert page.locator('.flow-price-options').count()==0
+    page.evaluate("ISHDASIZFresh.navigate('listings')")
+    page.locator('[data-flow-repost="job-a"]').click()
+    assert page.locator('#app').get_attribute('data-screen')=='review'
+    assert page.locator('.flow-price-options').count()==0
     # A new channel confirmation for the changed vacancy must use the paid path.
     page.evaluate("discoverySetContext('job-a');discoveryOpenCandidates('job-a')")
-    page.locator('[data-discovery-unlock="job-a"]').click()
-    page.locator('[data-flow-buy]').click()
+    page.get_by_role('dialog').locator('[data-discovery-unlock="job-a"]').click()
+    assert page.locator('.flow-price-options').count()==0
+    review_text=page.locator('#content').inner_text()
+    assert 'Birinchi vakansiya' not in review_text
+    assert 'so‘mdan' not in review_text
+    assert 'Tarifni tanlash' not in page.locator('#action-bar').inner_text()
+    page.locator('[data-flow-publish]').click()
     page.locator('[data-flow-plan="0"]').click()
     assert page.locator('#app').get_attribute('data-screen')=='schedule'
     page.locator('[data-pay]').click();page.locator('[data-demo-paid]').click()

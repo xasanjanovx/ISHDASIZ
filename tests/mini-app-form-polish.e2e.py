@@ -17,7 +17,13 @@ with sync_playwright() as p:
     assert 'Faoliyat sohasi' not in page.locator('#content').inner_text()
     assert page.get_by_text('Kompaniya yoki tashkilot nomi *',exact=True).is_visible()
     assert page.locator('[data-field=region]').is_visible()
-    assert page.locator('.polish-form-credit strong').inner_text().replace('\n','')=='0so‘m'
+    assert page.locator('.polish-form-credit').count()==0
+    assert page.locator('.polish-publication-note').inner_text()=='Sayt va kanalda bepul joylang'
+    assert page.locator('.polish-publication-note button').count()==0
+    page.evaluate('document.fonts.ready')
+    assert 'Inter Variable' in page.locator('body').evaluate('el=>getComputedStyle(el).fontFamily')
+    assert page.evaluate("document.fonts.check('500 16px \"Inter Variable\"')")
+    assert 'Birinchi vakansiya' not in page.locator('#content').inner_text()
     assert page.locator('.flow-step-heading>i').count()==0
     field=page.locator('[data-field=position]')
     for text,number in [('Sotuvchi',10),('Buxgalter',6),('Frontend dasturchi',1),('QA engineer',1),('Shifokor',5),('Haydovchi',9),('Quruvchi',7),('Ingliz tili o‘qituvchisi',4),('продавец',10)]:
