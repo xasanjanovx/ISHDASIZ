@@ -57,9 +57,8 @@ with sync_playwright() as p:
     page=new_page(browser,account='+998909876543')
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto(URL,wait_until='networkidle');page.locator('.flow-home .hiring').click()
-    select(page,'position','sot','Sotuvchi');page.locator('[data-field="company"]').fill('Demo Local');next_step(page)
+    select(page,'position','sot','Sotuvchi');page.locator('[data-field="company"]').fill('Demo Local');select(page,'region','toshkent shah','Toshkent shahri');next_step(page)
     page.locator('[data-field="salaryMax"]').fill('6000000');next_step(page)
-    select(page,'region','toshkent shah','Toshkent shahri')
     page.locator('[data-field="address"]').fill('Demo ish joyi')
     next_step(page)
     assert page.locator('[data-map]').is_visible(),'On-site vacancy accepted no work point'

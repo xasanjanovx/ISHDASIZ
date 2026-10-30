@@ -44,7 +44,7 @@ function freshSearch(){
 }
 function freshForm(){
   const steps=formSteps[state.kind];state.step=Math.min(state.step,steps.length-1);const [heading]=steps[state.step];
-  return `<section class="view fresh-form">${freshTitle(state.kind==='vacancy'?'Vakansiya joylash':'Rezyume joylash')}<div class="flow-step-heading"><span>${state.step+1}<small> / ${steps.length}</small></span><b>${heading}</b><i>${icon('check')}Bepul</i></div><div class="step-track" aria-label="${state.step+1} / ${steps.length} qadam">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div><div class="form-surface"><div class="fields">${formContent()}</div></div><div class="form-footer"><button class="secondary" data-step="back">${icon('back')}<span>Orqaga</span></button><button class="primary" data-step="next">${state.step===steps.length-1?'Ko‘rib chiqish':'Davom etish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
+  return `<section class="view fresh-form">${freshTitle(state.kind==='vacancy'?'Vakansiya joylash':'Rezyume joylash')}<div class="flow-step-heading"><span>${state.step+1}<small> / ${steps.length}</small></span><b>${heading}</b></div><div class="step-track" aria-label="${state.step+1} / ${steps.length} qadam">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div>${polishFeeNote()}<div class="form-surface"><div class="fields">${formContent()}</div></div><div class="form-footer"><button class="secondary" data-step="back">${icon('back')}<span>Orqaga</span></button><button class="primary" data-step="next">${state.step===steps.length-1?'Ko‘rib chiqish':'Davom etish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
 }
 function freshProfile(){
   return `<section class="view fresh-profile">${freshTitle('Shaxsiy kabinet')}<div class="studio-identity"><span class="studio-identity-avatar">${state.loggedIn?esc((state.form.resume.name||'I').slice(0,1)):icon('user')}<i>${icon('check')}</i></span><div><h2>${state.loggedIn?esc(state.form.resume.name||'Xush kelibsiz'):'Sizning profilingiz'}</h2><p>${state.loggedIn?esc(state.phone):'Ish va xodim uchun bitta profil'}</p></div></div>${state.loggedIn?'':`<button class="primary full studio-profile-login" data-nav="auth">${icon('phone')}Profilga kirish<span class="studio-button-end">${icon('right')}</span></button>`}${flowProfileStats()}<div class="studio-section-label"><h2>Yangi e’lon</h2><span>Saytda bepul</span></div>${studioCreateTiles()}<div class="studio-section-label"><h2>Mening e’lonlarim</h2></div><div class="studio-profile-list"><button data-fresh-list="resumes"><span class="studio-list-mark resume">${icon('file')}</span><span><b>Rezyumelarim</b></span>${icon('right')}</button><button data-fresh-list="jobs"><span class="studio-list-mark vacancy">${icon('briefcase')}</span><span><b>Vakansiyalarim</b></span>${icon('right')}</button></div><div class="fresh-menu-list">${[['send','Arizalarim','applications'],['wallet','Kanal tariflari','plans'],['bell','Bildirishnomalar','notifications'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button ${route==='notifications'?'data-notifications':`data-nav="${route}"`}>${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>${state.loggedIn?`<button class="text-button full" data-flow-account>Boshqa raqam bilan kirish</button>`:""}</section>`;
@@ -190,6 +190,7 @@ function flowPositionTerms(value){
 function flowCandidates(vacancy){return discoveryMatches({...vacancy,kind:'vacancy'});}
 function flowCandidateSection(vacancy){return discoveryCandidateSection(vacancy);}
 function flowPublish(){
+  polishInferCurrent();
   if(state.kind==='resume'){flow.channel=false;state.orderPaid=false;}
   if(flow.confirming)return;
   if(flow.confirmedTx===flow.tx){navigate('done');return;}
@@ -236,7 +237,7 @@ function flowDetails(id){return discoveryDetails(id);}
 function flowFilters(){
   modal(`<h2>Filtrlar</h2><div class="fields"><label class="field"><span>Hudud</span><select id="filter-region">${['Butun O‘zbekiston',...regions].map(r=>`<option ${r===state.region?'selected':''}>${r}</option>`).join('')}</select></label><div class="field-pair"><label class="field"><span>Maosh, dan</span><input id="flow-salary-from" inputmode="numeric" value="${esc(flow.salaryFrom)}" placeholder="0"></label><label class="field"><span>gacha</span><input id="flow-salary-to" inputmode="numeric" value="${esc(flow.salaryTo)}" placeholder="0"></label></div></div><div class="spacer"></div><button class="primary full" data-flow-apply-filters>Qo‘llash</button><button class="text-button" data-flow-clear-filters>Tozalash</button>`);
 }
-function flowClearError(input){input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');input.closest('.field')?.querySelector('.flow-field-error')?.remove()}
+function flowClearError(input){input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');const hint=input.closest('.field')?.querySelector('.polish-field-hint');if(hint)input.setAttribute('aria-describedby',hint.id);input.closest('.field')?.querySelector('.flow-field-error')?.remove()}
 function flowError(input,text){flowClearError(input);input.setAttribute('aria-invalid','true');const note=document.createElement('small');note.className='flow-field-error';note.id='error-'+(input.id||input.dataset.field||'field');note.setAttribute('role','alert');note.textContent=text;input.setAttribute('aria-describedby',note.id);input.closest('.field')?.append(note);input.focus();input.scrollIntoView({block:'center',behavior:'smooth'});}
 function flowValidateStep(){
   for(const input of document.querySelectorAll('#content input,#content textarea,#content select')){
@@ -255,12 +256,13 @@ function flowValidateAll(){const d=state.form[state.kind];if(state.kind==='vacan
 let flowCombo=null;
 const flowOriginalField=field;
 field=function(label,key,options={}){
+  if(options.options&&!['position','region','district','skills'].includes(key))return polishSelectField(label,key,options);
   if(['position','region','district','skills'].includes(key)){
     const value=state.form[state.kind][key]||'',id='flow-'+state.kind+'-'+key;
-    return `<label class="field flow-combo-field"><span>${esc(label)}${options.required?' *':''}</span><span class="flow-input-shell">${icon(key==='region'?'pin':'search')}<input id="${id}" data-field="${key}" data-flow-combo="${key}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flow-options" type="text" value="${esc(value)}" placeholder="${key==='position'?'Lavozimni qidiring':key==='region'?'Hududni qidiring':key==='district'?'Tumanni qidiring':'Ko‘nikmalar'}" autocomplete="off" maxlength="${key==='skills'?300:120}" ${options.required?'required':''}><button type="button" data-flow-clear="${id}" aria-label="${key==='position'?'Lavozimni':key==='region'?'Hududni':key==='district'?'Tumanni':'Ko‘nikmalarni'} tozalash" ${value?'':'hidden'}>${icon('close')}</button></span></label>`;
+    const markup=`<label class="field flow-combo-field"><span>${esc(label)}${options.required?' *':''}</span><span class="flow-input-shell">${icon(key==='region'?'pin':'search')}<input id="${id}" data-field="${key}" data-flow-combo="${key}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flow-options" type="text" value="${esc(value)}" placeholder="${key==='position'?'Lavozimni qidiring':key==='region'?'Hududni qidiring':key==='district'?'Tumanni qidiring':'Ko‘nikmalar'}" autocomplete="off" maxlength="${key==='skills'?300:120}" ${options.required?'required':''}><button type="button" data-flow-clear="${id}" aria-label="${key==='position'?'Lavozimni':key==='region'?'Hududni':key==='district'?'Tumanni':'Ko‘nikmalarni'} tozalash" ${value?'':'hidden'}>${icon('close')}</button></span></label>`;return polishHintMarkup(markup,key);
   }
   const markup=flowOriginalField(label,key,{...options,hint:''});
-  return markup.replace('<textarea ','<textarea maxlength="2000" ').replace('<input ',`<input id="flow-${state.kind}-${key}" maxlength="${['salaryMin','salaryMax'].includes(key)?14:key==='phone'?22:120}" ${['salaryMin','salaryMax','ageMin','ageMax'].includes(key)?'inputmode="numeric" pattern="[0-9 ]*"':''} ${options.type==='date'?'max="2026-10-28"':''} `);
+  return polishHintMarkup(markup.replace('<textarea ','<textarea maxlength="2000" ').replace('<input ',`<input id="flow-${state.kind}-${key}" maxlength="${['salaryMin','salaryMax'].includes(key)?14:key==='phone'?22:120}" ${['salaryMin','salaryMax','ageMin','ageMax'].includes(key)?'inputmode="numeric" pattern="[0-9 ]*"':''} ${options.type==='date'?'max="2026-10-30"':''} `),key);
 };
 function flowSuggestions(input){
   const kind=input.dataset.flowCombo,raw=kind==='skills'?input.value.split(',').at(-1):input.value,q=flowNormalize(raw);
@@ -272,11 +274,12 @@ function flowSuggestions(input){
 function flowCloseCombo(){if(flowCombo?.input?.isConnected){flowCombo.input.setAttribute('aria-expanded','false');flowCombo.input.removeAttribute('aria-activedescendant')}$('#flow-options')?.remove();flowCombo=null}
 function flowPositionCombo(){
   const popup=$('#flow-options');if(!flowCombo||!popup)return;
-  const box=(flowCombo.input.closest('.flow-input-shell')||flowCombo.input.closest('.fresh-search-form')||flowCombo.input).getBoundingClientRect(),view=window.visualViewport,topLimit=Math.max($('.app-header').getBoundingClientRect().bottom+5,view?.offsetTop||0),bottom=(view?.height||innerHeight)+(view?.offsetTop||0)-8-(parseFloat(getComputedStyle(app).getPropertyValue('--mini-bottom'))||0);
+  const box=(flowCombo.input.closest('.polish-choice-shell')||flowCombo.input.closest('.flow-input-shell')||flowCombo.input.closest('.fresh-search-form')||flowCombo.input).getBoundingClientRect(),view=window.visualViewport,topLimit=Math.max($('.app-header').getBoundingClientRect().bottom+5,view?.offsetTop||0),bottom=(view?.height||innerHeight)+(view?.offsetTop||0)-8-(parseFloat(getComputedStyle(app).getPropertyValue('--mini-bottom'))||0);
   const below=bottom-box.bottom-7,above=box.top-topLimit-7,flip=below<150&&above>below,height=Math.min(272,Math.max(80,flip?above:below));
   popup.style.left=Math.max(12,box.left-4)+'px';popup.style.width=Math.min(innerWidth-24,box.width+8)+'px';popup.style.maxHeight=height+'px';popup.style.top=(flip?Math.max(topLimit,box.top-7-Math.min(height,popup.scrollHeight)):box.bottom+7)+'px';
 }
 function flowOpenCombo(input){
+  if(input.dataset.flowSelect){polishOpenSelect(input);return;}
   const matches=flowSuggestions(input);flowCloseCombo();if(!matches.length)return;
   const popup=document.createElement('div');popup.id='flow-options';popup.className='flow-options';popup.setAttribute('role','listbox');popup.setAttribute('aria-label',input.dataset.flowCombo==='region'?'Hududlar':'Takliflar');popup.innerHTML=matches.map((entry,index)=>`<div role="option" id="flow-option-${index}" aria-selected="false" data-flow-option="${index}"><i>${icon(['region','district'].includes(input.dataset.flowCombo)?'pin':input.dataset.flowCombo==='skills'?'spark':'briefcase')}</i><span>${flowHighlight(entry.title,input.value)}</span><b>${icon('right')}</b></div>`).join('');app.append(popup);flowCombo={input,matches,index:-1};input.setAttribute('aria-expanded','true');flowPositionCombo();
 }
@@ -287,13 +290,14 @@ function flowHighlight(title,query){
 }
 function flowChoose(index){
   if(!flowCombo)return;const {input,matches}=flowCombo,entry=matches[index];if(!entry)return;
+  if(flowCombo.selectKey){const key=flowCombo.selectKey,top=$('#content').scrollTop;state.form[state.kind][key]=entry.title;flowCloseCombo();flowSaveDraft();render();$('#content').scrollTop=top;document.querySelector(`[data-flow-select="${key}"]`)?.focus({preventScroll:true});return;}
   let value=entry.title;if(input.dataset.flowCombo==='skills'){const current=input.value.split(',').slice(0,-1).map(v=>v.trim()).filter(Boolean);value=[...current,entry.title].join(', ');}
   input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));flowCloseCombo();input.focus();if(input.dataset.flowCombo==='query'){state.query=value;flowSearchUpdate();}flowSaveDraft();
 }
 function flowMoveOption(index){if(!flowCombo)return;flowCombo.index=(index+flowCombo.matches.length)%flowCombo.matches.length;const popup=$('#flow-options');popup.querySelectorAll('[role="option"]').forEach((el,i)=>el.setAttribute('aria-selected',String(i===flowCombo.index)));const active=popup.children[flowCombo.index];flowCombo.input.setAttribute('aria-activedescendant',active.id);if(active.offsetTop<popup.scrollTop)popup.scrollTop=active.offsetTop;else if(active.offsetTop+active.offsetHeight>popup.scrollTop+popup.clientHeight)popup.scrollTop=active.offsetTop+active.offsetHeight-popup.clientHeight;}
 
 const flowOriginalRender=render;
-render=function(){if(state.screen==='plans')state.kind='vacancy';if(state.kind==='resume'&&['schedule','preview'].includes(state.screen))state.screen='review';flowCloseCombo();flowSyncAllowance();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());discoveryAfterRender();};
+render=function(){if(state.screen==='plans')state.kind='vacancy';if(state.kind==='resume'&&['schedule','preview'].includes(state.screen))state.screen='review';flowCloseCombo();flowSyncAllowance();polishInferCurrent();discoveryBeforeRender();flowOriginalRender();if(!document.activeElement.closest?.('.flow-home'))app.classList.remove('focus-paused');scheduleFreshScene();if(state.screen==='review'){const footer=$('#content .form-footer');if(footer)$('#action-bar').append(footer);}document.querySelectorAll('.form-details .field>small').forEach(el=>el.remove());discoveryAfterRender();};
 const flowOriginalNavigate=navigate;
 navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.pendingApplication=null;flow.switchAccount=false;}flowCloseCombo();flowOriginalNavigate(screen,options);flowSaveDraft();};
 const flowOriginalModal=modal;
@@ -301,14 +305,14 @@ modal=function(html){flowCloseCombo();flowOriginalModal(html)};
 const discoveryOriginalClose=closeModal;closeModal=function(){if(flow.discoveryPicker){flow.discoveryPicker.remove();flow.discoveryPicker=null;flow.pickedMarker=null;}discoveryOriginalClose();};
 
 document.addEventListener('input',event=>{
-  const input=event.target;if(input.dataset.field){if(flow.confirmedTx===flow.tx){flow.tx=flowId();flow.activeId=flowId();flow.confirmedTx=null;state.orderPaid=false;}if(input.dataset.field==='region'&&state.form[state.kind].region!==input.value){state.form[state.kind].district='';if(state.kind==='vacancy')state.form.vacancy.coordinates=null;const district=document.querySelector('[data-field="district"]');if(district)district.value='';}if(state.kind==='vacancy'&&input.dataset.field==='district'&&state.form.vacancy.district!==input.value)state.form.vacancy.coordinates=null;state.form[state.kind][input.dataset.field]=input.value;flowClearError(input);const clear=input.closest('.field')?.querySelector('[data-flow-clear]');if(clear)clear.hidden=!input.value;flowSaveDraft();}
+  const input=event.target;if(input.dataset.field){if(flow.confirmedTx===flow.tx){flow.tx=flowId();flow.activeId=flowId();flow.confirmedTx=null;state.orderPaid=false;}if(input.dataset.field==='region'&&state.form[state.kind].region!==input.value){state.form[state.kind].district='';if(state.kind==='vacancy')state.form.vacancy.coordinates=null;const district=document.querySelector('[data-field="district"]');if(district)district.value='';}if(state.kind==='vacancy'&&input.dataset.field==='district'&&state.form.vacancy.district!==input.value)state.form.vacancy.coordinates=null;state.form[state.kind][input.dataset.field]=input.value;if(input.dataset.field==='position')polishInferCurrent();flowClearError(input);const clear=input.closest('.field')?.querySelector('[data-flow-clear]');if(clear)clear.hidden=!input.value;flowSaveDraft();}
   if(input.dataset.flowCombo==='query'){state.query=input.value;flowSearchUpdate();}
   if(input.dataset.flowCombo)flowOpenCombo(input);
 },true);
 document.addEventListener('focusin',event=>{if(event.target.dataset.flowCombo)flowOpenCombo(event.target)});
-document.addEventListener('pointerdown',event=>{const option=event.target.closest('[data-flow-option]');if(option){event.preventDefault();flowChoose(Number(option.dataset.flowOption));return}if(flowCombo&&!event.target.closest('.flow-options')&&event.target!==flowCombo.input)flowCloseCombo();},true);
+document.addEventListener('pointerdown',event=>{const option=event.target.closest('[data-flow-option]');if(option){event.preventDefault();flowChoose(Number(option.dataset.flowOption));return}if(flowCombo&&!event.target.closest('.flow-options')&&!flowCombo.input.contains(event.target))flowCloseCombo();},true);
 document.addEventListener('keydown',event=>{
-  if(!event.target.dataset.flowCombo)return;
+  if(!event.target.dataset.flowCombo&&!event.target.dataset.flowSelect)return;
   if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();event.stopImmediatePropagation();if(!flowCombo)flowOpenCombo(event.target);if(flowCombo)flowMoveOption(flowCombo.index+(event.key==='ArrowDown'?1:-1));}
   else if(event.key==='Enter'&&flowCombo?.index>=0){event.preventDefault();event.stopImmediatePropagation();flowChoose(flowCombo.index);}
   else if(event.key==='Escape'&&flowCombo){event.preventDefault();event.stopImmediatePropagation();flowCloseCombo();}
@@ -480,7 +484,7 @@ function discoveryApplications(){
 }
 function discoveryHomeMap(){
   const counts=discoveryMapCounts(null);
-  return `<section class="discovery-map-card"><header><div><span>${icon('pin')}Toshkent</span><h2>Yaqindagi imkoniyatlar</h2></div><span class="discovery-demo-badge">Demo</span></header><div class="discovery-map-surface"><div id="discovery-map" aria-label="Toshkentdagi ishlar xaritasi"></div><div class="discovery-map-tools"><button data-discovery-locate="map" aria-label="Joylashuvim">${icon('pin')}</button></div><div class="discovery-map-error" hidden>Xarita yuklanmadi. Ro‘yxatni ochishingiz mumkin.</div></div><div class="discovery-map-counts"><button data-discovery-map-list="jobs">${icon('briefcase')}<span><b id="discovery-job-count">${counts.jobs}</b> vakansiya</span>${icon('right')}</button><button data-discovery-map-list="resumes">${icon('users')}<span><b id="discovery-resume-count">${counts.resumes}</b> rezyume</span>${icon('right')}</button></div><small>Hudud bo‘yicha · namuna va shu brauzerdagi e’lonlar</small></section>`;
+  return `<section class="discovery-map-card"><header><div><span>${icon('pin')}Toshkent</span><h2>Yaqindagi imkoniyatlar</h2></div></header><div class="discovery-map-surface"><div id="discovery-map" aria-label="Toshkentdagi ishlar xaritasi"></div><div class="discovery-map-tools"><button data-discovery-locate="map" aria-label="Joylashuvim">${icon('pin')}</button></div><div class="discovery-map-error" hidden>Xarita yuklanmadi. Ro‘yxatni ochishingiz mumkin.</div></div><div class="discovery-map-counts"><button data-discovery-map-list="jobs">${icon('briefcase')}<span><b id="discovery-job-count">${counts.jobs}</b> vakansiya</span>${icon('right')}</button><button data-discovery-map-list="resumes">${icon('users')}<span><b id="discovery-resume-count">${counts.resumes}</b> rezyume</span>${icon('right')}</button></div><small>Raqamni bosing — mos ro‘yxat ochiladi.</small></section>`;
 }
 function discoveryMapCounts(bounds){
   const center=[41.3111,69.2797],records=flowSearchRecords().filter(r=>{const point=r.kind==='vacancy'?discoveryPoint(r):null;if(point)return !bounds||bounds.contains(point);return flowRegionKey(r.region)==='toshkent-shahri'&&(!bounds||bounds.contains(center));});
@@ -523,8 +527,11 @@ function discoveryPlanWelcome(){
   flow.welcomeTimer=setTimeout(()=>{
     if(document.hidden||state.screen!=='home'||$('.modal')||flowOwnRecords().length||state.form.vacancy.position||state.form.resume.name||state.form.resume.position)return;
     flowWrite(discoveryWelcomeKey(),true,localStorage);
-    modal(`<div class="discovery-welcome-art" aria-hidden="true">${studioObject('vacancy')}${studioObject('resume')}</div><span class="discovery-welcome-eyebrow">ISHDASIZ</span><h2>Nimadan boshlaymiz?</h2><div class="discovery-welcome-choices"><button data-discovery-welcome="vacancy">${icon('users')}<span>Xodim<br>izlayapman</span>${icon('right')}</button><button data-discovery-welcome="resume">${icon('briefcase')}<span>Ish<br>izlayapman</span>${icon('right')}</button></div><button class="text-button full" data-close>Keyinroq</button>`);const welcome=$('.modal');welcome.classList.add('discovery-welcome');const heading=welcome.querySelector('h2');heading.id='discovery-welcome-title';heading.tabIndex=-1;welcome.setAttribute('aria-labelledby',heading.id);heading.focus({preventScroll:true});
+    modal(`<div class="discovery-welcome-art" aria-hidden="true">${studioObject('vacancy')}${studioObject('resume')}</div><span class="discovery-welcome-eyebrow">ISHDASIZ</span><h2>Nimadan boshlaymiz?</h2><div class="discovery-welcome-choices"><button data-discovery-welcome="vacancy">${icon('users')}<span>Xodim<br>izlayapman</span>${icon('right')}</button><button data-discovery-welcome="resume">${icon('briefcase')}<span>Ish<br>izlayapman</span>${icon('right')}</button></div><button class="text-button full" data-close>Keyinroq</button>`);const welcome=$('.modal');welcome.classList.add('discovery-welcome');welcome.closest('.modal-backdrop').classList.add('polish-centered');const heading=welcome.querySelector('h2');heading.id='discovery-welcome-title';heading.tabIndex=-1;welcome.setAttribute('aria-labelledby',heading.id);heading.focus({preventScroll:true});
   },3000);
+}
+function discoveryBeforeRender(){
+  if(flow.discoveryMap){flow.discoveryMap.off();flow.discoveryMap.stop();flow.discoveryMap.remove();flow.discoveryMap=null;}
 }
 function discoveryAfterRender(){
   if(flow.discoveryMap&&!$('#discovery-map')?.contains(flow.discoveryMap.getContainer())){flow.discoveryMap.remove();flow.discoveryMap=null;}
@@ -549,3 +556,88 @@ document.addEventListener('click',event=>{
   if(b.dataset.discoveryLocate){stop();discoveryLocate(b.dataset.discoveryLocate);return;}
 },true);
 discoveryAfterRender();
+
+/* Public-reference sector inference and accessible form choices. No AI/network calls. */
+function polishSectorRules(){
+  return [
+    [1,'Dasturiy ta’minot',['frontend','backend','fullstack','dasturchi','developer','programmist','программист','flutter','android','ios']],
+    [1,'Sinov va sifat nazorati',['qa','tester','testirov','тестировщик']],
+    [1,'IT infratuzilmasi',['devops','tizim administrator','sistemniy administrator','сисадмин','network','tarmoq administrator']],
+    [1,'Ma’lumotlar va sun’iy intellekt',['data analyst','data scientist','machine learning','malumotlar tahlil','ai engineer']],
+    [1,'Kiberxavfsizlik',['kiber','cyber','axborot xavfsiz']],
+    [1,'Raqamli dizayn',['ui','ux','grafik dizayner','web dizayn','graphic designer']],
+    [2,'To‘qimachilik va tikuvchilik',['tikuvchi','швея','toquvchi','tekstil','bichuvchi']],
+    [2,'Ishlab chiqarish texnologiyasi',['texnolog','stanok','tokar','ishlab chiqarish operator','технолог']],
+    [2,'Muhandislik va mexanika',['muhandis','инженер','mexanik','механик']],
+    [3,'Ovqatlanish xizmatlari',['oshpaz','повар','ofitsiant','официант','barista','barmen','qandolatchi']],
+    [3,'Mehmonxona va turizm',['mehmonxona','hotel','turizm','tourism','gid','reception']],
+    [3,'Go‘zallik xizmatlari',['sartarosh','парикмахер','barber','manikyur','kosmetolog','vizajist']],
+    [3,'Tozalash xizmatlari',['farrosh','уборщик','уборщица','cleaner','tozalovchi']],
+    [3,'Xavfsizlik xizmatlari',['qoriqchi','qorovul','охранник','security']],
+    [3,'Foto va video xizmatlari',['fotograf','videograf','montaj','фотограф']],
+    [4,'Ta’lim va o‘qitish',['oqituvchi','учитель','преподаватель','teacher','repetitor','ustoz']],
+    [4,'Maktabgacha ta’lim',['tarbiyachi','воспитатель','bogcha']],
+    [4,'Sport va murabbiylik',['murabbiy','trener','тренер','coach']],
+    [4,'Madaniyat va san’at',['artist','aktyor','musiqa','raqqos','артист']],
+    [5,'Tibbiyot',['shifokor','врач','doctor','jarroh','pediatr','terapevt']],
+    [5,'Hamshiralik',['hamshira','медсестра','nurse','feldsher']],
+    [5,'Farmatsiya',['farmatsevt','farmacevt','фармацевт','dorixona']],
+    [5,'Stomatologiya',['stomatolog','стоматолог','dentist','tish shifokor']],
+    [6,'Buxgalteriya va audit',['buxgalter','бухгалтер','hisobchi','accountant','auditor']],
+    [6,'Bank va moliya',['bank','moliya','finance','kredit','iqtisodchi']],
+    [6,'Kadrlar va yollash',['hr','recruiter','rekruter','kadr','рекрутер']],
+    [6,'Huquq va boshqaruv',['yurist','юрист','advokat','rahbar','direktor','boshqaruvchi']],
+    [7,'Qurilish va arxitektura',['quruvchi','строитель','qurilish','arxitektor','architect','prorab']],
+    [7,'Elektr va montaj ishlari',['elektrik','электрик','elektromont','santexnik','сантехник','payvandchi','сварщик']],
+    [8,'Dehqonchilik',['agronom','fermer','dehqon','qishloq xojali','bogbon']],
+    [8,'Chorvachilik va veterinariya',['veterinar','chorva','parranda','ветеринар']],
+    [9,'Transport va haydovchilik',['haydovchi','водитель','driver','taksi','avtobus']],
+    [9,'Logistika va ombor',['logist','логист','omborchi','кладовщик','ekspeditor']],
+    [9,'Yetkazib berish',['kuryer','kurier','курьер','courier']],
+    [10,'Chakana savdo',['sotuvchi','продавец','kassir','кассир','seller','cashier']],
+    [10,'Marketing va reklama',['marketolog','marketing','smm','reklama','kontent menejer','copywriter']],
+    [10,'Savdo boshqaruvi',['savdo vakili','sotuv menejer','sales','merchandiser','менеджер продаж']],
+    [10,'Mijozlar bilan ishlash',['call markaz','call center','koll markaz','operator koll','operator call','колл центр']]
+  ];
+}
+function polishResolveSector(position){
+  const title=flowNormalize(position);if(!title)return {category:'',categoryId:null,sectorDetail:null,sectorSource:'unclassified'};
+  const sectors=window.ISHDASIZ_SECTORS||[],canonical=[...flowPositionTerms(position)][0]||title;
+  if(!flow.sectorIndex){flow.sectorIndex=new Map();for(const row of window.ISHDASIZ_PROFESSION_SECTORS||[]){const key=flowNormalize(row.title);if(!flow.sectorIndex.has(key))flow.sectorIndex.set(key,row.categoryId);}}
+  const referenceId=flow.sectorIndex.get(title)||flow.sectorIndex.get(canonical),words=title.split(' ');
+  const matching=polishSectorRules().filter(([,detail,terms])=>terms.some(raw=>{const term=flowNormalize(raw);return term.includes(' ')?(' '+title+' ').includes(' '+term):words.some(word=>term.length<5?word===term:word.startsWith(term));}));
+  const rule=matching.find(([number])=>!referenceId||referenceId===`a${String(number).padStart(7,'0')}-${String(number).padStart(4,'0')}-4000-8000-${String(number).padStart(12,'0')}`);
+  const ruleId=rule?`a${String(rule[0]).padStart(7,'0')}-${String(rule[0]).padStart(4,'0')}-4000-8000-${String(rule[0]).padStart(12,'0')}`:null;
+  const category=sectors.find(s=>s.id===(referenceId||ruleId));
+  return category?{category:category.name_uz,categoryId:category.id,sectorDetail:rule?.[1]||null,sectorSource:referenceId?'reference':'rule'}:{category:'',categoryId:null,sectorDetail:null,sectorSource:'unclassified'};
+}
+function polishInferCurrent(){Object.assign(state.form[state.kind],polishResolveSector(state.form[state.kind].position));}
+function polishHint(key){
+  const tips={position:'Kamida 1 harf yozing. Mos lavozimni tanlang yoki o‘zingiz kiriting.',company:'Kompaniya, do‘kon yoki tashkilotning nomini yozing.',region:'Ish qidiriladigan hududni tanlang.',district:'Hududga mos tuman yoki shaharni tanlang.',salaryMin:'Oyiga, so‘mda. Masalan: 4 000 000.',salaryMax:'Eng kam maoshdan kam bo‘lmasin.',address:'Ko‘cha, bino va mo‘ljalni yozing; xaritada aniq nuqtani belgilang.',description:'Asosiy vazifalar va ish shartlarini qisqa yozing.',skills:'Ko‘nikmalarni vergul bilan ajrating.',phone:'Aloqa uchun boshqa raqamni ham yozishingiz mumkin.'};
+  let text=tips[key]||'';if(key==='region'&&state.kind==='vacancy')text='Ish joylashgan hududni tanlang. Aniq manzil keyingi qadamda.';
+  return text?`<small class="polish-field-hint" id="polish-hint-${state.kind}-${key}">${esc(text)}</small>`:'';
+}
+function polishHintMarkup(markup,key){const hint=polishHint(key);return hint?markup.replace(/<\/(label)>$/,hint+'</label>').replace(/(<(?:input|textarea)\b[^>]*)(>)/,`$1 aria-describedby="polish-hint-${state.kind}-${key}"$2`):markup;}
+function polishSelectField(label,key,options){
+  const current=String(state.form[state.kind][key]||''),choices=[...options.options];if(current&&!choices.includes(current))choices.unshift(current);
+  (flow.selectChoices||={})[key]=choices;
+  return `<label class="field polish-select-field"><span id="polish-label-${key}">${esc(label)}${options.required?' *':''}</span><span class="polish-choice-shell"><span class="polish-choice-mark">${icon('file')}</span><button type="button" class="polish-select-button" data-flow-select="${esc(key)}" aria-labelledby="polish-label-${key}" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="flow-options"><span>${esc(current||'Tanlang')}</span>${icon('right')}</button></span><input type="hidden" data-field="${esc(key)}" value="${esc(current)}" ${options.required?'required':''}></label>`;
+}
+function polishOpenSelect(button){
+  const key=button.dataset.flowSelect,choices=flow.selectChoices?.[key]||[],matches=choices.map(title=>({title}));flowCloseCombo();if(!matches.length)return;
+  const popup=document.createElement('div');popup.id='flow-options';popup.className='flow-options polish-choice-options';popup.setAttribute('role','listbox');popup.setAttribute('aria-labelledby',button.getAttribute('aria-labelledby'));
+  const current=state.form[state.kind][key];popup.innerHTML=matches.map((entry,index)=>`<div role="option" id="flow-option-${index}" aria-selected="${entry.title===current}" data-flow-option="${index}"><i>${icon('file')}</i><span>${esc(entry.title)}</span><b>${icon(entry.title===current?'check':'right')}</b></div>`).join('');app.append(popup);flowCombo={input:button,matches,index:matches.findIndex(v=>v.title===current),selectKey:key};button.setAttribute('aria-expanded','true');flowPositionCombo();
+}
+function polishFeeNote(){return `<div class="polish-form-credit"><span>${icon('gift')}</span><div><b>${state.kind==='vacancy'?'Saytda joylash bepul':'Rezyumeni saqlash bepul'}</b><small>${state.kind==='vacancy'?'Kanalga joylash — ixtiyoriy':'Faqat bazada saqlanadi'}</small></div><strong>0<small>so‘m</small></strong></div>`;}
+const polishOriginalFormContent=formContent;
+formContent=function(){
+  if(state.kind==='vacancy'&&state.step===0)return field('Lavozim','position',{required:true})+field('Kompaniya yoki tashkilot nomi','company',{required:true})+field('Ish joylashgan hudud','region',{required:true});
+  if(state.kind==='vacancy'&&state.step===2)return `<div class="polish-location-summary"><span>${icon('pin')}${esc(state.form.vacancy.region||'Hudud tanlanmagan')}</span><button data-polish-edit-region>O‘zgartirish${icon('edit')}</button></div>`+field('Tuman yoki shahar','district')+field('Ish manzili','address',{placeholder:'Ko‘cha, bino va mo‘ljal'})+`<button class="secondary full" data-map>${icon('pin')}Xaritadan belgilash</button>`;
+  return polishOriginalFormContent();
+};
+document.addEventListener('click',event=>{
+  const button=event.target.closest('button');if(!button)return;
+  if(button.dataset.flowSelect){event.preventDefault();event.stopImmediatePropagation();if(flowCombo?.input===button)flowCloseCombo();else polishOpenSelect(button);}
+  if(button.hasAttribute('data-polish-edit-region')){event.preventDefault();event.stopImmediatePropagation();navigate('vacancy',{step:0});document.querySelector('[data-field="region"]')?.focus();}
+},true);
+render();
