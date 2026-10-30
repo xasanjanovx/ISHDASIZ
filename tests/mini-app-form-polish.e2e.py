@@ -16,9 +16,13 @@ with sync_playwright() as p:
     assert page.locator('[data-field=category],select').count()==0
     assert 'Faoliyat sohasi' not in page.locator('#content').inner_text()
     assert page.get_by_text('Kompaniya yoki tashkilot nomi *',exact=True).is_visible()
+    assert page.locator('[data-location-start]').is_visible()
+    assert page.locator('[data-field=region]').count()==0
+    page.locator('[data-location-manual]').click()
     assert page.locator('[data-field=region]').is_visible()
     assert page.locator('.polish-form-credit').count()==0
-    assert ' '.join(page.locator('.polish-publication-note').inner_text().split()).casefold()=='sayt va kanalda bepul joylang'
+    assert page.locator('.polish-publication-note').get_attribute('aria-label')=='Sayt + kanal: 0 so‘m'
+    assert page.locator('.flow-step-heading .polish-publication-note').count()==1
     assert page.locator('.polish-publication-note button').count()==0
     page.evaluate('document.fonts.ready')
     assert 'Inter Variable' in page.locator('body').evaluate('el=>getComputedStyle(el).fontFamily')

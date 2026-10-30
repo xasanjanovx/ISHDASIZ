@@ -90,7 +90,7 @@ with sync_playwright() as p:
             page.evaluate('theme=>{state.theme=theme;ISHDASIZFresh.navigate("vacancy",{step:5})}',theme)
             assert page.locator('#content').evaluate('el=>el.scrollWidth<=el.clientWidth'),(width,theme)
             assert page.locator('.polish-publication-note button').count()==0
-            note=page.locator('.polish-publication-note').bounding_box();fields=page.locator('.fields').bounding_box()
+            note=page.locator('.polish-publication-note').bounding_box();fields=page.locator('.flow-step-heading').bounding_box()
             assert abs(note['x']+note['width']-fields['x']-fields['width'])<2,(width,theme,'badge not right-aligned')
             for button in page.locator('.pay-periods button').all():
                 box=button.bounding_box();assert box['height']>=44

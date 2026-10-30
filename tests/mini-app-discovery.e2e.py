@@ -60,7 +60,7 @@ with sync_playwright() as p:
     page=new_page(browser,account='+998909876543')
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto(URL,wait_until='networkidle');page.locator('.flow-home .hiring').click()
-    select(page,'position','sot','Sotuvchi');page.locator('[data-field="company"]').fill('Demo Local');select(page,'region','toshkent shah','Toshkent shahri');next_step(page)
+    select(page,'position','sot','Sotuvchi');page.locator('[data-field="company"]').fill('Demo Local');page.locator('[data-location-manual]').click();select(page,'region','toshkent shah','Toshkent shahri');next_step(page)
     assert page.locator('[data-field="salaryMax"]').count()==0;next_step(page)
     page.locator('[data-field="address"]').fill('Demo ish joyi')
     next_step(page)
@@ -181,7 +181,7 @@ with sync_playwright() as p:
     assert not page.evaluate("flowFree('vacancy')"),'Publication allowance reset'
     # Reopening a completed listing must not reveal prices before confirmation.
     page.evaluate("ISHDASIZFresh.navigate('vacancy',{step:0})")
-    assert ' '.join(page.locator('.polish-publication-note').inner_text().split()).casefold()=='saytda bepul joylang'
+    assert page.locator('.polish-publication-note').get_attribute('aria-label')=='Sayt: 0 so‘m'
     assert page.locator('.flow-price-options').count()==0
     page.evaluate("ISHDASIZFresh.navigate('listings')")
     page.locator('[data-flow-repost="job-a"]').click()
@@ -210,6 +210,9 @@ with sync_playwright() as p:
     page.evaluate("ISHDASIZFresh.navigate('vacancy',{step:2})")
     page.locator('[data-map]').click()
     page.locator('#discovery-picker').click(position={'x':100,'y':100})
+    page.locator('[data-location-edit]').click()
+    page.locator('[data-location-field=region]').fill('Toshkent shahri')
+    page.locator('[data-location-field=address]').fill('Yangi ish joyi')
     page.locator('[data-discovery-save-point]').click()
     assert page.evaluate('discoveryPoint(state.form.vacancy)!==null')
     assert page.evaluate('window.locationCalls')==0,'Map point picker requested private geolocation'

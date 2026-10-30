@@ -44,7 +44,8 @@ function freshSearch(){
 }
 function freshForm(){
   const steps=formSteps[state.kind];state.step=Math.min(state.step,steps.length-1);const [heading]=steps[state.step];
-  return `<section class="view fresh-form">${freshTitle(state.kind==='vacancy'?'Vakansiya joylash':'Rezyume joylash')}${polishPublicationNote()}<div class="flow-step-heading"><span>${state.step+1}<small> / ${steps.length}</small></span><b>${heading}</b></div><div class="step-track" aria-label="${state.step+1} / ${steps.length} qadam">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div><div class="form-surface"><div class="fields">${formContent()}</div></div><div class="form-footer"><button class="secondary" data-step="back">${icon('back')}<span>Orqaga</span></button><button class="primary" data-step="next">${state.step===steps.length-1?'Ko‘rib chiqish':'Davom etish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
+  const stageKey=state.kind+':'+state.step+':'+flow.activeId,entering=flow.formStage!==stageKey;flow.formStage=stageKey;
+  return `<section class="view fresh-form ${entering?'stage-enter':''}">${freshTitle(state.kind==='vacancy'?'Vakansiya joylash':'Rezyume joylash')}<div class="flow-step-heading"><span>${state.step+1}<small> / ${steps.length}</small></span><b>${heading}</b>${polishPublicationNote()}</div><div class="step-track" aria-label="${state.step+1} / ${steps.length} qadam">${steps.map((_,i)=>`<i class="${i<=state.step?'done':''}"></i>`).join('')}</div><div class="form-surface"><div class="fields">${formContent()}</div></div><div class="form-footer"><button class="secondary" data-step="back">${icon('back')}<span>Orqaga</span></button><button class="primary" data-step="next">${state.step===steps.length-1?'Ko‘rib chiqish':'Davom etish'}<span class="studio-button-end">${icon('right')}</span></button></div></section>`;
 }
 function freshProfile(){
   return `<section class="view fresh-profile">${freshTitle('Shaxsiy kabinet')}<div class="studio-identity"><span class="studio-identity-avatar">${state.loggedIn?esc((state.form.resume.name||'I').slice(0,1)):icon('user')}<i>${icon('check')}</i></span><div><h2>${state.loggedIn?esc(state.form.resume.name||'Xush kelibsiz'):'Sizning profilingiz'}</h2><p>${state.loggedIn?esc(state.phone):'Ish va xodim uchun bitta profil'}</p></div></div>${state.loggedIn?'':`<button class="primary full studio-profile-login" data-nav="auth">${icon('phone')}Profilga kirish<span class="studio-button-end">${icon('right')}</span></button>`}${flowProfileStats()}<div class="studio-section-label"><h2>Yangi e’lon</h2><span>Saytda bepul</span></div>${studioCreateTiles()}<div class="studio-section-label"><h2>Mening e’lonlarim</h2></div><div class="studio-profile-list"><button data-fresh-list="resumes"><span class="studio-list-mark resume">${icon('file')}</span><span><b>Rezyumelarim</b></span>${icon('right')}</button><button data-fresh-list="jobs"><span class="studio-list-mark vacancy">${icon('briefcase')}</span><span><b>Vakansiyalarim</b></span>${icon('right')}</button></div><div class="fresh-menu-list">${[['send','Arizalarim','applications'],['bell','Bildirishnomalar','notifications'],['filter','Sozlamalar','settings']].map(([ic,label,route])=>`<button ${route==='notifications'?'data-notifications':`data-nav="${route}"`}>${icon(ic)}<span>${label}</span>${icon('right')}</button>`).join('')}</div>${state.loggedIn?`<button class="text-button full" data-flow-account>Boshqa raqam bilan kirish</button>`:""}</section>`;
@@ -248,6 +249,7 @@ function flowValidateStep(){
     if(!input.checkValidity()){flowError(input,input.type==='date'?'Sanani tekshiring':'Ma’lumotni tekshiring');return false;}
   }
   const d=state.form[state.kind];
+  if(state.kind==='vacancy'&&state.step===0&&!workGeoRegion(d.region)){flow.locationManualOpen=true;render();flowError(document.querySelector('[data-field="region"]'),'Ish joyini yuboring yoki hududni tanlang');return false;}
   if(state.kind==='vacancy'&&state.step===2&&d.workMode!=='Masofaviy'&&!discoveryPoint(d)){toast('Ish joyini xaritada belgilang');document.querySelector('[data-map]')?.focus();return false;}
   if(state.kind==='resume'&&state.step===2&&!d.workMode){toast('Ish shaklini tanlang');return false;}
   for(const [lowKey,highKey] of [['salaryMin','salaryMax'],['ageMin','ageMax']]){if(d[lowKey]&&d[highKey]&&flowNumber(d[lowKey])>flowNumber(d[highKey])){const input=document.querySelector(`[data-field="${highKey}"]`);if(input){flowError(input,'Bu qiymat boshlang‘ich qiymatdan kam bo‘lmasin');return false;}}}
@@ -270,7 +272,7 @@ function flowSuggestions(input){
   const kind=input.dataset.flowCombo,raw=kind==='skills'?input.value.split(',').at(-1):input.value,q=flowNormalize(raw);
   if((kind==='position'||kind==='query')&&!/[a-zа-яёўқғҳ]/i.test(raw))return [];
   const preferLatin=/[a-z]/i.test(raw)&&!/[а-яёўқғҳ]/i.test(raw),priority=entry=>entry.score+(preferLatin&&!/[а-яёўқғҳ]/i.test(entry.title)?1.5:0);
-  let list=kind==='region'?regions.map(title=>({title,aliases:''})):kind==='district'?((window.ISHDASIZ_LOCATIONS||[]).find(v=>flowRegionKey(v.title)===flowRegionKey(state.form[state.kind].region))?.districts||[]).map(title=>({title,aliases:''})):kind==='skills'?['Excel','Savdo','Mijozlar bilan muloqot','Rus tili','Ingliz tili','Word','SMM','Jamoada ishlash','Hisobotlar','Dasturlash'].map(title=>({title,aliases:''})):(window.ISHDASIZ_POSITIONS||[]);
+  let list=kind==='region'?regions.map(title=>({title,aliases:''})):kind==='district'?((window.ISHDASIZ_LOCATIONS||[]).find(v=>flowRegionKey(v.title)===flowRegionKey(input.dataset.locationField&&flow.workGeo?flow.workGeo.proposal.region:state.form[state.kind].region))?.districts||[]).map(title=>({title,aliases:''})):kind==='skills'?['Excel','Savdo','Mijozlar bilan muloqot','Rus tili','Ingliz tili','Word','SMM','Jamoada ishlash','Hisobotlar','Dasturlash'].map(title=>({title,aliases:''})):(window.ISHDASIZ_POSITIONS||[]);
   return list.map(v=>({...v,score:!q?1:flowNormalize(v.title)===q?5:(' '+flowNormalize(v.aliases)+' ').includes(' '+q+' ')?4:flowNormalize(v.title).startsWith(q)?3:flowNormalize(v.title+' '+v.aliases).includes(q)?2:0})).filter(v=>v.score).sort((a,b)=>priority(b)-priority(a)).slice(0,6);
 }
 function flowCloseCombo(){if(flowCombo?.input?.isConnected){flowCombo.input.setAttribute('aria-expanded','false');flowCombo.input.removeAttribute('aria-activedescendant')}$('#flow-options')?.remove();flowCombo=null}
@@ -304,10 +306,10 @@ const flowOriginalNavigate=navigate;
 navigate=function(screen,options={}){if(state.screen==='auth'&&screen!=='auth'){flow.pendingAuth=null;flow.pendingApplication=null;flow.switchAccount=false;}flowCloseCombo();flowOriginalNavigate(screen,options);flowSaveDraft();};
 const flowOriginalModal=modal;
 modal=function(html){flowCloseCombo();flowOriginalModal(html)};
-const discoveryOriginalClose=closeModal;closeModal=function(){if(flow.discoveryPicker){flow.discoveryPicker.remove();flow.discoveryPicker=null;flow.pickedMarker=null;}discoveryOriginalClose();};
+const discoveryOriginalClose=closeModal;closeModal=function(){workLocationCancel();if(flow.discoveryPicker){flow.discoveryPicker.remove();flow.discoveryPicker=null;flow.pickedMarker=null;}discoveryOriginalClose();};
 
 document.addEventListener('input',event=>{
-  const input=event.target;if(input.dataset.field){if(flow.confirmedTx===flow.tx){flow.tx=flowId();flow.activeId=flowId();flow.confirmedTx=null;state.orderPaid=false;}if(input.dataset.field==='region'&&state.form[state.kind].region!==input.value){state.form[state.kind].district='';if(state.kind==='vacancy')state.form.vacancy.coordinates=null;const district=document.querySelector('[data-field="district"]');if(district)district.value='';}if(state.kind==='vacancy'&&input.dataset.field==='district'&&state.form.vacancy.district!==input.value)state.form.vacancy.coordinates=null;state.form[state.kind][input.dataset.field]=input.value;if(input.dataset.field==='position')polishInferCurrent();flowClearError(input);const clear=input.closest('.field')?.querySelector('[data-flow-clear]');if(clear)clear.hidden=!input.value;flowSaveDraft();}
+  const input=event.target;if(input.dataset.field){if(flow.confirmedTx===flow.tx){flow.tx=flowId();flow.activeId=flowId();flow.confirmedTx=null;state.orderPaid=false;}if(input.dataset.field==='region'&&state.form[state.kind].region!==input.value){state.form[state.kind].district='';if(state.kind==='vacancy')state.form.vacancy.coordinates=null;const district=document.querySelector('[data-field="district"]');if(district)district.value='';}if(state.kind==='vacancy'&&['district','address','city'].includes(input.dataset.field)&&state.form.vacancy[input.dataset.field]!==input.value){state.form.vacancy.coordinates=null;state.form.vacancy.locationConfirmedAt=null;}state.form[state.kind][input.dataset.field]=input.value;if(input.dataset.field==='position')polishInferCurrent();flowClearError(input);const clear=input.closest('.field')?.querySelector('[data-flow-clear]');if(clear)clear.hidden=!input.value;flowSaveDraft();}
   if(input.dataset.flowCombo==='query'){state.query=input.value;flowSearchUpdate();}
   if(input.dataset.flowCombo)flowOpenCombo(input);
 },true);
@@ -507,14 +509,7 @@ function discoveryMountMap(){
     for(const record of flowSearchRecords().filter(r=>r.kind==='vacancy'&&discoveryPoint(r))){const marker=L.circleMarker(discoveryPoint(record),{radius:7,color:'#fff',weight:2,fillColor:'#185bec',fillOpacity:1}).addTo(layers);marker.on('click',()=>flowDetails(record.id));}
   };map.on('moveend',update);update();
 }
-function discoveryMapPicker(){
-  modal(`<h2>Ish joyini belgilang</h2><div id="discovery-picker" aria-label="Ish joyini xaritada tanlang"></div><button class="text-button full" data-discovery-picker-center>Markazdagi nuqtani tanlash</button><p id="discovery-picked-point">Xaritadan ish joyini tanlang.</p><button class="primary full" data-discovery-save-point disabled>Shu joyni tanlash ${icon('check')}</button>`);
-  if(!window.L)return;
-  const map=L.map('discovery-picker',{center:discoveryPoint(state.form.vacancy)||[41.3111,69.2797],zoom:13,scrollWheelZoom:false});map.attributionControl.setPrefix(false);flow.discoveryPicker=map;flow.pickedPoint=null;
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-  const select=point=>{flow.pickedPoint=point;if(flow.pickedMarker)flow.pickedMarker.remove();flow.pickedMarker=L.circleMarker(point,{radius:10,color:'#fff',weight:3,fillColor:'#185bec',fillOpacity:1}).addTo(map);$('#discovery-picked-point').textContent=point.map(v=>v.toFixed(5)).join(', ');$('[data-discovery-save-point]').disabled=false;};
-  flow.pickerSelect=select;map.on('click',e=>select([e.latlng.lat,e.latlng.lng]));if(discoveryPoint(state.form.vacancy))select(discoveryPoint(state.form.vacancy));
-}
+function discoveryMapPicker(){workLocationOpen('map');}
 function discoveryLocate(mode){
   if(!navigator.geolocation){toast('Bu qurilmada geolokatsiya mavjud emas');return;}
   const button=document.querySelector(`[data-discovery-locate="${mode}"]`);if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
@@ -556,7 +551,7 @@ document.addEventListener('click',event=>{
   if(b.hasAttribute('data-discovery-clear-location')){stop();state.form.resume.coordinates=null;state.form.resume.coordinateAccuracyM=null;flowSaveDraft();render();return;}
   if(b.hasAttribute('data-map')){stop();discoveryMapPicker();return;}
   if(b.hasAttribute('data-discovery-picker-center')){stop();const center=flow.discoveryPicker?.getCenter();if(center)flow.pickerSelect([center.lat,center.lng]);return;}
-  if(b.hasAttribute('data-discovery-save-point')){stop();if(!discoveryPoint({coordinates:flow.pickedPoint}))return;state.form.vacancy.coordinates=flow.pickedPoint;flowSaveDraft();closeModal();render();return;}
+  if(b.hasAttribute('data-discovery-save-point')){stop();workLocationConfirm();return;}
   if(b.dataset.discoveryLocate){stop();discoveryLocate(b.dataset.discoveryLocate);return;}
 },true);
 discoveryAfterRender();
@@ -644,6 +639,125 @@ document.addEventListener('input',event=>{
 },true);
 payInitialize();
 
+/* Explicit work-location lookup. Seeker coordinates never enter this provider flow. */
+function workGeoText(value){return typeof value==='string'?value.trim().slice(0,300):'';}
+function workGeoName(value){
+  const letters={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'j',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'x',ц:'ts',ч:'ch',ш:'sh',щ:'sh',ъ:'',ы:'i',ь:'',э:'e',ю:'yu',я:'ya',ў:'o',қ:'q',ғ:'g',ҳ:'h'};
+  return flowNormalize(String(value||'').toLowerCase().replace(/[а-яёўқғҳ]/g,c=>letters[c]||c)).replace(/\b(viloyati?|shahri?|tumani?|region|province|district|city|oblast|oblasti|rayon|respublikasi|republic|of)\b/g,'').replace(/[^a-z0-9]/g,'');
+}
+function workGeoRegion(value){
+  const raw=flowNormalize(value),key=workGeoName(value),catalog=window.ISHDASIZ_LOCATIONS||[];
+  const exact=catalog.find(r=>flowNormalize(r.title)===raw);if(exact)return exact.title;
+  const aliases={andijan:'andijon',bukhara:'buxoro',jizzakh:'jizzax',djizak:'jizzax',kashkadarya:'qashqadaryo',qashqadaryo:'qashqadaryo',navoi:'navoiy',samarkand:'samarqand',surkhandarya:'surxondaryo',sirdarya:'sirdaryo',syrdarya:'sirdaryo',fergana:'fargona',farghona:'fargona',khorezm:'xorazm',karakalpakstan:'qoraqalpogiston',tashkent:'toshkent'};
+  const normalized=aliases[key]||key;
+  if(normalized==='toshkent'){
+    if(/viloy|region|province|oblast/.test(raw))return 'Toshkent viloyati';
+    if(/shahr|city|gorod/.test(raw))return 'Toshkent shahri';
+    return '';
+  }
+  return catalog.find(r=>workGeoName(r.title)===normalized)?.title||'';
+}
+function workGeoDistrict(value,region){const text=workGeoText(value),aliases={yunusabad:'yunusobod',mirabad:'mirobod',yakkasaray:'yakkasaroy',shaykhantakhur:'shayxontohur',shayxantaxur:'shayxontohur',sergeli:'sergeli',uchtepa:'uchtepa',bektemir:'bektemir'},key=aliases[workGeoName(text)]||workGeoName(text);return (window.ISHDASIZ_LOCATIONS||[]).find(r=>r.title===region)?.districts.find(d=>workGeoName(d)===key)||text;}
+function workGeoParsed(data,point){
+  const f=Array.isArray(data?.features)?data.features[0]:null,p=f?.properties||{},geometry=f?.geometry?.coordinates;
+  if(!f||!Array.isArray(geometry)||geometry.length!==2||!discoveryPoint({coordinates:[geometry[1],geometry[0]]})||discoveryKm(point,[geometry[1],geometry[0]])>.5)return null;
+  if(p.countrycode&&String(p.countrycode).toUpperCase()!=='UZ')return null;
+  const region=workGeoRegion(p.state||p.region||'')||(!p.state&&!p.region&&['tashkent','toshkent'].includes(workGeoName(p.city))?'Toshkent shahri':''),district=workGeoDistrict(p.district||p.county||'',region),city=workGeoName(p.city)==='tashkent'?'Toshkent':workGeoText(p.city||p.town||p.village||'');
+  const street=[p.street,p.housenumber].map(workGeoText).filter(Boolean).join(', '),name=workGeoText(p.name);
+  return {region,district,city,address:street||(![p.state,p.city,p.district,p.country].includes(name)?name:''),addressSource:'photon'};
+}
+function workGeoActive(op){return !!(op&&flow.workGeo===op&&op.activeId===flow.activeId&&op.account===flowAccount()&&state.kind==='vacancy'&&state.screen==='vacancy'&&document.querySelector('[data-location-dialog]'));}
+function workLocationCancel(){const op=flow.workGeo;if(op){op.controller?.abort();clearTimeout(op.timeout);flow.workGeo=null;}}
+function workGeoDropMap(){if(flow.discoveryPicker){flow.discoveryPicker.off();flow.discoveryPicker.stop();flow.discoveryPicker.remove();flow.discoveryPicker=null;}flow.pickedMarker=null;}
+function workGeoFields(op){
+  const q=op.proposal,defs=[['region','Viloyat / shahar'],['district','Tuman'],['city','Shahar / aholi punkti'],['address','Ko‘cha, bino yoki mo‘ljal']];
+  return `<div class="work-address-grid">${defs.map(([key,label])=>`<div class="${['address','city'].includes(key)?'work-address-wide':''}"><small>${label}</small><b>${esc(q[key]||'Aniqlashtiring')}</b></div>`).join('')}</div>${op.editing?`<div class="work-address-edit">${defs.map(([key,label])=>`<label class="field"><span>${label}${['region','address'].includes(key)?' *':''}</span><input id="work-location-${key}" data-location-field="${key}" ${['region','district'].includes(key)?`data-flow-combo="${key}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flow-options" autocomplete="off"`:''} value="${esc(q[key]||'')}" maxlength="${key==='address'?300:100}"></label>`).join('')}</div>`:''}<button type="button" class="text-button" data-location-edit>${icon('edit')}${op.editing?'Tahrirni tugatish':'Manzilni tahrirlash'}</button>`;
+}
+function workGeoRefresh(op){
+  if(!workGeoActive(op))return;const details=$('#work-location-details');if(details)details.innerHTML=workGeoFields(op);
+  const note=$('#work-location-status');if(note)note.textContent=op.notice||'';
+  const confirm=$('[data-discovery-save-point]');if(confirm)confirm.disabled=!discoveryPoint({coordinates:op.point});
+  const lookup=$('[data-location-lookup]');if(lookup)lookup.disabled=!op.point;
+}
+function workGeoSelect(op,point){
+  if(!workGeoActive(op)||!discoveryPoint({coordinates:point}))return;
+  if(op.point&&discoveryKm(op.point,point)>.002){op.proposal={region:'',district:'',city:'',address:'',addressSource:'manual'};op.notice='Nuqta o‘zgardi. Manzilni aniqlang yoki maydonlarni to‘ldiring.';op.editing=false;}
+  op.point=point;op.accuracyM=null;op.origin='map';flow.pickedPoint=point;
+  if(flow.pickedMarker)flow.pickedMarker.remove();flow.pickedMarker=L.circleMarker(point,{radius:9,color:'#fff',weight:3,fillColor:'#185bec',fillOpacity:1}).addTo(flow.discoveryPicker);workGeoRefresh(op);
+}
+function workGeoMountMap(op){
+  if(!window.L||!document.querySelector('#discovery-picker'))return;
+  const map=L.map('discovery-picker',{center:op.point||[41.3111,69.2797],zoom:op.point?16:12,scrollWheelZoom:false});flow.discoveryPicker=map;map.attributionControl.setPrefix(false);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(map);
+  if(op.point)flow.pickedMarker=L.circleMarker(op.point,{radius:9,color:'#fff',weight:3,fillColor:'#185bec',fillOpacity:1}).addTo(map);
+  if(op.point&&op.accuracyM>0&&op.accuracyM<5000)L.circle(op.point,{radius:op.accuracyM,weight:1,color:'#185bec',fillOpacity:.07}).addTo(map);
+  flow.pickerSelect=point=>workGeoSelect(op,point);map.on('click',e=>workGeoSelect(op,[e.latlng.lat,e.latlng.lng]));
+}
+function workGeoDialog(op){
+  if(flow.workGeo!==op)return;workGeoDropMap();
+  const pending=['locating','looking'].includes(op.phase);
+  const content=pending?`<div class="work-location-wait"><span>${icon('pin')}</span><h2>${op.phase==='locating'?'Joylashuv aniqlanmoqda':'Manzil aniqlanmoqda'}</h2><p>${op.phase==='locating'?'Qurilmangizda joylashuvga ruxsat bering.':'Topilgan ish joyini keyingi oynada tekshirasiz.'}</p><button class="secondary full" data-close>Bekor qilish</button></div>`:op.phase==='error'?`<div class="work-location-wait"><span>${icon('pin')}</span><h2>Joylashuv olinmadi</h2><p>${esc(op.notice)}</p><button class="primary full" data-location-retry>Qayta urinish</button><button class="text-button full" data-location-manual>Qo‘lda tanlash</button></div>`:`<span class="work-location-eyebrow">MANZILNI TASDIQLASH</span><h2 id="work-location-title">Ish joyi to‘g‘rimi?</h2><div id="discovery-picker" aria-label="Ish joyini xaritada tanlang"></div><div class="work-location-map-actions"><button type="button" class="text-button" data-discovery-picker-center>${icon('pin')}Markazni tanlash</button><button type="button" class="text-button" data-location-lookup ${op.point?'':'disabled'}>${icon('search')}Manzilni aniqlash</button><button type="button" class="text-button" data-location-start aria-label="Ish joyi lokatsiyasini qayta yuborish">${icon('pin')}Joyim</button></div><p id="work-location-status" role="status">${esc(op.notice||'')}</p>${op.accuracyM>100?`<p class="work-location-accuracy">GPS aniqligi ≈ ${money(Math.round(op.accuracyM))} m. Nuqtani tekshiring.</p>`:''}<div id="work-location-details">${workGeoFields(op)}</div><button class="primary full work-location-confirm" data-discovery-save-point ${op.point?'':'disabled'}>Ha, shu ish joyi ${icon('check')}</button><button class="text-button full" data-close>Bekor qilish</button><small class="work-location-source"><a href="https://github.com/komoot/photon" target="_blank" rel="noopener noreferrer">OpenStreetMap / Photon</a></small>`;
+  modal(`<div data-location-dialog>${content}</div>`);const dialog=$('#modal-root .modal');dialog.classList.add('work-location-dialog');dialog.setAttribute('aria-label','Ish joyini tasdiqlash');const heading=dialog.querySelector('h2');heading.tabIndex=-1;heading.focus({preventScroll:true});dialog.scrollTop=0;
+  if(!pending&&op.phase!=='error')workGeoMountMap(op);
+}
+async function workGeoConfig(){
+  if(!flow.workGeoConfigPromise)flow.workGeoConfigPromise=fetch('geocoding.json',{credentials:'omit',cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('config');return r.json();}).then(config=>{const u=new URL(config.reverseUrl,location.href);if(u.protocol!=='https:'&&u.origin!==location.origin)throw Error('provider');return {...config,reverseUrl:u.href};}).catch(()=>{flow.workGeoConfigPromise=null;return null;});
+  return flow.workGeoConfigPromise;
+}
+async function workGeoLookup(op){
+  if(!workGeoActive(op)||!op.point)return;const version=op.lookupVersion=(op.lookupVersion||0)+1,current=()=>workGeoActive(op)&&op.lookupVersion===version;op.phase='looking';op.controller?.abort();const controller=op.controller=new AbortController();let timeout;workGeoDialog(op);
+  const requestPoint=[...op.point],key=requestPoint.map(v=>v.toFixed(5)).join(','),cache=flow.workGeoCache||=new Map();
+  let result=cache.get(key);if(result&&Date.now()-result.at>1800000)result=null;
+  try{
+    if(!result){
+      const config=await workGeoConfig();if(!config||!current())throw Error('unavailable');
+      await new Promise(resolve=>setTimeout(resolve,Math.max(0,1500-(Date.now()-(flow.workGeoLastAt||0)))));if(!current())return;
+      const url=new URL(config.reverseUrl);url.searchParams.set('lat',requestPoint[0]);url.searchParams.set('lon',requestPoint[1]);url.searchParams.set('limit','1');url.searchParams.set('radius','0.2');url.searchParams.set('lang','en');flow.workGeoLastAt=Date.now();
+      timeout=op.timeout=setTimeout(()=>controller.abort(),8000);
+      const response=await fetch(url.href,{credentials:'omit',signal:controller.signal,headers:{Accept:'application/json'}});if(!response.ok)throw Error('lookup');
+      const data=await response.json();clearTimeout(timeout);const proposal=workGeoParsed(data,requestPoint);if(!proposal)throw Error('no-address');result={proposal,at:Date.now()};if(cache.size>=64)cache.delete(cache.keys().next().value);cache.set(key,result);
+    }
+    if(!current())return;op.proposal={...result.proposal};op.notice='Manzilni va xaritadagi nuqtani tekshirib tasdiqlang.';
+  }catch{if(!current())return;op.proposal={region:'',district:'',city:'',address:'',addressSource:'manual'};op.notice='Manzil avtomatik topilmadi. Maydonlarni to‘ldirib tasdiqlang.';}
+  finally{clearTimeout(timeout);}
+  if(!current())return;op.phase='confirm';op.editing=!op.proposal.region||!op.proposal.address;workGeoDialog(op);
+}
+function workLocationOpen(origin='gps'){
+  if(state.kind!=='vacancy'||state.screen!=='vacancy')return;workLocationCancel();
+  const d=state.form.vacancy,op={activeId:flow.activeId,account:flowAccount(),origin,phase:origin==='gps'?'locating':'confirm',point:origin==='map'?discoveryPoint(d):null,accuracyM:null,proposal:origin==='map'?{region:d.region||'',district:d.district||'',city:d.city||'',address:d.address||'',addressSource:d.addressSource||'manual'}:{region:'',district:'',city:'',address:'',addressSource:'manual'},editing:false,notice:origin==='map'?'Xaritadan ish joyini tanlab, manzilni tekshiring.':''};flow.workGeo=op;workGeoDialog(op);
+  if(origin==='map')return;
+  const fail=error=>{if(!workGeoActive(op))return;op.phase='error';op.notice=error?.code===1?'Joylashuvga ruxsat berilmadi. Hududni qo‘lda tanlashingiz mumkin.':'GPS ishlamadi. Qayta urinib ko‘ring yoki joyni xaritadan tanlang.';workGeoDialog(op);};
+  if(!navigator.geolocation){fail();return;}
+  navigator.geolocation.getCurrentPosition(position=>{
+    if(!workGeoActive(op))return;const point=[position.coords.latitude,position.coords.longitude];if(!discoveryPoint({coordinates:point})){fail();return;}op.point=point;op.accuracyM=Number.isFinite(position.coords.accuracy)&&position.coords.accuracy>0?position.coords.accuracy:null;workGeoLookup(op);
+  },fail,{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+}
+function workLocationConfirm(){
+  const op=flow.workGeo;if(!workGeoActive(op)||op.phase!=='confirm'||!discoveryPoint({coordinates:op.point}))return;
+  const region=workGeoRegion(op.proposal.region),address=workGeoText(op.proposal.address);
+  if(!region||!address){op.editing=true;workGeoRefresh(op);flowError(document.querySelector(`[data-location-field="${!region?'region':'address'}"]`),!region?'Ro‘yxatdan viloyat yoki shaharni tanlang':'Ko‘cha va bino yoki mo‘ljalni kiriting');return;}
+  Object.assign(state.form.vacancy,{region,district:workGeoDistrict(op.proposal.district,region),city:workGeoText(op.proposal.city),address,coordinates:[...op.point],coordinateAccuracyM:op.accuracyM,locationConfirmedAt:new Date().toISOString(),locationSource:op.origin,addressSource:op.proposal.addressSource});flowSaveDraft();closeModal();render();document.querySelector('.work-location-saved')?.focus({preventScroll:true});
+}
+function workLocationField(){
+  const d=state.form.vacancy,point=discoveryPoint(d),confirmed=point&&d.locationConfirmedAt;
+  return `<section class="work-location-field" aria-label="Ish joylashgan hudud"><span class="work-location-label">Ish joylashgan hudud *</span>${confirmed?workLocationCard():`<button type="button" class="work-location-trigger" data-location-start><span class="work-location-emblem">${icon('pin')}</span><span><b>Ish joyi lokatsiyasini yuborish</b><small>Viloyat, tuman va manzilni aniqlaymiz</small></span>${icon('right')}</button><small class="work-location-hint">Ish joyida bo‘lsangiz, lokatsiyani yuboring.</small>`}<button type="button" class="text-button work-location-manual" ${confirmed?'data-map':'data-location-manual'}>${icon('edit')}${confirmed?'Manzilni o‘zgartirish':'Hududni qo‘lda tanlash'}</button>${flow.locationManualOpen?`<div class="work-location-manual-fields">${field('Viloyat yoki shahar','region',{required:true})}</div>`:''}</section>`;
+}
+function workLocationCard(){const d=state.form.vacancy;return `<div class="work-location-saved" tabindex="-1" role="group" aria-label="Ish joyi tasdiqlandi"><span class="work-location-emblem">${icon('pin')}</span><div><span class="work-location-verified">${icon('check')}Tasdiqlangan ish joyi</span><b>${esc(d.address)}</b><p>${esc([...new Set([d.region,d.district,d.city].filter(Boolean))].join(' · '))}</p></div></div>`;}
+function workLocationDetails(){
+  const d=state.form.vacancy;if(discoveryPoint(d)&&d.locationConfirmedAt)return workLocationCard()+`<button type="button" class="secondary full" data-map>${icon('pin')}Xaritada tekshirish</button>`+field('Mo‘ljal yoki qo‘shimcha izoh','landmark',{placeholder:'Masalan: bino kirishi, qavat'});
+  return `<div class="polish-location-summary"><span>${icon('pin')}${esc(d.region||'Hudud tanlanmagan')}</span><button data-polish-edit-region>O‘zgartirish${icon('edit')}</button></div>`+`<button class="work-location-trigger" data-location-start><span class="work-location-emblem">${icon('pin')}</span><span><b>Lokatsiyadan manzilni to‘ldirish</b><small>Ish joyini tekshirib tasdiqlaysiz</small></span>${icon('right')}</button>`+field('Tuman yoki shahar','district')+field('Ish manzili','address',{placeholder:'Ko‘cha, bino va mo‘ljal'})+`<button class="secondary full" data-map>${icon('pin')}Xaritadan belgilash</button>`;
+}
+document.addEventListener('click',event=>{
+  const b=event.target.closest('button');if(!b)return;const stop=()=>{event.preventDefault();event.stopImmediatePropagation();};
+  if(b.hasAttribute('data-location-start')||b.hasAttribute('data-location-retry')){stop();workLocationOpen('gps');}
+  if(b.hasAttribute('data-location-manual')){stop();closeModal();flow.locationManualOpen=true;if(state.step!==0)navigate('vacancy',{step:0});else render();document.querySelector('[data-field="region"]')?.focus();}
+  if(b.hasAttribute('data-location-edit')){stop();const op=flow.workGeo;if(workGeoActive(op)){op.editing=!op.editing;workGeoRefresh(op);if(op.editing)document.querySelector('[data-location-field="region"]')?.focus();}}
+  if(b.hasAttribute('data-location-lookup')){stop();if(flow.workGeo)workGeoLookup(flow.workGeo);}
+},true);
+document.addEventListener('input',event=>{const input=event.target,key=input.dataset.locationField,op=flow.workGeo;if(!key||!workGeoActive(op))return;op.proposal[key]=input.value;op.proposal.addressSource='manual';if(key==='region'){op.proposal.district='';op.proposal.city='';for(const field of ['district','city']){const el=document.querySelector(`[data-location-field="${field}"]`);if(el)el.value='';}}flowClearError(input);});
+Object.assign(flow.defaults.vacancy,{region:'',district:'',city:'',address:'',coordinates:null,locationConfirmedAt:null});
+if(!flowRead('ishdasiz-v12-draft',null))Object.assign(state.form.vacancy,{region:'',district:'',city:'',address:'',coordinates:null,locationConfirmedAt:null});
+
 /* Public-reference sector inference and accessible form choices. No AI/network calls. */
 function polishSectorRules(){
   return [
@@ -717,15 +831,15 @@ function polishOpenSelect(button){
   const current=state.form[state.kind][key];popup.innerHTML=matches.map((entry,index)=>`<div role="option" id="flow-option-${index}" aria-selected="${entry.title===current}" data-flow-option="${index}"><i>${icon('file')}</i><span>${esc(entry.title)}</span><b>${icon(entry.title===current?'check':'right')}</b></div>`).join('');app.append(popup);flowCombo={input:button,matches,index:matches.findIndex(v=>v.title===current),selectKey:key};button.setAttribute('aria-expanded','true');flowPositionCombo();
 }
 function polishPublicationNote(){
-  const resume=state.kind==='resume',place=resume?'Rezyume bazasida':flowFree('vacancy')?'Sayt va kanalda':'Saytda';
-  return `<div class="polish-publication-note"><span class="polish-offer-copy"><span>${place}</span><strong>${resume?'Bepul saqlanadi':'Bepul joylang'}</strong></span><span class="polish-offer-seal" aria-hidden="true">${icon('gift')}<i>${icon('spark')}</i></span></div>`;
+  const place=state.kind==='resume'?'Rezyume':flowFree('vacancy')?'Sayt + kanal':'Sayt';
+  return `<div class="polish-publication-note" role="note" aria-label="${place}: 0 so‘m"><span class="polish-offer-seal"><strong>0 <small>so‘m</small></strong><span>${place}</span><i aria-hidden="true">${icon('spark')}</i></span></div>`;
 }
 function polishBaseStep(step){const current=state.step;try{state.step=step;return polishOriginalFormContent();}finally{state.step=current;}}
 const polishOriginalFormContent=formContent;
 formContent=function(){
-  if(state.kind==='vacancy'&&state.step===0)return field('Lavozim','position',{required:true})+field('Kompaniya yoki tashkilot nomi','company',{required:true})+field('Ish joylashgan hudud','region',{required:true});
+  if(state.kind==='vacancy'&&state.step===0)return field('Lavozim','position',{required:true})+field('Kompaniya yoki tashkilot nomi','company',{required:true})+workLocationField();
   if(state.kind==='vacancy'&&state.step===1)return chips('Bandlik turi','employment',['To‘liq kun','Yarim kun','Shartnoma','Amaliyot'])+chips('Ish shakli','workMode',['Ish joyida','Masofaviy','Gibrid'])+chips('Ish haftasi','days',['5/2','6/1','Smenali','Moslashuvchan'])+field('Ish vaqti','hours',{placeholder:'09:00–18:00'});
-  if(state.kind==='vacancy'&&state.step===2)return `<div class="polish-location-summary"><span>${icon('pin')}${esc(state.form.vacancy.region||'Hudud tanlanmagan')}</span><button data-polish-edit-region>O‘zgartirish${icon('edit')}</button></div>`+field('Tuman yoki shahar','district')+field('Ish manzili','address',{placeholder:'Ko‘cha, bino va mo‘ljal'})+`<button class="secondary full" data-map>${icon('pin')}Xaritadan belgilash</button>`;
+  if(state.kind==='vacancy'&&state.step===2)return workLocationDetails();
   if(state.kind==='vacancy'&&state.step===5||state.kind==='resume'&&state.step===3)return payStepContent();
   if(state.kind==='vacancy'&&state.step===6)return polishBaseStep(5);
   if(state.kind==='resume'&&state.step===4)return polishBaseStep(3);
@@ -735,6 +849,6 @@ formContent=function(){
 document.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button)return;
   if(button.dataset.flowSelect){event.preventDefault();event.stopImmediatePropagation();if(flowCombo?.input===button)flowCloseCombo();else polishOpenSelect(button);}
-  if(button.hasAttribute('data-polish-edit-region')){event.preventDefault();event.stopImmediatePropagation();navigate('vacancy',{step:0});document.querySelector('[data-field="region"]')?.focus();}
+  if(button.hasAttribute('data-polish-edit-region')){event.preventDefault();event.stopImmediatePropagation();flow.locationManualOpen=true;navigate('vacancy',{step:0});document.querySelector('[data-field="region"]')?.focus();}
 },true);
 render();
