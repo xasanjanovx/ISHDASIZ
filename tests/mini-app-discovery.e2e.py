@@ -61,13 +61,15 @@ with sync_playwright() as p:
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto(URL,wait_until='networkidle');page.locator('.flow-home .hiring').click()
     select(page,'position','sot','Sotuvchi');page.locator('[data-field="company"]').fill('Demo Local');select(page,'region','toshkent shah','Toshkent shahri');next_step(page)
-    page.locator('[data-field="salaryMax"]').fill('6000000');next_step(page)
+    assert page.locator('[data-field="salaryMax"]').count()==0;next_step(page)
     page.locator('[data-field="address"]').fill('Demo ish joyi')
     next_step(page)
     assert page.locator('[data-map]').is_visible(),'On-site vacancy accepted no work point'
     page.locator('[data-map]').click();page.locator('#discovery-picker').click(position={'x':140,'y':120});page.locator('[data-discovery-save-point]').click()
     next_step(page);next_step(page)
     page.locator('[data-field="description"]').fill('Savdo zalida mijozlarga yordam berish.')
+    next_step(page)
+    page.locator('[data-field="salaryMax"]').fill('6000000')
     next_step(page);next_step(page)
     assert not page.locator('#flow-channel').is_checked()
     page.locator('[data-flow-publish]').click()
@@ -77,7 +79,7 @@ with sync_playwright() as p:
     assert page.evaluate('discoveryUnlocked(flowRecords()[0])')
     assert page.locator('.flow-match-card').count()==1
     page.close()
-    print('PASS actual six-step vacancy, required on-site work point, free website save remains gated, explicit first free channel confirmation unlocks that job',flush=True)
+    print('PASS actual seven-step vacancy, required on-site work point, free website save remains gated, explicit first free channel confirmation unlocks that job',flush=True)
 
     page=new_page(browser,account='+998901234567')
     page.on('pageerror',lambda e:errors.append(str(e)))
@@ -88,7 +90,7 @@ with sync_playwright() as p:
     select(page,'position','sot','Sotuvchi');next_step(page)
     select(page,'skills','ex','Excel');next_step(page)
     select(page,'region','toshkent shah','Toshkent shahri')
-    page.locator('[data-field="salaryMin"]').fill('4000000')
+    assert page.locator('[data-field="salaryMin"]').count()==0
     page.locator('[data-chip-key="workMode"][data-chip-value="Ish joyida"]').click()
     assert page.evaluate('window.locationCalls')==0
     page.locator('[data-discovery-locate="resume"]').click()
@@ -98,6 +100,8 @@ with sync_playwright() as p:
     assert page.evaluate('state.form.resume.coordinates===null&&window.locationCalls===1')
     page.locator('[data-discovery-locate="resume"]').click()
     page.wait_for_function('Array.isArray(state.form.resume.coordinates)')
+    next_step(page)
+    page.locator('[data-field="salaryMin"]').fill('4000000')
     next_step(page);next_step(page)
     assert page.locator('#flow-channel').count()==0
     page.locator('[data-flow-publish]').click()
@@ -119,7 +123,7 @@ with sync_playwright() as p:
     assert page.locator('.flow-price-options').count()==0
     assert page.locator('#app').get_attribute('data-screen')=='resume'
     page.close()
-    print('PASS full resume form, explicit geolocation, database-only save, no CV channel/tariff/quota, matched jobs and detailed vacancy',flush=True)
+    print('PASS full five-step resume form, explicit geolocation, database-only save, no CV channel/tariff/quota, matched jobs and detailed vacancy',flush=True)
 
     page=new_page(browser,account='+998919998877')
     page.on('pageerror',lambda e:errors.append(str(e)))
@@ -177,7 +181,7 @@ with sync_playwright() as p:
     assert not page.evaluate("flowFree('vacancy')"),'Publication allowance reset'
     # Reopening a completed listing must not reveal prices before confirmation.
     page.evaluate("ISHDASIZFresh.navigate('vacancy',{step:0})")
-    assert page.locator('.polish-publication-note').inner_text()=='Saytda bepul joylang'
+    assert ' '.join(page.locator('.polish-publication-note').inner_text().split()).casefold()=='saytda bepul joylang'
     assert page.locator('.flow-price-options').count()==0
     page.evaluate("ISHDASIZFresh.navigate('listings')")
     page.locator('[data-flow-repost="job-a"]').click()
