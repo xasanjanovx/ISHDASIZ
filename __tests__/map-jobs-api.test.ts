@@ -63,3 +63,11 @@ test('genuine empty map and an exhausted page keep their exact total', async () 
   read.mockResolvedValue({ data: [], count: 12, error: null });
   expect(await (await GET(request('?page=1'))).json()).toEqual({ jobs: [], total: 12 });
 });
+
+test('a transient SQL timeout retries the failed read once and retains the real count', async () => {
+  read.mockResolvedValueOnce({ data: null, count: null, error: { code: '57014' }, status: 500 });
+  const response = await GET(request());
+  expect(response.status).toBe(200);
+  expect((await response.json()).total).toBe(6405);
+  expect(read).toHaveBeenCalledTimes(2);
+});

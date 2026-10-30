@@ -1,5 +1,7 @@
 # ISHDASIZ Discovery preview
 
+**Historical local-only notes below. The current connected implementation and acceptance checks are documented in [CONNECTED.md](CONNECTED.md), which supersedes this snapshot.**
+
 Serve this directory through HTTP: `python -m http.server 8777 --bind 127.0.0.1`. Open http://127.0.0.1:8777/ ; `review.html` shows sixteen screens.
 
 The main cards are **Xodim izlash** (create a vacancy) and **Ish topish** (create a resume). The duplicate small actions are removed. A Tashkent map with record-based vacancy/resume counts follows, then a single profile/listings/applications row. A dismissible intent dialog appears after three seconds on a first home visit with no own records or entered draft.

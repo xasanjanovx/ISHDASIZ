@@ -1,5 +1,7 @@
 # ISHDASIZ Discovery — 29 October 2026
 
+**Historical design snapshot. Current rules are in [CONNECTED.md](CONNECTED.md); that contract takes precedence.**
+
 ## Current brief and composition
 
 Remove the small employee/job-search buttons. The two main dimensional cards now say “Xodim izlash” and “Ish topish”; they begin vacancy and resume creation respectively. The existing four-phase typed hero and eight professions remain. Under the cards, show a real interactive map centered on Tashkent at zoom 12, with professional job/CV count markers. Profile, own listings and applications form one compact row below the map. The large promotional and profile blocks are removed.

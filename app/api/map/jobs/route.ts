@@ -3,7 +3,7 @@ import { getAuthClient } from '@/lib/auth/server';
 import { JOB_MAP_PAGE_SIZE, jobMapQuery } from '@/lib/job-map-query';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 20;
+export const maxDuration = 35;
 
 // Service-role access stays on the server. Return only the public map/card DTO.
 const fields = 'id,title_uz,title_ru,company_name,salary_min,salary_max,employment_type,created_at,payment_type,work_mode,is_for_students,is_for_graduates,is_for_disabled,is_for_women,latitude,longitude,address'.split(',');
@@ -33,8 +33,12 @@ export async function GET(request: Request) {
     const page = Number(rawPage);
     // An anonymous database request has a shorter SQL deadline than this visibility/count query.
     // The published-job predicate also excludes closed accounts and unavailable source records.
-    const { data, count, error } = await jobMapQuery(getAuthClient(), page)
-      .abortSignal(AbortSignal.timeout(12000));
+    const query = jobMapQuery(getAuthClient(), page);
+    let result = await query.abortSignal(AbortSignal.timeout(12000));
+    // Retry a transient failed read once. Never turn an unavailable map into zero jobs.
+    if (result.error?.code === '57014' || result.status >= 500)
+      result = await query.abortSignal(AbortSignal.timeout(12000));
+    const { data, count, error } = result;
     if (error || !Array.isArray(data) || data.length > JOB_MAP_PAGE_SIZE
       || !Number.isSafeInteger(count) || count! < 0
       || (data.length > 0 && count! < page * JOB_MAP_PAGE_SIZE + data.length)) throw new Error('Map unavailable');
