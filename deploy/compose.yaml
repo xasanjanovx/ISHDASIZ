@@ -1,0 +1,40 @@
+name: ishdasiz
+services:
+  web:
+    image: ishdasiz-web:${RELEASE_TAG:?Set RELEASE_TAG to the reviewed Git commit}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set the target Supabase API URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?Set the target public key}
+        NEXT_PUBLIC_APP_URL: https://ishdasiz.uz
+    env_file:
+      - path: ${RUNTIME_ENV_FILE:?Set the absolute protected runtime env path}
+        required: true
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: --max-old-space-size=1536
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:${WEB_BIND_PORT:-3100}:3000"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 5m
+    mem_limit: 2300m
+    cpus: 1.0
+    pids_limit: 256
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health',{signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
