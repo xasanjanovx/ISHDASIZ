@@ -1,0 +1,6 @@
+{
+  "provider": "photon",
+  "reverseUrl": "https://photon.komoot.io/reverse",
+  "attribution": "OpenStreetMap contributors / Photon",
+  "scope": "Explicit workplace lookup in the local design preview; configure a managed provider before production rollout."
+}

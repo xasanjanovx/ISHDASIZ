@@ -3,16 +3,14 @@
  * Supports Smart/Eco modes with automatic switching
  */
 
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { generateVertexText } from './vertex-client';
 import { JobSearchFiltersSchema, type JobSearchFilters, type AiSearchResponse } from './schemas';
 import { EXTRACTION_PROMPT, ECO_EXTRACTION_PROMPT, GREETING_RESPONSES } from './prompts';
 
-// Initialize Gemini client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// Model configuration - Gemini 3 Flash (primary) with Gemini 2.5 Flash (fallback)
-const PRIMARY_MODEL_ID = 'gemini-3-flash-preview';
-const FALLBACK_MODEL_ID = 'gemini-2.5-flash-preview-04-17';
+// Vertex AI models; both primary and fallback stay on the Cloud endpoint.
+const PRIMARY_MODEL_ID = process.env.VERTEX_MODEL || 'gemini-2.5-flash';
+const FALLBACK_MODEL_ID = process.env.VERTEX_FALLBACK_MODEL || 'gemini-2.5-flash-lite';
 
 // Mode configurations
 const MODE_CONFIG = {
@@ -117,7 +115,7 @@ function parseGeminiJson(text: string): unknown {
     try {
         return JSON.parse(cleaned);
     } catch {
-        console.error('[Gemini] Failed to parse JSON:', text);
+        console.error('[Vertex] Failed to parse JSON:', text);
         throw new Error('Invalid JSON response from AI');
     }
 }
@@ -143,17 +141,9 @@ export async function extractFilters(
     const config = MODE_CONFIG[selectedMode];
     const prompt = `${config.prompt}\n\nQuery: "${query}"`;
 
-    // Try primary model (Gemini 3 Flash), fallback to Gemini 2.5 Flash
+    // Try the configured primary and fallback models through Vertex AI.
     async function tryModel(modelId: string): Promise<string> {
-        const model = genAI.getGenerativeModel({
-            model: modelId,
-            generationConfig: {
-                maxOutputTokens: config.maxOutputTokens,
-                temperature: config.temperature,
-            },
-        });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
+        return generateVertexText(prompt, { model: modelId, maxOutputTokens: config.maxOutputTokens, temperature: config.temperature });
     }
 
     try {
@@ -161,15 +151,15 @@ export async function extractFilters(
         let usedModel = PRIMARY_MODEL_ID;
 
         try {
-            // Try Gemini 3 Flash first
+            // Try the configured Vertex primary model first
             text = await tryModel(PRIMARY_MODEL_ID);
-            console.log(`[Gemini] Using primary model: ${PRIMARY_MODEL_ID}`);
+            console.log(`[Vertex] Using primary model: ${PRIMARY_MODEL_ID}`);
         } catch (primaryError: any) {
-            // Fallback to Gemini 2.5 Flash
-            console.warn(`[Gemini] Primary model failed, trying fallback: ${primaryError.message}`);
+            // Fallback to another Vertex model
+            console.warn(`[Vertex] Primary model failed, trying fallback: ${primaryError.message}`);
             text = await tryModel(FALLBACK_MODEL_ID);
             usedModel = FALLBACK_MODEL_ID;
-            console.log(`[Gemini] Using fallback model: ${FALLBACK_MODEL_ID}`);
+            console.log(`[Vertex] Using fallback model: ${FALLBACK_MODEL_ID}`);
         }
 
         // Parse and validate response
@@ -186,7 +176,7 @@ export async function extractFilters(
         return { result: validated, mode: selectedMode };
 
     } catch (error: any) {
-        console.error('[Gemini] All models failed:', error.message);
+        console.error('[Vertex] All models failed:', error.message);
 
         // Return fallback response (no AI)
         return {
@@ -207,9 +197,7 @@ export async function extractFilters(
  */
 export async function checkGeminiHealth(): Promise<boolean> {
     try {
-        const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL_ID });
-        const result = await model.generateContent('Say "ok"');
-        return result.response.text().length > 0;
+        return (await generateVertexText('Say "ok"', { model: PRIMARY_MODEL_ID, maxOutputTokens: 16 })).length > 0;
     } catch {
         return false;
     }

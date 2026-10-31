@@ -8,16 +8,19 @@ export function jobMapQuery(
   client: SupabaseClient,
   page: number,
   pageSize = JOB_MAP_PAGE_SIZE,
+  options: {count?: 'exact'|'none'|'only';lookAhead?:boolean} = {},
 ) {
-  return client
+  const query=client
     .from("jobs")
-    .select(JOB_MAP_FIELDS, { count: "exact" })
+    .select(options.count==='only'?'id':JOB_MAP_FIELDS, { count: options.count==='none'?undefined:'exact' })
+    .eq('is_active',true)
     .eq("ishdasiz_job_available", true)
     .gte("latitude", -90)
     .lte("latitude", 90)
     .gte("longitude", -180)
-    .lte("longitude", 180)
-    .order("created_at", { ascending: false })
+    .lte("longitude", 180);
+  if(options.count==='only')return query.limit(0);
+  return query.order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .range(page * pageSize, (page + 1) * pageSize - 1);
+    .range(page * pageSize, (page + 1) * pageSize - 1+(options.lookAhead?1:0));
 }

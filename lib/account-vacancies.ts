@@ -100,7 +100,7 @@ export async function vacancyInput(client:SupabaseClient,body:any,employer:any,s
     payload.languages=(body.languages||[]).map((row:any)=>{
       const language=text(row?.language,100,true);
       const unchanged=prior?.languages.some((item:any)=>item.language===row?.language&&item.level===row?.level);
-      const level=unchanged?row.level:option(row?.level,['A1','A2','B1','B2','C1','C2','native','fluent','basic','intermediate','advanced'],'');
+      const level=unchanged?row.level:option(row?.level,['A1','A2','B1','B2','C1','C2','native','fluent','basic','intermediate','advanced','unspecified'],'');
       return {language,level};
     });
   }

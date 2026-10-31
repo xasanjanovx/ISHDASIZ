@@ -16,7 +16,7 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { REGION_COORDINATES } from '@/lib/constants';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateVertexText, vertexConfigured } from '@/lib/ai/vertex-client';
 import { z } from 'zod';
 import { chatRequestSchema, chatResponseSchema, readChatProfile } from '@/lib/ai/chat-contract';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
@@ -26,13 +26,12 @@ import { AccountError, accountFailure, accountResult, checkSameOrigin } from '@/
 // INITIALIZATION
 // ============================================================================
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = process.env.VERTEX_MODEL || 'gemini-2.5-flash';
 
 // ============================================================================
 // TYPES
@@ -304,19 +303,9 @@ JSON FORMAT:
 
 FAQAT JSON QAYTAR.`;
 
-    if (!process.env.GEMINI_API_KEY) return fallbackUnderstanding(message, currentProfile, lang);
+    if (!vertexConfigured()) return fallbackUnderstanding(message, currentProfile, lang);
     try {
-        const model = genAI.getGenerativeModel({
-            model: MODEL,
-            generationConfig: {
-                maxOutputTokens: 600,
-                temperature: 0.15,
-                responseMimeType: "application/json"
-            }
-        });
-
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        const text = await generateVertexText(prompt, { model: MODEL, maxOutputTokens: 600, temperature: 0.15, responseMimeType: 'application/json' });
 
         // Robust JSON cleaning
         const jsonStart = text.indexOf('{');
@@ -439,7 +428,7 @@ async function rerankWithGemini(jobs: any[], profile: UserProfile, lang: 'uz' | 
     }
 
     // For small result sets, skip reranking
-    if (jobs.length <= 5 || !process.env.GEMINI_API_KEY) {
+    if (jobs.length <= 5 || !vertexConfigured()) {
         return {
             ranked_jobs: jobs.slice(0, 8).map((j, i) => ({
                 job_id: j.id,
@@ -483,17 +472,7 @@ JSON:
 }`;
 
     try {
-        const model = genAI.getGenerativeModel({
-            model: MODEL,
-            generationConfig: {
-                maxOutputTokens: 800,
-                temperature: 0.2,
-                responseMimeType: "application/json"
-            }
-        });
-
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        const text = await generateVertexText(prompt, { model: MODEL, maxOutputTokens: 800, temperature: 0.2, responseMimeType: 'application/json' });
         const cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
 
         const ranking = z.object({ ranked_jobs: z.array(z.object({ job_id: z.string().uuid(), score: z.number().finite().min(0).max(100), reason: z.string().max(1000) })).max(8), advice: z.string().max(1000).optional() }).parse(JSON.parse(cleaned));

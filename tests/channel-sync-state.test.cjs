@@ -1,6 +1,6 @@
 const {test,before,beforeEach,after}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {PGlite}=require('@electric-sql/pglite');const read=n=>fs.readFileSync(path.join(__dirname,'../supabase/migrations/'+n),'utf8');
-const visibility=read('20261010110000_channel_visibility.sql'),leases=read('20261010120000_channel_leases.sql'),deliveries=read('20261010130000_channel_deliveries.sql');
+const visibility=read('20261010110000_channel_visibility.sql'),leases=read('20261010120000_channel_leases.sql'),deliveries=read('20261010130000_channel_deliveries.sql'),mainChannel=read('20261027090000_main_employer_channel.sql');
 const A='00000000-0000-4000-8000-000000000001',S='00000000-0000-4000-8000-000000000002',B='00000000-0000-4000-8000-000000000003';
 const J='20000000-0000-4000-8000-000000000001',R='10000000-0000-4000-8000-000000000001',L='30000000-0000-4000-8000-000000000001',N='30000000-0000-4000-8000-000000000002';let db;
 const snapshot=async(type='resume',id=R)=>(await db.query('SELECT ishdasiz_channel_snapshot($1,$2) AS r',[type,id])).rows[0].r;
@@ -18,12 +18,19 @@ before(async()=>{db=await PGlite.create();await db.exec(`CREATE ROLE anon;CREATE
  CREATE TABLE telegram_sessions(id uuid PRIMARY KEY,user_id uuid,state text,data jsonb,phone text,otp_code text,otp_expires_at timestamptz);
  INSERT INTO users VALUES('${A}','secret','+998901234567'),('${S}','secret','+998901234568'),('${B}','secret','+998901234569');
  INSERT INTO regions VALUES(1,'andijon-viloyati','Andijon','Андижан'),(22,'toshkent-shahri','Toshkent','Ташкент');INSERT INTO districts VALUES(10,1,'District','Район'),(220,22,'Capital','Столица');`);
- await db.exec(read('20260217_channel_autopost_outbox.sql'));await db.exec(read('20261007090000_account_closure.sql'));await db.exec(read('20261009090000_public_job_availability.sql'));await db.exec(visibility);await db.exec(leases);await db.exec(deliveries);
+ await db.exec(read('20260217_channel_autopost_outbox.sql'));await db.exec(read('20261007090000_account_closure.sql'));await db.exec(read('20261009090000_public_job_availability.sql'));await db.exec(visibility);await db.exec(leases);await db.exec(deliveries);await db.exec('ALTER TABLE jobs ADD COLUMN source text');await db.exec(mainChannel);
 });
 beforeEach(async()=>{await db.exec(`RESET ROLE;TRUNCATE channel_delivery_intents,channel_delivery_receipts,sync_events,channel_posts,sync_worker_locks,jobs,resumes,employer_profiles,account_publication_snapshots;UPDATE users SET closed_at=null,session_version=0;
  INSERT INTO employer_profiles VALUES('${A}','${A}');INSERT INTO jobs(id,employer_id,status,is_active,region_id,district_id,title) VALUES('${J}','${A}','active',true,1,10,'Public vacancy');
  INSERT INTO resumes(id,user_id,status,is_public,post_to_channel,title,phone,region_id,district_id) VALUES('${R}','${S}','active',true,true,'Public CV','+998901111111',1,10);TRUNCATE sync_events;`);});
 after(async()=>{await db?.close();});
+test('local employer vacancies target @ishdasiz while imports and resumes retain regional routing',async()=>{
+ const target=async(type,id)=>(await db.query('SELECT ishdasiz_channel_target(ishdasiz_channel_snapshot($1,$2)) AS target',[type,id])).rows[0].target;
+ await db.exec("UPDATE jobs SET source='local'");
+ assert.equal(await target('job',J),'@ishdasiz');assert.equal(await target('resume',R),'@ishdasiz_andijon');
+ await db.exec("UPDATE jobs SET source='osonish'");assert.equal(await target('job',J),'@ishdasiz_andijon');
+ await db.exec("UPDATE jobs SET source='local',status='archived'");assert.equal(await target('job',J),null);
+});
 test('channel resumes require explicit stored consent, active public status, no found-job marker and an open owner',async()=>{
  assert.equal((await snapshot()).available,true);
  for(const setting of ['post_to_channel=null','post_to_channel=false','is_public=false',"status='archived'","status='draft'",'status=null','found_job=true','user_id=null']){await db.query("UPDATE resumes SET user_id=$1,post_to_channel=true,is_public=true,status='active',found_job=false",[S]);await db.exec('UPDATE resumes SET '+setting);assert.deepEqual(await snapshot(),{available:false,entity:null,region_slug:null});}

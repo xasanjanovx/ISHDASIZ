@@ -37,6 +37,14 @@ next-env.d.ts
 
 # Generated local fixtures, test logs and release exports
 /.tmp/
+/supabase/.temp/
+/deploy/*.env
+!/deploy/config.example.env
+/deploy/secrets/
+/deploy/backups/
 
 # Local database archives contain private application data
 /private-backups/
+
+# Generated mobile QA screenshots (synthetic data)
+/tests/journey-*.png
