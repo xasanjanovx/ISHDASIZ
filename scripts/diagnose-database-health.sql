@@ -46,7 +46,7 @@ BEGIN
     SELECT queryid::text AS query_id,calls,round(total_exec_time::numeric,1) AS total_ms,
      round(mean_exec_time::numeric,1) AS mean_ms,rows,
      shared_blks_hit,shared_blks_read,temp_blks_written,
-     substring(query FROM '(ishdasiz_[a-z0-9_]+)[[:space:]]*\(') AS application_function
+     substring(replace(query,'"','') FROM '(ishdasiz_[a-z0-9_]+)[[:space:]]*\(') AS application_function
     FROM %s ORDER BY total_exec_time DESC LIMIT 15
    ) s$query$,statements) INTO report;
   RAISE NOTICE 'top_statement_metadata: %',report;

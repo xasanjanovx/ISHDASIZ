@@ -37,6 +37,7 @@ next-env.d.ts
 
 # Generated local fixtures, test logs and release exports
 /.tmp/
+/supabase/.temp/
 
 # Local database archives contain private application data
 /private-backups/
