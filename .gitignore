@@ -48,3 +48,7 @@ next-env.d.ts
 
 # Generated mobile QA screenshots (synthetic data)
 /tests/journey-*.png
+
+# Python verification bytecode
+__pycache__/
+*.py[cod]

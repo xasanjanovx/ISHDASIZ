@@ -14,6 +14,7 @@ before(async()=>{
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'supabase/releases/2026-10-repair.json'),'utf8'));
  for(const {file} of manifest.migrations)await db.exec(sql(file));
  await db.exec(sql('20261027090000_main_employer_channel.sql'));await db.exec(sql('20261030120000_mini_app_integration.sql'));
+ await db.exec(sql('20261101101158_channel_pending_coalescing_and_duplicate_indexes.sql'));
  await db.exec(`INSERT INTO users(id,phone) VALUES('${A}','+998901111111'),('${B}','+998902222222');INSERT INTO employer_profiles(id,user_id) VALUES('${A}','${A}'),('${B}','${B}');INSERT INTO regions VALUES(1,'toshkent-shahri','Toshkent shahri','Ташкент');INSERT INTO districts VALUES(10,1,'Chilonzor','Чиланзар');`);
 });
 after(async()=>db?.close());

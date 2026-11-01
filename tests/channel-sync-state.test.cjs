@@ -1,6 +1,7 @@
 const {test,before,beforeEach,after}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {PGlite}=require('@electric-sql/pglite');const read=n=>fs.readFileSync(path.join(__dirname,'../supabase/migrations/'+n),'utf8');
 const visibility=read('20261010110000_channel_visibility.sql'),leases=read('20261010120000_channel_leases.sql'),deliveries=read('20261010130000_channel_deliveries.sql'),mainChannel=read('20261027090000_main_employer_channel.sql');
+const optimization=read('20261101101158_channel_pending_coalescing_and_duplicate_indexes.sql');
 const A='00000000-0000-4000-8000-000000000001',S='00000000-0000-4000-8000-000000000002',B='00000000-0000-4000-8000-000000000003';
 const J='20000000-0000-4000-8000-000000000001',R='10000000-0000-4000-8000-000000000001',L='30000000-0000-4000-8000-000000000001',N='30000000-0000-4000-8000-000000000002';let db;
 const snapshot=async(type='resume',id=R)=>(await db.query('SELECT ishdasiz_channel_snapshot($1,$2) AS r',[type,id])).rows[0].r;
@@ -19,11 +20,79 @@ before(async()=>{db=await PGlite.create();await db.exec(`CREATE ROLE anon;CREATE
  INSERT INTO users VALUES('${A}','secret','+998901234567'),('${S}','secret','+998901234568'),('${B}','secret','+998901234569');
  INSERT INTO regions VALUES(1,'andijon-viloyati','Andijon','Андижан'),(22,'toshkent-shahri','Toshkent','Ташкент');INSERT INTO districts VALUES(10,1,'District','Район'),(220,22,'Capital','Столица');`);
  await db.exec(read('20260217_channel_autopost_outbox.sql'));await db.exec(read('20261007090000_account_closure.sql'));await db.exec(read('20261009090000_public_job_availability.sql'));await db.exec(visibility);await db.exec(leases);await db.exec(deliveries);await db.exec('ALTER TABLE jobs ADD COLUMN source text');await db.exec(mainChannel);
+ await db.exec(read('20261101101158_channel_pending_coalescing_and_duplicate_indexes.sql'));
 });
 beforeEach(async()=>{await db.exec(`RESET ROLE;TRUNCATE channel_delivery_intents,channel_delivery_receipts,sync_events,channel_posts,sync_worker_locks,jobs,resumes,employer_profiles,account_publication_snapshots;UPDATE users SET closed_at=null,session_version=0;
  INSERT INTO employer_profiles VALUES('${A}','${A}');INSERT INTO jobs(id,employer_id,status,is_active,region_id,district_id,title) VALUES('${J}','${A}','active',true,1,10,'Public vacancy');
- INSERT INTO resumes(id,user_id,status,is_public,post_to_channel,title,phone,region_id,district_id) VALUES('${R}','${S}','active',true,true,'Public CV','+998901111111',1,10);TRUNCATE sync_events;`);});
+ INSERT INTO resumes(id,user_id,status,is_public,post_to_channel,title,phone,region_id,district_id) VALUES('${R}','${S}','active',true,true,'Public CV','+998901111111',1,10);TRUNCATE sync_events;`);await db.exec(optimization);});
 after(async()=>{await db?.close();});
+
+test('one hundred pending vacancy edits share one untouched event and retain the latest canonical content',async()=>{
+ await db.exec("DO $$ BEGIN FOR i IN 1..100 LOOP UPDATE jobs SET title='Latest '||i;END LOOP;END $$;");
+ assert.equal((await db.query('SELECT count(*)::int n FROM sync_events')).rows[0].n,1);
+ assert.equal((await snapshot('job',J)).entity.title,'Latest 100');
+ const event=(await db.query('SELECT id FROM sync_events')).rows[0].id;
+ await db.exec(optimization);
+ assert.equal((await db.query('SELECT id FROM sync_events')).rows[0].id,event);
+});
+
+for(const [label,patch] of [
+ ['processing',"status='processing',attempts=1"],
+ ['done',"status='done'"],
+ ['failed',"status='failed'"],
+ ['retried','attempts=1'],
+ ['leased',`lease_token='${L}'`],
+ ['explicit publication',"payload='{\"mini_app\":true}'::jsonb"],
+ ['delayed',"next_retry_at=clock_timestamp()+interval '1 day'"],
+]){
+ test('a '+label+' event is preserved and a later vacancy edit queues a follow-up',async()=>{
+  await db.exec("UPDATE jobs SET title='First edit'");
+  const original=(await db.query('SELECT id FROM sync_events')).rows[0].id;
+  await db.exec('UPDATE sync_events SET '+patch);
+  await db.exec("UPDATE jobs SET title='Follow-up edit'");
+  const events=(await db.query('SELECT id FROM sync_events')).rows;
+  assert.equal(events.length,2);assert.ok(events.some(e=>e.id===original));
+ });
+}
+
+test('region and deletion events remain distinct while timestamp/view-only changes add no work',async()=>{
+ await db.exec("UPDATE jobs SET title='First edit'");
+ await db.exec('UPDATE jobs SET region_id=22,district_id=220');
+ assert.equal((await db.query('SELECT count(*)::int n FROM sync_events')).rows[0].n,2);
+ await db.exec('UPDATE jobs SET updated_at=clock_timestamp(),views_count=views_count+1');
+ assert.equal((await db.query('SELECT count(*)::int n FROM sync_events')).rows[0].n,2);
+ await db.exec('DELETE FROM jobs');
+ assert.equal((await db.query("SELECT count(*)::int n FROM sync_events WHERE action='delete'")).rows[0].n,1);
+});
+
+test('only exact unconstrained duplicate indexes are removed and source uniqueness remains enforced',async()=>{
+ await db.exec(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_id text;
+ CREATE INDEX IF NOT EXISTS idx_jobs_employer_id ON jobs(employer_id);
+ CREATE INDEX IF NOT EXISTS idx_jobs_employer ON jobs(employer_id);
+ CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+ CREATE INDEX IF NOT EXISTS idx_jobs_status_sync ON jobs(status);
+ CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_source_unique ON jobs(source,source_id) WHERE source_id IS NOT NULL;
+ CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_source_source_id ON jobs(source,source_id) WHERE source_id IS NOT NULL;
+ CREATE INDEX IF NOT EXISTS idx_resumes_status ON resumes(status);
+ CREATE INDEX IF NOT EXISTS idx_resumes_status_sync ON resumes(status);
+ UPDATE jobs SET source='osonish',source_id='1';`);
+ const before=(await db.query('SELECT to_jsonb(j) AS row FROM jobs j')).rows;
+ const events=(await db.query('SELECT id FROM sync_events ORDER BY id')).rows;
+ await db.exec(optimization);
+ for(const name of ['idx_jobs_employer','idx_jobs_status_sync','idx_jobs_source_source_id','idx_resumes_status_sync']){
+  assert.equal((await db.query('SELECT to_regclass($1) AS r',[name])).rows[0].r,null);
+ }
+ assert.deepEqual((await db.query('SELECT to_jsonb(j) AS row FROM jobs j')).rows,before);
+ assert.deepEqual((await db.query('SELECT id FROM sync_events ORDER BY id')).rows,events);
+ await assert.rejects(db.exec(`INSERT INTO jobs(id,source,source_id) VALUES('20000000-0000-4000-8000-000000000099','osonish','1')`),e=>e.code==='23505');
+});
+
+test('a differently defined index aborts the optimization instead of being removed',async()=>{
+ await db.exec('CREATE INDEX idx_jobs_employer ON jobs(user_id);CREATE INDEX IF NOT EXISTS idx_jobs_employer_id ON jobs(employer_id)');
+ await assert.rejects(db.exec(optimization),/not safely redundant/);
+ await db.exec('ROLLBACK;DROP INDEX idx_jobs_employer');
+ assert.ok((await db.query("SELECT to_regclass('idx_jobs_employer_id') AS r")).rows[0].r);
+});
 test('local employer vacancies target @ishdasiz while imports and resumes retain regional routing',async()=>{
  const target=async(type,id)=>(await db.query('SELECT ishdasiz_channel_target(ishdasiz_channel_snapshot($1,$2)) AS target',[type,id])).rows[0].target;
  await db.exec("UPDATE jobs SET source='local'");
