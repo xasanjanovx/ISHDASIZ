@@ -8,7 +8,7 @@ Target supplied by the owner: Hetzner CCX13, 167.235.249.200, 2 vCPU / 8 GB RAM 
 - DNS currently returns A records 216.198.79.1 and 64.29.17.65, with nameservers ns1.vercel-dns.com and ns2.vercel-dns.com. No DNS record was changed.
 - Plugin discovery found Vercel available but not installed/connected in this session. Do not claim access or move DNS until actual access is confirmed. Vercel remains the current site host.
 - Supabase API and SQL access work through the connector. The accessible application env files still have API keys but no DATABASE_URL or database password. A consistent database export needs session/direct PostgreSQL access; a collection of independent REST pages is not a migration backup.
-- SSH and a read-only host audit were performed on 1 November. No database export, DNS change or bot webhook switch has been performed. The conflicting obsolete polling container was stopped with its image and files retained; details below.
+- SSH and a host audit were performed on 1 November. An isolated application staging container is now installed on 127.0.0.1:3130, connected to the existing cloud database for read verification. No database export, DNS change or bot webhook switch has been performed. The conflicting obsolete polling container was stopped with its image and files retained; details below.
 
 ### Existing server and bot audit — 1 November
 
@@ -17,6 +17,24 @@ The host is Ubuntu 26.04, Docker 29.1.3, Compose 2.40.3. Nginx already serves ot
 Observed capacity: about 21 GB free on the 75 GiB filesystem, 4.1 GiB available RAM and 1.26 GiB occupied swap. These are current observations, not unallocated capacity reserved for this migration. Port 3100 is already used by Raqib; ISHDASIZ preparation now uses 3130. Docker reported 18.13 GB reclaimable build cache and 19.17 GB reclaimable images, but these overlap shared storage and must not be added together as guaranteed savings. No global Docker cleanup was run.
 
 The old codex-ishdasiz-bot container uses the expected Supabase database and @IshdasizBot token. Telegram reports an active webhook at https://ishdasiz.uz/api/telegram/webhook, with zero pending updates at inspection; the website confirms its webhook is configured. The last 300 polling log lines all contained conflict errors and its unlimited json-file log was about 109.5 MB. After rechecking the webhook and repeated conflicts, the obsolete polling container was set to restart=no and stopped. This prevents its conflict loop from resuming after reboot. No webhook or token was changed. Its original image/container remain available; prior restart metadata was saved in /opt/ishdasiz-server/state/poller-before-disable-20261101.json. Deliberately restoring polling would first require coordinating the active webhook.
+
+The legacy Compose definition was also changed only for the ishdasiz-bot service: restart=no, an explicit legacy-ishdasiz-polling profile, and bounded local logging. This prevents a later ordinary Compose up from accidentally re-enabling the conflict. The self-bot definition was compared before/after and remained identical. The original Compose file is backed up with mode 0600 under /opt/ishdasiz-server/state/legacy-compose-before-20261101.yml; the edited Compose validates successfully.
+
+### Isolated application staging — 1 November
+
+Docker Buildx 0.30.1 was installed from the existing Ubuntu repository as one new package, with no package upgrades or service restarts. Linux builds run in a task-specific builder capped at one CPU and 3 GiB memory, with the Node build heap capped at 1536 MiB. Other applications retained their running/healthy state during the observed build.
+
+Application runtime secrets are filtered from the owner's local env and the old bot configuration, checked against the expected bot/database, and stored outside source in /etc/ishdasiz-server/runtime.env with mode 0600. Compose uses raw env-file format to preserve literal credential characters. The application receives no SSH credentials. Staging has TELEGRAM_DRY_RUN=1, new private setup/worker secrets, and no active scheduler or public Nginx route.
+
+The verified application release is **5afe528**, image sha256:b03da4fd550ef059114d4309f25d4f5f05c0ae2b0f93aa9468aff29b249df509. It is installed under /opt/ishdasiz-server/releases/5afe528, with /opt/ishdasiz-server/current pointing to it. The Linux standalone image is 112,419,249 bytes and runs as node, exposed only on 127.0.0.1:3130. Docker health is healthy and configured log rotation is local, 10m, five files, compressed. Root filesystem checks found no .env, .git, tests, docs, private directory or private backups in the runtime root.
+
+Read-only staging checks returned HTTP 200 for health, the Mini App HTML and JavaScript, public bootstrap and home overview. Bootstrap returned 14 regions, 209 districts and 130 available resumes. Unauthenticated account records, candidates and import continuation returned 401. No test sent SMS, Telegram messages, a publication or a charge.
+
+The first real proxy check exposed two deployment issues: absolute Mini App redirects used the container hostname, and the origin guard rejected the configured public HTTPS origin behind TLS termination. Entry redirects now preserve the browser origin and launch parameters; the origin guard allows the explicit configured application origin while rejecting foreign origins and ignoring spoofed forwarded headers. The regression and account/API suites pass **114 tests**. The final live safe POST without account cookies returned 401 for the configured domain and 403 for a foreign origin. Both entry URLs followed redirects to HTTP 200 while retaining their query parameters; JavaScript and home overview also returned 200.
+
+After verification, the task-specific BuildKit builder and its cache were removed and the four task-generated upload tar files were deleted. Loaded runtime images and released source directories remain available for rollback; no shared Docker cleanup was run. At the final snapshot the new web container used about 83 MiB and 0.01% CPU, with about 20 GB disk and 3.8 GiB RAM available on the host. These are brief idle samples, not a load-capacity guarantee. Other inspected web containers remained healthy and Self remained running. The actual Self bot points to a different Supabase URL, supporting separation of its unrelated data family without deleting the source.
+
+The source database still has no mini_app_records or mini_app_channel_orders and neither missing feature migration is recorded. Bootstrap correctly returns storageReady=false. Filling local drafts and reading public data do not establish authenticated save/publication readiness. Preserve this fail-closed behavior; obtain a consistent backup, restore/test the target, and install the missing feature prerequisites before claiming full rollout.
 
 ## Data inventory
 
@@ -61,14 +79,14 @@ The supplied Compose uses Docker local logging with max-size=10m, max-file=5 and
 Example after protected runtime configuration, database readiness and image validation:
 
 ```sh
-docker compose --env-file /etc/ishdasiz/build.env -f deploy/compose.yaml build
-docker compose --env-file /etc/ishdasiz/build.env -f deploy/compose.yaml up -d --wait
+docker compose --env-file /etc/ishdasiz-server/build.env -f deploy/compose.yaml build
+docker compose --env-file /etc/ishdasiz-server/build.env -f deploy/compose.yaml up -d --wait
 curl --fail http://127.0.0.1:3130/api/health
 ```
 
-These are operator instructions, not an executed rollout. The build env uses deploy/config.example.env as a names-only template. It points at a root-owned runtime env outside the repository. Application secrets and server login credentials must be separate; never forward SERVER_ssh or SSH_PASSWORD to the application.
+These are operator instructions for the selected release; an isolated staging build/up has now been executed, while public cutover remains pending. The build env uses deploy/config.example.env as a names-only template. It points at a root-owned runtime env outside the repository. Application secrets and server login credentials must be separate; never forward SERVER_ssh or SSH_PASSWORD to the application.
 
-Local verification: TypeScript and targeted ESLint passed. The production webpack build completed with standalone output, including a second build with the fake build-time service key. That second build logged the expected unavailable privileged home aggregate; no private build credential is required. The compiled standalone server started locally: health returned HTTP 200 with no-store; unauthenticated webhook and import continuation requests returned 401 without sending messages or running imports. This checked server routes, not the complete Linux runtime or static asset copy. Compose YAML parsed successfully and loopback binding, required runtime env and bounded log settings were checked. Docker is not installed in the current Windows environment, so a Linux image build and Docker Compose execution are still required on an accessible server.
+Local verification: TypeScript and targeted ESLint passed. The production webpack build completed with standalone output, including a second build with the fake build-time service key. That second build logged the expected unavailable privileged home aggregate; no private build credential is required. The compiled standalone server started locally: health returned HTTP 200 with no-store; unauthenticated webhook and import continuation requests returned 401 without sending messages or running imports. Compose YAML parsed successfully and loopback binding, required runtime env and bounded log settings were checked. Docker is unavailable in the Windows environment; Linux image builds, static assets and Compose execution were subsequently checked on the server as described above.
 
 ## Migration and cutover sequence
 
