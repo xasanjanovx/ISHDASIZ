@@ -1,2 +1,11 @@
-import {NextRequest,NextResponse} from 'next/server';
-export async function GET(request:NextRequest){const url=new URL('/mini-app-preview/index.html',request.url);url.search=request.nextUrl.search;return NextResponse.redirect(url);}
+import type { NextRequest } from 'next/server';
+
+export function GET(request: NextRequest) {
+  return new Response(null, {
+    status: 307,
+    headers: {
+      Location: `/mini-app-preview/index.html${request.nextUrl.search}`,
+      'Cache-Control': 'no-store',
+    },
+  });
+}
