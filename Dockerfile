@@ -16,7 +16,7 @@ COPY . .
 # Legacy route modules instantiate an admin client while Next collects routes.
 # Use a non-secret placeholder at build time; real credentials are runtime-only.
 RUN test -n "$NEXT_PUBLIC_SUPABASE_URL" && test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-    && SUPABASE_SERVICE_ROLE_KEY=build-only-placeholder npm run build -- --webpack
+    && NODE_OPTIONS=--max-old-space-size=1536 SUPABASE_SERVICE_ROLE_KEY=build-only-placeholder npm run build -- --webpack
 
 FROM node:24.22.2-bookworm-slim AS runtime
 WORKDIR /app

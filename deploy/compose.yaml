@@ -12,6 +12,7 @@ services:
     env_file:
       - path: ${RUNTIME_ENV_FILE:?Set the absolute protected runtime env path}
         required: true
+        format: raw
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
