@@ -7,7 +7,7 @@ const A='00000000-0000-4000-8000-000000000001',B='00000000-0000-4000-8000-000000
 const J='10000000-0000-4000-8000-000000000001',K='10000000-0000-4000-8000-000000000002',R='20000000-0000-4000-8000-000000000001';
 let db;
 const value=async(text,args=[]) => (await db.query(text,args)).rows[0].v;
-const save=(id,kind,user=A,payload={title_uz:'Sotuvchi',company_name:'Synthetic',region_id:1,district_id:10},metadata={position:'Sotuvchi',salaryPeriod:'month'})=>value('SELECT ishdasiz_mini_app_save($1,0,$2,$3,$4,$5) v',[user,id,kind,payload,metadata]);
+const save=(id,kind,user=A,payload={title_uz:'Sotuvchi',title_ru:'Sotuvchi',description_uz:'Synthetic duties',description_ru:'',company_name:'Synthetic',region_id:1,district_id:10},metadata={position:'Sotuvchi',salaryPeriod:'month'})=>value('SELECT ishdasiz_mini_app_save($1,0,$2,$3,$4,$5) v',[user,id,kind,payload,metadata]);
 before(async()=>{
  db=await PGlite.create();await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/legacy-release-baseline.sql'),'utf8'));
  for(const f of ['20260212_add_job_offers.sql','20260217_channel_autopost_outbox.sql','20260409_job_auto_matches_v2.sql'])await db.exec(sql(f));
@@ -15,6 +15,9 @@ before(async()=>{
  for(const {file} of manifest.migrations)await db.exec(sql(file));
  await db.exec(sql('20261027090000_main_employer_channel.sql'));await db.exec(sql('20261030120000_mini_app_integration.sql'));
  await db.exec(sql('20261101101158_channel_pending_coalescing_and_duplicate_indexes.sql'));
+ await db.exec(sql('20261101123718_self_hosted_public_api_boundary.sql'));
+ // Match the source database's required bilingual vacancy columns.
+ await db.exec('ALTER TABLE jobs ALTER COLUMN title_uz SET NOT NULL,ALTER COLUMN title_ru SET NOT NULL,ALTER COLUMN description_uz SET NOT NULL,ALTER COLUMN description_ru SET NOT NULL');
  await db.exec(`INSERT INTO users(id,phone) VALUES('${A}','+998901111111'),('${B}','+998902222222');INSERT INTO employer_profiles(id,user_id) VALUES('${A}','${A}'),('${B}','${B}');INSERT INTO regions VALUES(1,'toshkent-shahri','Toshkent shahri','Ташкент');INSERT INTO districts VALUES(10,1,'Chilonzor','Чиланзар');`);
 });
 after(async()=>db?.close());
