@@ -1,14 +1,22 @@
-# ISHDASIZ server migration preparation — 31 October 2026
+# ISHDASIZ server migration — prepared 31 October, SSH verified 1 November 2026
 
 Target supplied by the owner: Hetzner CCX13, 167.235.249.200, 2 vCPU / 8 GB RAM / 80 GB disk. Keep ishdasiz.uz. The owner authorized server deployment and inspection of what data belongs to this project.
 
 ## Current access and deployment state
 
-- SERVER_ssh in the specified local .env is an **OpenSSH public key**, not a private key, host/login or password. No matching private key has been found in the current user's .ssh directory. A private-key path or SSH login credentials in a local protected file are required; values must not be posted in chat.
+- The owner added the prepared deployment public key via Termius on 1 November. Root SSH access from the workstation is now verified. The matching private key stays in the protected local private/server-access-20261031 directory and is excluded from Git and deployment artifacts.
 - DNS currently returns A records 216.198.79.1 and 64.29.17.65, with nameservers ns1.vercel-dns.com and ns2.vercel-dns.com. No DNS record was changed.
 - Plugin discovery found Vercel available but not installed/connected in this session. Do not claim access or move DNS until actual access is confirmed. Vercel remains the current site host.
 - Supabase API and SQL access work through the connector. The accessible application env files still have API keys but no DATABASE_URL or database password. A consistent database export needs session/direct PostgreSQL access; a collection of independent REST pages is not a migration backup.
-- No SSH connection, remote installation, live cleanup, database export, bot webhook switch or server deployment has been performed in this preparation.
+- SSH and a read-only host audit were performed on 1 November. No database export, DNS change or bot webhook switch has been performed. The conflicting obsolete polling container was stopped with its image and files retained; details below.
+
+### Existing server and bot audit — 1 November
+
+The host is Ubuntu 26.04, Docker 29.1.3, Compose 2.40.3. Nginx already serves other domains on ports 80/443. Other running projects include Raqib, CheksizAI, Self and several bots. Host PostgreSQL 18 and a separate project PostgreSQL 17 container are already running; neither belongs to the new isolated ISHDASIZ database.
+
+Observed capacity: about 21 GB free on the 75 GiB filesystem, 4.1 GiB available RAM and 1.26 GiB occupied swap. These are current observations, not unallocated capacity reserved for this migration. Port 3100 is already used by Raqib; ISHDASIZ preparation now uses 3130. Docker reported 18.13 GB reclaimable build cache and 19.17 GB reclaimable images, but these overlap shared storage and must not be added together as guaranteed savings. No global Docker cleanup was run.
+
+The old codex-ishdasiz-bot container uses the expected Supabase database and @IshdasizBot token. Telegram reports an active webhook at https://ishdasiz.uz/api/telegram/webhook, with zero pending updates at inspection; the website confirms its webhook is configured. The last 300 polling log lines all contained conflict errors and its unlimited json-file log was about 109.5 MB. After rechecking the webhook and repeated conflicts, the obsolete polling container was set to restart=no and stopped. This prevents its conflict loop from resuming after reboot. No webhook or token was changed. Its original image/container remain available; prior restart metadata was saved in /opt/ishdasiz-server/state/poller-before-disable-20261101.json. Deliberately restoring polling would first require coordinating the active webhook.
 
 ## Data inventory
 
@@ -46,7 +54,7 @@ The supplied Compose uses Docker local logging with max-size=10m, max-file=5 and
 - next.config.js enables standalone output. The Docker build installs locked dependencies and compiles on Linux; only traced runtime files, static files and public assets enter the final image. Do not copy Windows node_modules or an existing Windows .next build to Linux.
 - Legacy route modules create admin clients during build-time route collection. The Docker build supplies an explicitly fake service key rather than a real private credential. Home-page pre-rendering can report unavailable privileged aggregates with that key; start with the real protected runtime env and verify the regenerated home page before DNS cutover. A successful compile alone is not application readiness.
 - .dockerignore excludes env files, SSH keys, local backups, .git, test screenshots, caches, design sources and other local artifacts. Private values are runtime inputs and never Docker build arguments. Public Supabase URL/key must be built for the target database; changing only runtime env will not change browser bundles.
-- deploy/compose.yaml runs as the image's non-root node user and binds only to 127.0.0.1:3100 by default. It does not seize ports 80/443, alter existing Docker daemon settings, install a reverse proxy or enable any scheduler. Audit resource availability and existing routing first.
+- deploy/compose.yaml runs as the image's non-root node user and binds only to 127.0.0.1:3130 by default. It does not seize ports 80/443, alter existing Docker daemon settings, install a reverse proxy or enable any scheduler. Audit resource availability and existing routing first.
 - GET /api/health is process liveness without a database call or secret/version disclosure. Validate database/auth/Mini App readiness separately.
 - The site already includes a protected Telegram webhook at /api/telegram/webhook. A polling bot and webhook must not be enabled for the same token simultaneously. Inspect the currently running bot before choosing the cutover. CRON_SECRET and TELEGRAM_WEBHOOK_SECRET are absent from the accessible local env; obtain existing production values or generate/coordinate replacements after confirming live topology.
 
@@ -55,7 +63,7 @@ Example after protected runtime configuration, database readiness and image vali
 ```sh
 docker compose --env-file /etc/ishdasiz/build.env -f deploy/compose.yaml build
 docker compose --env-file /etc/ishdasiz/build.env -f deploy/compose.yaml up -d --wait
-curl --fail http://127.0.0.1:3100/api/health
+curl --fail http://127.0.0.1:3130/api/health
 ```
 
 These are operator instructions, not an executed rollout. The build env uses deploy/config.example.env as a names-only template. It points at a root-owned runtime env outside the repository. Application secrets and server login credentials must be separate; never forward SERVER_ssh or SSH_PASSWORD to the application.
