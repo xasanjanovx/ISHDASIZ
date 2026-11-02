@@ -28,3 +28,15 @@ The target still contains the earlier verified snapshot. A fresh source read fou
 Prepare and verify the application against the server API first. Then coordinate a temporary source write fence and scheduler pause, take a new consistent export, restore and verify the new copy, and apply the target-only access/storage migrations. Preserve the phone-session signing secret, account data, leases, queues and a rollback copy. Switch Vercel's database configuration and the Telegram webhook only after these checks. Do not run two import/channel workers or acknowledge unsent channel events.
 
 The server stack has bounded Docker local logs (10 MB × 5 per container, compressed). An idle sample used about 110 MB across PostgreSQL, REST, Auth and gateway; this is not a production load benchmark. Full-source historical Supabase analytics logs were not migrated.
+
+## Application staging and write-fence preparation
+
+The rebuilt `ishdasiz-web:a58ddb4` uses the server API, preserves the production phone-session signing secret and keeps Telegram dry-run enabled. Eight HTTP checks passed, including search, home counts, real Mini App storage with 14 regions/209 districts, and rejection of private unauthenticated reads. A Vercel branch Preview also passed seven API/page checks against that server API. Production aliases and database environment have not been switched by these staging steps.
+
+The Google Cloud Vertex key returned HTTP 200 with a complete synthetic JSON response. The branch Preview now has a server-only Vertex secret. Browser catalog CORS also permits the exact reviewed branch alias, without permitting arbitrary Vercel hosts.
+
+`supabase/operators/install-server-cutover-fence.sql` was installed on the source through a recorded migration, with **enabled=false**. It covers 73 ISHDASIZ public/Auth/Storage tables. Managed provider migration/vector metadata and historical `bot_*` tables are excluded. The other running SELF bot was confirmed to use the separate `nxehjjrxtwotdcalzpzb` database. No unrelated project was paused.
+
+A transactionally rolled-back native test blocked public, Auth and Storage writes while retaining reads and denying service-role access to the private control table. The source test also blocked public/Auth statements and confirmed the flag remained false afterward. The first cloud installation attempt failed on managed Auth migration-table permissions and rolled back completely; the installed operator explicitly excludes that metadata.
+
+The source fence must remain disabled until the destination refresh and rollback operators are ready. At actual cutover, pause the source scheduler and preserve pending Telegram updates, enable the fence before exporting, and remove it only from the verified restored target using `remove-target-cutover-fence.sql`. Retain the fenced source for rollback. The historical channel queue contains about 481,000 pending reconciliation events; do not start an unrestricted channel worker as a migration step.
