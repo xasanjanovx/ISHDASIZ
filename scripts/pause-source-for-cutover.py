@@ -55,13 +55,19 @@ def main():
         statements=['BEGIN;','UPDATE ishdasiz_cutover.state SET enabled=false WHERE singleton;']
         for job in saved['source']['cron'] or []:
             if job['name']!='ishdasiz-osonish-refresh':raise RuntimeError('Unexpected source cron job')
-            statements.append('UPDATE cron.job SET active='+('true' if job['active'] else 'false')+' WHERE jobid='+str(int(job['id']))+" AND jobname='ishdasiz-osonish-refresh';")
-        statements.append('COMMIT;');sql('\n'.join(statements))
+            statements.append('SELECT cron.alter_job(job_id:='+str(int(job['id']))+',active:='+('true' if job['active'] else 'false')+');')
+        statements.append('COMMIT;')
+        failures=[]
+        try:sql('\n'.join(statements))
+        except Exception:failures.append('source_sql')
         params={'url':saved['webhook']['url'],'secret_token':saved['webhook_secret'],'drop_pending_updates':False}
         for name in ['allowed_updates','max_connections']:
             if name in saved['webhook']:params[name]=saved['webhook'][name]
-        telegram('setWebhook',params)
-        saved['phase']='source_resumed';record(saved)
+        try:telegram('setWebhook',params)
+        except Exception:failures.append('webhook')
+        saved['phase']='rollback_needs_attention' if failures else 'source_resumed'
+        saved['rollback_failures']=failures;record(saved)
+        if failures:raise RuntimeError('Source rollback needs attention; check protected journal')
     if action=='resume':
         resume(json.loads(journal.read_text()));print(json.dumps({'phase':'source_resumed','pending_updates_preserved':True}));return
     if source['fenced'] or source['guarded_tables']!=73 or webhook.get('url')!='https://ishdasiz.uz/api/telegram/webhook':
@@ -87,7 +93,7 @@ DO $$ DECLARE t record; BEGIN
  LOOP EXECUTE format('LOCK TABLE %I.%I IN SHARE ROW EXCLUSIVE MODE',t.nspname,t.relname); END LOOP;
 END $$;
 UPDATE ishdasiz_cutover.state SET enabled=true WHERE singleton;
-UPDATE cron.job SET active=false WHERE jobname='ishdasiz-osonish-refresh';
+SELECT cron.alter_job(job_id:=jobid,active:=false) FROM cron.job WHERE jobname='ishdasiz-osonish-refresh';
 COMMIT;""")
         saved['phase']='source_paused';saved['fenced_at']=datetime.datetime.now(datetime.timezone.utc).isoformat();record(saved)
         print(json.dumps({'phase':'source_paused','fenced_at':saved['fenced_at'],'pending_updates_preserved':True,'source_cron_paused':True}))
