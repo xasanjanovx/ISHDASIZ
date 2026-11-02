@@ -19,7 +19,6 @@
     "release:env:check": "node scripts/check-release-env.cjs"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.0",
     "@iconscout/react-unicons": "^2.2.5",
     "@netlify/plugin-nextjs": "^5.16.2",

@@ -9,6 +9,8 @@ declare global {
     }
 }
 
+interface TelegramInsets { top: number; bottom: number; left: number; right: number }
+
 interface TelegramWebApp {
     initData: string;
     initDataUnsafe: {
@@ -37,6 +39,13 @@ interface TelegramWebApp {
     isExpanded: boolean;
     viewportHeight: number;
     viewportStableHeight: number;
+    isFullscreen?: boolean;
+    safeAreaInset?: TelegramInsets;
+    contentSafeAreaInset?: TelegramInsets;
+    isVersionAtLeast?(version: string): boolean;
+    requestFullscreen?(): void;
+    onEvent?(event: string, callback: () => void): void;
+    offEvent?(event: string, callback: () => void): void;
     MainButton: {
         text: string;
         color: string;
@@ -151,14 +160,35 @@ export function subscribeTelegram(listener: () => void) {
 
 export function initTelegramWebApp() {
     const webApp = getTelegramWebApp();
-    if (!webApp) return;
-
-    // Tell Telegram the app is ready
-    webApp.ready();
-
-    // Expand to full height
-    webApp.expand();
-
-    // Apply theme
-    applyTelegramTheme();
+    if (!webApp?.initData) return;
+    // Each native call is independent: failure must not interrupt startup or login.
+    const safely = (action: () => void) => { try { action(); } catch { /* Unsupported host API. */ } };
+    const root = document.documentElement;
+    const syncInsets = () => {
+        for (const side of ['top', 'bottom', 'left', 'right'] as const) {
+            const system = Math.max(0, Number(webApp.safeAreaInset?.[side]) || 0);
+            const content = Math.max(0, Number(webApp.contentSafeAreaInset?.[side]) || 0);
+            root.style.setProperty(`--ish-telegram-${side}`, `${system + content}px`);
+        }
+    };
+    const fallback = () => { safely(() => webApp.expand()); syncInsets(); };
+    const events: Array<[string, () => void]> = [
+        ['safeAreaChanged', syncInsets], ['contentSafeAreaChanged', syncInsets],
+        ['fullscreenChanged', syncInsets], ['viewportChanged', syncInsets],
+        ['fullscreenFailed', fallback],
+    ];
+    syncInsets();
+    for (const [event, handler] of events) safely(() => webApp.onEvent?.(event, handler));
+    safely(() => webApp.ready());
+    safely(() => webApp.expand());
+    safely(() => {
+        const supported = webApp.isVersionAtLeast
+            ? webApp.isVersionAtLeast('8.0') : parseFloat(webApp.version) >= 8;
+        if (supported && !webApp.isFullscreen) webApp.requestFullscreen?.();
+    });
+    safely(applyTelegramTheme);
+    return () => {
+        for (const [event, handler] of events) safely(() => webApp.offEvent?.(event, handler));
+        for (const side of ['top', 'bottom', 'left', 'right']) root.style.removeProperty(`--ish-telegram-${side}`);
+    };
 }

@@ -59,3 +59,6 @@ npm run bot:polling -- --switch-from-webhook
 ## Копирование перед обновлением базы
 
 На Windows: npm run backup:database создаёт защищённый локальный архив прикладных схем public и supabase_migrations; пароль базы вводится скрыто на компьютере. npm run test:backup проверяет копирование/восстановление на отдельном локальном PostgreSQL. Реальная копия ещё не создана. Подробности и ограничения — в [описании резервного копирования](docs/database-backup.md).
+
+
+Настройка вакансий работодателей в @ishdasiz и переход на Vertex AI: [инструкция](docs/employer-channel-vertex.md).

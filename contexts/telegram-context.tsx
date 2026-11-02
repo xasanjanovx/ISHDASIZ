@@ -21,10 +21,11 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!isTelegram) return;
+        const cleanup = initTelegramWebApp();
         try {
-            initTelegramWebApp();
             const app = getTelegramWebApp(); app?.setHeaderColor('#ffffff'); app?.setBackgroundColor('#f8fafc');
         } catch { /* An unsupported native method must not prevent ordinary navigation. */ }
+        return cleanup;
     }, [isTelegram]);
 
     useEffect(() => {

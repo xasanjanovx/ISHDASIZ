@@ -1,0 +1,132 @@
+name: ishdasiz-data
+x-private: &private
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  networks: [backend]
+  logging:
+    driver: local
+    options: {max-size: "10m", max-file: "5", compress: "true"}
+
+services:
+  db:
+    <<: *private
+    image: ${POSTGRES_IMAGE:?Set the verified PostgreSQL image digest}
+    env_file:
+      - {path: "${BACKEND_DB_ENV:?Set the protected database env path}", required: true, format: raw}
+    command: [postgres, -c, config_file=/etc/postgresql/postgresql.conf, -c, cron.launch_active_jobs=off]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - db-config:/etc/postgresql-custom
+      - ./postgres-memory.conf:/etc/postgresql-custom/conf.d/ishdasiz-memory.conf:ro
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+    stop_grace_period: 1m
+    healthcheck:
+      test: [CMD, pg_isready, -U, supabase_admin, -d, restore_verify]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  rest:
+    <<: *private
+    image: ${POSTGREST_IMAGE:?Set the verified PostgREST image digest}
+    env_file:
+      - {path: "${BACKEND_REST_ENV:?Set the protected REST env path}", required: true, format: raw}
+    environment:
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_CONFIG: "false"
+      PGRST_DB_POOL: "4"
+      PGRST_DB_POOL_ACQUISITION_TIMEOUT: "5"
+      PGRST_DB_POOL_MAX_IDLETIME: "60"
+      PGRST_DB_MAX_ROWS: "1000"
+      PGRST_LOG_LEVEL: warn
+      PGRST_OPENAPI_MODE: disabled
+    depends_on:
+      db: {condition: service_healthy}
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs: ["/tmp:size=8m,mode=1777"]
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+
+  auth:
+    <<: *private
+    image: ${AUTH_IMAGE:?Set the verified Auth image digest}
+    env_file:
+      - {path: "${BACKEND_AUTH_ENV:?Set the protected Auth env path}", required: true, format: raw}
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: https://api.ishdasiz.uz
+      GOTRUE_SITE_URL: https://ishdasiz.uz
+      GOTRUE_URI_ALLOW_LIST: https://ishdasiz.uz/**,https://www.ishdasiz.uz/**
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_MAX_POOL_SIZE: "3"
+      GOTRUE_DB_MAX_IDLE_POOL_SIZE: "2"
+      GOTRUE_DB_CONN_MAX_LIFETIME: 30m
+      GOTRUE_DB_CONN_MAX_IDLE_TIME: 60s
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_ISSUER: https://api.ishdasiz.uz/auth/v1
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_LOG_LEVEL: warn
+      GOMAXPROCS: "1"
+      GOMEMLIMIT: 144MiB
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, --quiet, --spider, http://127.0.0.1:9999/health]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs: ["/tmp:size=8m,mode=1777"]
+    mem_limit: 192m
+    cpus: 0.25
+    pids_limit: 128
+
+  gateway:
+    <<: *private
+    networks: [backend, frontend]
+    image: ${GATEWAY_IMAGE:?Set the verified Nginx image digest}
+    entrypoint: [nginx, -g, "daemon off;"]
+    volumes:
+      - ./nginx.backend.conf:/etc/nginx/nginx.conf:ro
+      - ${BACKEND_KEY_MAP:?Set the protected API key map path}:/etc/nginx/ishdasiz-api-keys.conf:ro
+    ports: ["127.0.0.1:${BACKEND_BIND_PORT:-3150}:8080"]
+    depends_on:
+      rest: {condition: service_started, restart: true}
+      auth: {condition: service_healthy, restart: true}
+    healthcheck:
+      test: [CMD, wget, --quiet, --spider, http://127.0.0.1:8080/health]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 64
+
+networks:
+  backend: {internal: true}
+  frontend: {}
+volumes:
+  db-data: {external: true, name: "${DB_DATA_VOLUME:?Set the verified dedicated data volume}"}
+  db-config: {external: true, name: "${DB_CONFIG_VOLUME:?Set the persistent encryption-key volume}"}

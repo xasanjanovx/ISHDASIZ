@@ -19,7 +19,17 @@ export async function requireAccount(request: NextRequest) {
 
 export function checkSameOrigin(request: NextRequest) {
     const origin = request.headers.get('origin');
-    if (origin && origin !== new URL(request.url).origin) throw new AccountError(403, 'Недопустимый источник запроса');
+    if (!origin) return;
+    const allowed = new Set([new URL(request.url).origin]);
+    // A container may see its internal URL behind TLS termination. Trust only
+    // the configured public origin, never client-supplied forwarded headers.
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        try {
+            const configured = new URL(process.env.NEXT_PUBLIC_APP_URL);
+            if (configured.protocol === 'https:' || configured.protocol === 'http:') allowed.add(configured.origin);
+        } catch { /* An invalid configuration must not allow another origin. */ }
+    }
+    if (!allowed.has(origin)) throw new AccountError(403, 'Недопустимый источник запроса');
 }
 
 export function accountFailure(error: unknown) {

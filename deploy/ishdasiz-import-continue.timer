@@ -1,0 +1,12 @@
+[Unit]
+Description=Continue the ISHDASIZ import every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=15s
+Persistent=false
+Unit=ishdasiz-import-continue.service
+
+[Install]
+WantedBy=timers.target

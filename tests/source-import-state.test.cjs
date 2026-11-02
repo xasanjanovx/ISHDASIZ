@@ -224,6 +224,7 @@ const refreshClaim=async(patch={})=>{
  await db.exec(read('20261012130000_osonish_candidate_refresh.sql'));
  await db.exec(read('20261012143000_osonish_queue_retention.sql'));
  await db.exec(read('20261020091000_osonish_queue_performance.sql'));
+ await db.exec(read('20261031030803_osonish_deferred_batch_progress.sql'));
  const args={actor:null,id:null,request:null,start:false,max:500,...patch};
  return(await db.query('SELECT ishdasiz_claim_osonish_refresh($1,$2,$3,$4,$5) r',[args.actor,args.id,args.request,args.start,args.max])).rows[0].r;
 };
@@ -480,4 +481,31 @@ test('batch import commits five checked outcomes with source guards and refuses 
  const items=['1','2','3'].map(id=>({id,state:'active',payload:payload(id)}));
  const p=(await db.query('SELECT ishdasiz_osonish_refresh_batch($1,$2,$3::jsonb) r',[run.id,run.token,JSON.stringify(items)])).rows[0].r;
  assert.equal(p.processed,3);assert.equal(p.verified,3);assert.equal((await finishRefresh(run)).state,'completed');
+});
+
+test('batch progress is computed once, late failures roll back, and mutation helpers stay private',async()=>{
+ const run=workerRun(await refreshClaim());await candidates(run,1,['1','2','3','4','5'],5);
+ for(const role of ['anon','authenticated','service_role']){
+  for(const name of ['ishdasiz_apply_osonish_item','ishdasiz_apply_osonish_refresh_item']){
+   assert.equal((await db.query("SELECT has_function_privilege($1,oid,'EXECUTE') allowed FROM pg_proc WHERE proname=$2",[role,name])).rows[0].allowed,false);
+  }
+ }
+ const batch=items=>db.query('SELECT ishdasiz_osonish_refresh_batch($1,$2,$3::jsonb) r',[run.id,run.token,JSON.stringify(items)]);
+ await assert.rejects(batch([{id:'1',state:'active',payload:payload('1')},{id:'missing',state:'filled',payload:null}]),e=>e.code==='40001');
+ assert.equal((await db.query('SELECT count(*)::int n FROM jobs')).rows[0].n,0);
+ assert.equal((await db.query('SELECT sum(attempts)::int n FROM source_import_items')).rows[0].n,0);
+ await db.exec('BEGIN');
+ try{
+  await db.exec(`ALTER FUNCTION ishdasiz_import_summary(uuid) RENAME TO fixture_original_summary;
+   CREATE TEMP TABLE fixture_summary_calls(n integer);
+   CREATE FUNCTION ishdasiz_import_summary(p_run_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $$
+   BEGIN INSERT INTO fixture_summary_calls VALUES(1);RETURN fixture_original_summary(p_run_id);END $$;`);
+  const items=['1','2','3','4','5'].map(id=>({id,state:'active',payload:payload(id)}));
+  await db.exec('SET LOCAL ROLE service_role');
+  const result=(await batch(items)).rows[0].r;
+  await db.exec('RESET ROLE');
+  assert.equal(result.processed,5);assert.equal(result.verified,5);
+  assert.equal(result.new_imported,5);
+  assert.equal((await db.query('SELECT count(*)::int n FROM fixture_summary_calls')).rows[0].n,1);
+ }finally{await db.exec('ROLLBACK');}
 });

@@ -3,15 +3,15 @@ import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/chat/route';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 const mockGenerate = jest.fn(), mockFrom = jest.fn();
-jest.mock('@google/generative-ai', () => ({ GoogleGenerativeAI: jest.fn(() => ({ getGenerativeModel: () => ({ generateContent: (...args: unknown[]) => mockGenerate(...args) }) })) }));
+jest.mock('@/lib/ai/vertex-client', () => ({ generateVertexText: (...args: unknown[]) => mockGenerate(...args), vertexConfigured: () => Boolean(process.env.GOOGLE_CLOUD_API_KEY) }));
 jest.mock('@supabase/supabase-js', () => ({ createClient: () => ({ from: (...args: unknown[]) => mockFrom(...args) }) }));
 jest.mock('@/lib/ai/rate-limiter', () => ({ checkRateLimit: jest.fn() }));
 const id = '10000000-0000-4000-8000-000000000001', category = 'a0000001-0001-4000-8000-000000000001';
 const request = (body: unknown, origin?: string) => new NextRequest('http://localhost/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(origin ? { origin } : {}), 'x-forwarded-for': '192.0.2.10, 192.0.2.20' }, body: JSON.stringify(body) });
 let query: any, dbResult: any;
-const provider = (value: unknown) => ({ response: { text: () => JSON.stringify(value) } });
+const provider = (value: unknown) => JSON.stringify(value);
 beforeEach(() => {
-  jest.clearAllMocks(); process.env.GEMINI_API_KEY = 'synthetic-provider-key';
+  jest.clearAllMocks(); process.env.GOOGLE_CLOUD_API_KEY = 'synthetic-provider-key';
   (checkRateLimit as jest.Mock).mockReturnValue({ allowed: true });
   mockGenerate.mockResolvedValue(provider({ intent: 'clarify', profile_updates: {}, search_ready: false, response_text: 'Укажите регион' }));
   dbResult = { data: [], error: null }; query = {};
@@ -46,7 +46,7 @@ test('search returns only available public jobs and never sends contact or owner
   expect(body.jobs[0].title).toBe('Разработчик'); expect(JSON.stringify(body)).not.toMatch(/private-contact|private-handle|forged|owner/);
 });
 test('without a configured provider, keyword fallback asks a localized question without a paid request', async () => {
-  delete process.env.GEMINI_API_KEY; const response = await POST(request({ message: 'IT', lang: 'ru' })); expect(response.status).toBe(200); expect((await response.json()).response).toBe('В каком регионе ищете работу?'); expect(mockGenerate).not.toHaveBeenCalled();
+  delete process.env.GOOGLE_CLOUD_API_KEY; const response = await POST(request({ message: 'IT', lang: 'ru' })); expect(response.status).toBe(200); expect((await response.json()).response).toBe('В каком регионе ищете работу?'); expect(mockGenerate).not.toHaveBeenCalled();
 });
 test('invalid generated output falls back safely instead of trusting a system role or profile ownership', async () => {
   mockGenerate.mockResolvedValue(provider({ intent: 'system', profile_updates: { user_id: 'victim' }, search_ready: true })); const response = await POST(request({ message: 'IT', lang: 'ru' })); expect(response.status).toBe(200); expect((await response.json()).profile).toEqual({ category: 'It', category_id: category }); expect(mockFrom).not.toHaveBeenCalled();

@@ -1,3 +1,18 @@
+/* Both system and Telegram controls need space in native fullscreen mode. */
+.telegram-app {
+  --mini-top: max(env(safe-area-inset-top, 0px), var(--ish-telegram-top, 0px));
+  --mini-bottom: max(env(safe-area-inset-bottom, 0px), var(--ish-telegram-bottom, 0px));
+  --mini-left: max(env(safe-area-inset-left, 0px), var(--ish-telegram-left, 0px));
+  --mini-right: max(env(safe-area-inset-right, 0px), var(--ish-telegram-right, 0px));
+  min-height: 100dvh;
+  padding-inline: var(--mini-left) var(--mini-right);
+}
+.telegram-app .site-header { top: 0; height: calc(64px + var(--mini-top)); padding-top: var(--mini-top); padding-left: var(--mini-left); padding-right: var(--mini-right); }
+.telegram-app .site-main { padding-top: calc(64px + var(--mini-top)); }
+@media (max-width: 767px) {
+  .telegram-app .site-main { padding-bottom: calc(100px + var(--mini-bottom)); }
+  .telegram-app .site-mobile-nav { bottom: max(12px, var(--mini-bottom)); left: calc(14px + var(--mini-left)); right: calc(14px + var(--mini-right)); }
+}
 /* One canvas keeps the home sections connected without horizontal dividers. */
 .home-canvas { position: relative; background: radial-gradient(ellipse at 50% 0, #fffdf666, transparent 45%), linear-gradient(145deg, #eeeae0, #e8e8df 50%, #eee9de); }
 .home-canvas::before { content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none; background: url('/paper-grain.svg') repeat; opacity: .12; mix-blend-mode: multiply; }
