@@ -38,7 +38,9 @@ def main():
     require(manifest['table_counts'].get('ishdasiz_cutover.state')==1,'Source fence must be included in the final snapshot')
     paused=json.loads((state/'source-cutover-20261102.json').read_text())
     require(paused['phase']=='source_paused','Source must remain fenced')
-    require(datetime.datetime.fromisoformat(paused['fenced_at'])<=created,'Archive predates the source fence')
+    inventory=json.loads((folder/'source-inventory.json').read_text())
+    snapshot_started=datetime.datetime.fromisoformat(inventory['started_at'])
+    require(datetime.datetime.fromisoformat(paused['fenced_at'])<=snapshot_started,'Archive snapshot predates the source fence')
     for name in ['verify-server-database-restore.py','activate-private-backend.py','remove-target-cutover-fence.sql']:
         require((state/name).is_file(),'Missing verified destination operator: '+name)
     compose=['docker','compose','--env-file','/etc/ishdasiz-server/backend.config.env','-f',str(root/'backend-20261101/deploy/compose.data.yaml')]

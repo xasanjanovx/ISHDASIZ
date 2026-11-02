@@ -45,7 +45,9 @@ def main():
     call('public_mutation_blocked', '/rest/v1/jobs', [403], key=anon, method='POST')
     forged = service.rsplit('.', 1)[0] + '.' + 'A' * 43
     call('forged_jwt_rejected', '/rest/v1/jobs?select=id&limit=1', [401], key=anon, token=forged)
-    call('allowed_origin', '/rest/v1/regions?select=id&limit=1', [200], key=anon, origin='https://ishdasiz.uz')
+    _, allowed_cors = call('allowed_origin', '/rest/v1/regions?select=id&limit=1', [200], key=anon, origin='https://ishdasiz.uz')
+    if allowed_cors.get_all('Access-Control-Allow-Origin') != ['https://ishdasiz.uz']:
+        raise RuntimeError('browser response must contain exactly one allowed-origin header')
     call('www_origin', '/rest/v1/regions?select=id&limit=1', [200], key=anon, origin='https://www.ishdasiz.uz')
     call('foreign_origin', '/rest/v1/regions?select=id&limit=1', [403], key=anon, origin='https://foreign.invalid')
     _, cors = call('browser_preflight', '/rest/v1/regions', [204], origin='https://ishdasiz.uz', method='OPTIONS',
@@ -64,9 +66,11 @@ def main():
         raise RuntimeError('restored Auth user unavailable')
     names = ['ishdasiz-data-db-1', 'ishdasiz-data-rest-1', 'ishdasiz-data-auth-1', 'ishdasiz-data-gateway-1']
     stats = subprocess.check_output(['docker', 'stats', '--no-stream', '--format', '{{.Name}}: {{.MemUsage}}; CPU {{.CPUPerc}}', *names], text=True).splitlines()
+    state_file = pathlib.Path('/opt/ishdasiz-server/state/private-backend-state-20261101.json')
+    public_cutover = bool(json.loads(state_file.read_text()).get('public_cutover')) if state_file.exists() else False
     report = {'checks_passed': len(checks), 'checks': checks, 'container_samples': stats,
               'scope': 'loopback backend only; no emails, SMS, publications, paid requests or business mutations',
-              'public_cutover': False}
+              'public_cutover': public_cutover}
     path = pathlib.Path('/opt/ishdasiz-server/state/private-backend-verification-20261101.json')
     path.write_text(json.dumps(report, indent=2))
     path.chmod(0o600)

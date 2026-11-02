@@ -1,5 +1,7 @@
 # Vercel and server connection, 2 November 2026
 
+**Current state: the production data and Telegram switch is complete.** The website stays on Vercel at `ishdasiz.uz`; its database API is `api.ishdasiz.uz` on the server. Telegram now delivers to `bot.ishdasiz.uz`, and its menu opens the Mini App. The source cloud database remains fenced for recovery. See the completed-switch section below; earlier sections record the verified preparation.
+
 ## Verified production context
 
 The Vercel CLI authenticated to team `team_WbpLRSZwGvbfrkd3zu0WaJQa` (`xasanjanovx-2972s-projects`). `domains inspect ishdasiz.uz` confirms the apex and www belong to **ishdasiz-hp69**, project `prj_45KGAoAjrYybeunjybhM3IQfZRTF`. The similarly named `ishdasiz` project is not the primary-domain project. Production currently serves commit `f1b5d3b3f5ecd89f424c28a414c222878381fb30`, deployment `dpl_654g5WTKNPqi1REW1wVNZiSAKz2L`.
@@ -21,9 +23,9 @@ The existing apex, wildcard and CAA records were preserved. `ishdasiz.uz` and `w
 
 Six external HTTPS checks passed with normal certificate verification: API health 200, API request without key 401, bot health 200, hidden bot root 404, unsigned webhook POST 401, primary site HEAD 200. No Telegram message or transport switch occurred.
 
-## Pending data and application switch
+## Pre-switch snapshot check
 
-The target still contains the earlier verified snapshot. A fresh source read found 686 application users and 480,945 reconciliation events, compared with 684 and 480,928 in that snapshot. **Do not promote the old copy.** Source jobs remained 52,361 at this check.
+At initial preflight the target contained the earlier verified snapshot. A fresh source read found 686 application users and 480,945 reconciliation events, compared with 684 and 480,928 in that snapshot. That copy was not promoted. Source jobs remained 52,361 at this check.
 
 Prepare and verify the application against the server API first. Then coordinate a temporary source write fence and scheduler pause, take a new consistent export, restore and verify the new copy, and apply the target-only access/storage migrations. Preserve the phone-session signing secret, account data, leases, queues and a rollback copy. Switch Vercel's database configuration and the Telegram webhook only after these checks. Do not run two import/channel workers or acknowledge unsent channel events.
 
@@ -46,3 +48,35 @@ Controlled HTTP saves against the unpublished server clone also passed: authenti
 `scripts/pause-source-for-cutover.py inspect` is read-only and verified the source fence was disabled, its sole Osonish schedule active, the legacy polling container stopped, and the existing webhook on the primary site. The `pause` action saves rollback configuration, removes the webhook without dropping updates, locks the guarded application tables, enables the source fence and pauses that schedule. `resume` restores the exact source schedule/webhook only before target promotion. After production writes begin, a rollback requires reconciling those writes.
 
 `scripts/refresh-private-backend.py` defaults to a read-only preflight; it confirmed the unpublished target had no new business records. Execution requires a fresh consistent archive created after the recorded source pause. It retains the old target database as `before_cutover_20261102`, restores on the network-isolated container, verifies the archive and all data-table counts/Vault, removes the fence only from the target and reinstalls the target-only migrations. Never start both database containers on their shared volume.
+
+## Production switch completed
+
+The source was fenced at 05:48:44 UTC. Its scheduler was paused using the supported `cron.alter_job` API; direct writes to the managed cron table are denied. The initial failed pause transaction rolled back and the original webhook was restored before retry. Rollback now attempts the source SQL and webhook independently so one failure cannot prevent recovery of the other.
+
+The final exported snapshot started after the fence. Archive `20261102T054844Z-b6b400f2` contains **78,514,099 bytes**, SHA-256 `d7dc016a623740a557378b32768a27c844cc134d12b030534c1604ef419c5221`. All **100 exported data tables** matched after isolated restoration; Vault rekey/decryption passed. Baseline at promotion:
+
+| Data | Count |
+| --- | ---: |
+| Application users | 686 |
+| Jobs | 52,361 |
+| Resumes | 134 |
+| Reconciliation events | 480,954 |
+| Auth users | 1 |
+
+The prior server database is retained as `before_cutover_20261102`. The new archive also has a verified, owner-only workstation copy outside Git at `private/database-backup-20261102/20261102T054844Z-b6b400f2`. Its checksum matches the server archive. No source data or queued event was deleted.
+
+The three target-only migrations were reapplied to the fresh database. The source fence was removed only from the target. Twenty API/access checks and the eight-invariant native save test passed again; the latter rolled back all synthetic changes and retained the exact baseline counts.
+
+Vercel deployment **dpl_71g7h6HxEYdGtTEJRhnrGaVncven**, built from tracked source commit `c4db58d`, was verified before promotion, then promoted to the primary domain. Public database URL/key and the private service key now target the server; the Google Cloud Vertex secret is server-only. The production phone-session signing secret, existing SMS settings and sensitive bot/admin configuration were preserved. Source/runtime secrets were not included in the code upload.
+
+The server Node container uses `ishdasiz-web:a58ddb4` (same application code; later commits add infrastructure/operators), with actual Telegram delivery enabled. The new webhook and Mini App menu were confirmed around 05:56 UTC; no pending update was dropped. The menu points to `https://ishdasiz.uz/mini-app?source=telegram`. A later check found zero pending updates and no Telegram webhook error.
+
+Nine public website/browser-API checks passed after promotion. The browser check exposed PostgREST's wildcard CORS header being combined with the gateway's exact origin; the gateway now hides upstream CORS headers, and the smoke check requires exactly one Allow-Origin header. Public catalog requests work from the primary site; private rows, invalid keys/JWTs and foreign origins remain denied.
+
+The five-minute continuation runs through the loopback Node API using `ishdasiz-import-continue.timer`. Its separate dynamic-user service loads only its cron credential, is limited to 64 MB/10% CPU and can reach only localhost. The first run returned HTTP 202 for an import still in progress. Vercel's existing daily import/reference jobs now use the new database. Cloud cron remains inactive and PostgreSQL cron remains disabled on the target, so there is no duplicate five-minute scheduler.
+
+At the later read-only check the live database held 522,439,827 bytes and used 13 of 30 allowed connections; the continuation had added one legitimate event. A warm sample of the five application/data containers was roughly 0.4 GiB combined, without a production load claim. Docker logs remain bounded at 10 MB × 5 per container. The task-specific build builder/cache was removed, leaving about 16 GB free disk. Recovery databases, image and archives were preserved.
+
+**Remaining product work:** the unrestricted channel worker is deliberately off: the inherited queue has about 481,000 pending reconciliation events. Introduce and verify routing/scheduling for new requested publications before enabling delivery; do not replay this backlog as a migration step. Click checkout, paid schedules/broadcasts and paid media generation remain unconfigured, and no paid success is simulated. SMTP/OAuth recovery for the new Auth provider has not been configured; existing account data/password hashes were preserved. Keep the PR and source recovery copy until these remaining flows are reviewed.
+
+After production writes have started, do not simply point clients back at the frozen source. Reconcile the new target writes first. The source-resume operator refuses when the target is marked promoted.
